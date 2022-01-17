@@ -1,5 +1,19 @@
 # DolphinDB JavaScript API
 
+<p align='center'>
+    <img src='./ddb.svg' alt='DolphinDB' width='256'>
+</p>
+
+<p align='center'>
+    <a href='https://www.npmjs.com/package/dolphindb' target='_blank'>
+        <img alt='npm version' src='https://img.shields.io/npm/v/dolphindb.svg?style=flat-square&color=brightgreen' />
+    </a>
+    <a href='https://www.npmjs.com/package/dolphindb' target='_blank'>
+        <img alt='npm downloads' src='https://img.shields.io/npm/dt/dolphindb?style=flat-square&color=brightgreen' />
+    </a>
+</p>
+
+## 简介
 DolphinDB JavaScript API 封装了操作 DolphinDB 数据库的能力，如：连接数据库、执行脚本、调用函数、上传变量等
 
 ## 特性

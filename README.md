@@ -16,6 +16,8 @@
 ## 简介
 DolphinDB JavaScript API 封装了操作 DolphinDB 数据库的能力，如：连接数据库、执行脚本、调用函数、上传变量等
 
+https://www.npmjs.com/package/dolphindb
+
 ## 特性
 - 使用 WebSocket 与 DolphinDB 数据库通信，用二进制格式进行数据交换
 - 支持在浏览器环境和 Node.js 环境中运行
@@ -38,7 +40,7 @@ import DDB from 'dolphindb'
 // 初始化 WebSocket 连接地址
 let ddb = new DDB('ws://127.0.0.1:8848')
 
-// 建立到 DolphinDB 的 WebSocket 连接
+// 建立到 DolphinDB 的 WebSocket 连接（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
 await ddb.connect()
 ```
 

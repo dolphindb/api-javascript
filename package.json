@@ -5,7 +5,9 @@
     "type": "commonjs",
     "main": "./index.js",
     "browser": "./browser.js",
-    "scripts": {},
+    "scripts": {
+      "test": "tsc && node ./test.js"
+    },
     "engines": {
         "node": ">=17.3.1"
     },

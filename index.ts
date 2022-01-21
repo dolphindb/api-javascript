@@ -1617,7 +1617,7 @@ export class DDB {
         /** session id */
         const sid = parts[0]
         if (sid !== this.sid) {
-            console.log(`sid 从 ${this.sid} 变为 ${sid}`)
+            console.log(`session.id: ${this.sid} -> ${sid}`)
             this.sid = sid
         }
         

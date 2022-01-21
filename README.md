@@ -13,8 +13,10 @@
     </a>
 </p>
 
+## 中文 | [English](./README.en.md)
+
 ## 简介
-DolphinDB JavaScript API 封装了操作 DolphinDB 数据库的能力，如：连接数据库、执行脚本、调用函数、上传变量等
+DolphinDB JavaScript API 是一个 JavaScript 库，封装了操作 DolphinDB 数据库的能力，如：连接数据库、执行脚本、调用函数、上传变量等
 
 https://www.npmjs.com/package/dolphindb
 
@@ -37,7 +39,7 @@ npm install dolphindb
 ```ts
 import DDB from 'dolphindb'
 
-// 初始化 WebSocket 连接地址
+// 创建数据库对象，初始化 WebSocket 连接地址
 let ddb = new DDB('ws://127.0.0.1:8848')
 
 // 建立到 DolphinDB 的 WebSocket 连接（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
@@ -48,7 +50,7 @@ await ddb.connect()
 ```ts
 async connect (
     options?: {
-        /** 默认使用实例初始化时传入的 WebSocket 链接地址 */
+        /** 默认使用实例初始化时传入的 WebSocket 链接 */
         ws_url?: string
         
         /** 是否在建立连接后自动登录，默认 true */
@@ -85,7 +87,7 @@ console.log(result.value === 2)  // true
 - result.value 是 JavaScript 中原生的 `number` (int 的取值范围及精度可以用 JavaScript 的 number 准确表示)
 
 ```ts
-/** 可以表示所有 DolphinDB 数据库中的数据 */
+/** 可以表示所有 DolphinDB 数据库中的数据类型 */
 class DdbObj <T extends DdbValue = DdbValue> {
     /** 是否为小端 (little endian) */
     le: boolean
@@ -176,7 +178,7 @@ enum DdbType {
 }
 ```
 
-#### call 方法声明
+#### `call` 方法声明
 ```ts
 async call <T extends DdbObj> (
     /** 函数名 */
@@ -187,7 +189,7 @@ async call <T extends DdbObj> (
     
     /** 调用选项 */
     options?: {
-        /** 紧急 flag，使用 urgent worker 处理，防止被其它作业阻塞 */
+        /** 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞 */
         urgent?: boolean
         
         /** 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法) */
@@ -223,7 +225,7 @@ console.log(result.value === 2n)  // true
 
 上面例子中，通过字符串上传了一段脚本到 DolphinDB 数据库执行，并接收最后一条语句 `foo(1l, 1l)` 执行结果 result
 
-`<DdbInt>` 用于 TypeScript 推断返回值的类型
+`<DdbLong>` 用于 TypeScript 推断返回值的类型
 
 - result 是一个 `DdbLong`，也是 `DdbObj<bigint>`
 - result.form 是 `DdbForm.scalar`
@@ -232,7 +234,7 @@ console.log(result.value === 2n)  // true
 
 只要 WebSocket 连接不断开，在后续的会话中 `foo` 这个自定义函数会一直存在，可复用，比如后续通过 `await ddb.call<DdbInt>('foo', [new DdbInt(1), new DdbInt(1)])` 调用这个自定义函数
 
-#### eval 方法声明
+#### `eval` 方法声明
 ```ts
 async eval <T extends DdbObj> (
     /** 执行的脚本 */
@@ -240,7 +242,7 @@ async eval <T extends DdbObj> (
     
     /** 执行选项 */
     options: {
-        /** 紧急 flag，使用 urgent worker 处理，防止被其它作业阻塞 */
+        /** 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞 */
         urgent?: boolean
     } = { }
 ): Promise<T>
@@ -262,7 +264,7 @@ ddb.upload(['bar1', 'bar2'], [new DdbVectorDouble(a), new DdbVectorDouble(a)])
 
 只要 WebSocket 连接不断开，在后续的会话中 `bar1`, `bar2` 这些变量会一直存在，可复用
 
-#### upload 方法声明
+#### `upload` 方法声明
 ```ts
 async upload (
     /** 上传的变量名 */

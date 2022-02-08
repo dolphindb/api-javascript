@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import { WebSocket } from 'ws'
 
 import { concat, inspect, typed_array_to_buffer } from 'xshell/utils.js'
@@ -113,13 +114,21 @@ export interface DdbFunctionDefValue {
 export interface DdbSymbolExtendedValue {
     base_id: number
     base: string[]
-    value: Uint32Array
+    data: Uint32Array
 }
 
-export type DdbValue = null | boolean | number | [number, number] | bigint | string | string[] | Uint8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbFunctionDefValue | DdbSymbolExtendedValue
+export interface DdbArrayVectorBlock {
+    unit: 1 | 2 | 4
+    rows: number
+    lengths: Uint8Array | Uint16Array | Uint32Array
+    data: DdbVectorValue
+}
 
 
-export type DdbVectorValue = string | string[] | Uint8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbSymbolExtendedValue
+export type DdbValue = null | boolean | number | [number, number] | bigint | string | string[] | Uint8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbFunctionDefValue | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
+
+
+export type DdbVectorValue = string | string[] | Uint8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
 
 
 export const nulls = {
@@ -129,6 +138,11 @@ export const nulls = {
     int64: -0x80_00_00_00_00_00_00_00n,  // -922_3372_0368_5477_5808
 } as const
 
+
+export const timezone_offset = 1000 * 60 * new Date().getTimezoneOffset()
+
+
+/** 可以表示所有 DolphinDB 数据库中的数据类型 */
 export class DdbObj <T extends DdbValue = DdbValue> {
     static dec = new TextDecoder('utf-8')
     
@@ -536,23 +550,126 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         
         const rows = dv.getUint32(0, le)
         
-        const i_items_start = 8
+        let i_items_start = 8
         
-        const [len_items, value] = this.parse_vector_items(
-            buf.subarray(i_items_start),
-            le,
-            type,
-            rows
-        )
+        if (type < 64 || type >= 128) {
+            const [len_items, value] = this.parse_vector_items(
+                buf.subarray(i_items_start),
+                le,
+                type,
+                rows
+            )
+            
+            return new this({
+                le,
+                form: DdbForm.vector,
+                type,
+                length: i_items_start + len_items,
+                cols: 1,
+                rows,
+                value,
+            })
+        }
+        
+        
+        // array vector
+        
+        // av = array(INT[], 0, 3)
+        // append!(av, [1..4])
+        // append!(av, [1..70000])
+        // av
+        
+        // <Buffer 44 01  type = array vector, form = vector
+        // 02 00 00 00 74 11 01 00 rows = 2, cols = 70004 (0x011174)
+        
+        // block 0
+        // 01 00 block.rows = 1
+        // 04 block.unit = 4
+        // 00 reserved
+        // 04 00 00 00 block.lengths = [4]
+        // 01 00 00 00 02 00 00 00 03 00 00 00 04 00 00 00 block.data
+        
+        // block 1
+        // 01 00 block.rows = 1
+        // 04 block.unit = 4
+        // 00 reserved
+        // 70 11 01 00 block.lengths = [70000 (0x00011170)]
+        // 01 00 00 00 02 00 00 00 ... 279992 more bytes> block.data
+        
+        const cols = dv.getUint32(4, le)
+        
+        let blocks: DdbArrayVectorBlock[] = [ ]
+        
+        let i_block_start = i_items_start
+        
+        // 解析一个 block
+        for (let i_row = 0;  i_row < rows;  ) {
+            /** 对应 array vector 中元素个数 */
+            const rows = dv.getUint16(i_block_start, le)
+            
+            /** 每个 length 占用的字节数 */
+            const unit = dv.getUint8(i_block_start + 2)
+            
+            /** array vector 每个元素的子元素长度 */
+            let lengths: Uint32Array | Uint16Array | Uint8Array
+            
+            const i_lengths_start = i_block_start + 4
+            const i_data_start = i_lengths_start + rows * unit
+            
+            const lengths_buf = buf.slice(
+                i_lengths_start,
+                i_data_start
+            )
+            
+            switch (unit) {
+                case 1:
+                    lengths = lengths_buf
+                    break
+                
+                case 2:
+                    lengths = new Uint16Array(lengths_buf.buffer)
+                    break
+                
+                case 4:
+                    lengths = new Uint32Array(lengths_buf.buffer)
+                    break
+                    
+                default:
+                    throw new Error(`array vector 存在非法 unit = ${unit}`)
+            }
+            
+            let total_length = 0
+            for (let i = 0;  i < lengths.length;  i++)
+                total_length += lengths[i]
+            
+            const [len_items, data] = this.parse_vector_items(
+                buf.subarray(i_data_start),
+                le,
+                type - 64,
+                total_length
+            )
+            
+            blocks.push({
+                unit,
+                rows,
+                lengths,
+                data
+            })
+            
+            i_block_start = i_data_start + len_items
+            
+            i_row += rows
+        }
+        
         
         return new this({
             le,
             form: DdbForm.vector,
             type,
-            length: i_items_start + len_items,
-            cols: 1,
+            length: i_block_start,
+            cols,
             rows,
-            value,
+            value: blocks
         })
     }
     
@@ -700,7 +817,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 const value_start = 8 + base_length
                 const value_end = value_start + length * 4
                 
-                const value = new Uint32Array(
+                const data = new Uint32Array(
                     buf.buffer.slice(
                         buf.byteOffset + value_start,
                         buf.byteOffset + value_end
@@ -712,7 +829,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     {
                         base_id,
                         base,
-                        value
+                        data
                     }
                 ]
             }
@@ -894,6 +1011,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         
                         case DdbType.duration:
                             return [value as Uint8Array]
+                            
+                        case DdbType.handle:
+                            throw new Error('DolphinDB Server 不支持 handle 的反序列化')
                         
                         default:
                             throw new Error(`${DdbType[type]} 暂时不支持序列化`)
@@ -902,6 +1022,18 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 
                 case DdbForm.vector:
                 case DdbForm.pair:
+                    // pack array vector
+                    if (form === DdbForm.vector && 64 <= type && type < 128)
+                        return [
+                            Uint32Array.of(this.rows, this.cols),
+                            ... (this.value as DdbArrayVectorBlock[]).map(block => ([
+                                Uint16Array.of(block.rows),
+                                Uint8Array.of(block.unit, 0),
+                                block.lengths,
+                                block.data as any
+                            ])).flat()
+                        ]
+                    
                     return [
                         Uint32Array.of(this.rows, 1),
                         ... DdbObj.pack_vector_body(value as DdbVectorValue, type, this.rows)
@@ -1063,6 +1195,20 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 return bufs
             }
             
+            
+            case DdbType.symbol_extended: {
+                const { base_id, base, data } = value as DdbSymbolExtendedValue
+                
+                return [
+                    Uint32Array.of(
+                        base_id,
+                        base.length,
+                    ),
+                    ...this.pack_vector_body(base, DdbType.string, base.length),
+                    data
+                ]
+            }
+            
             default:
                 throw new Error(`vector ${DdbType[type]} 暂不支持序列化`)
         }
@@ -1080,6 +1226,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     return tname
                 
                 case DdbForm.vector:
+                    if (64 <= this.type && this.type < 128)
+                        return `${DdbType[this.type - 64]}[][${this.rows}]`
                     return `${tname}[${this.rows}]`
                 
                 case DdbForm.pair:
@@ -1118,6 +1266,19 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         })()
         
         return `${type.blue}(${ this.name ? `${inspect(this.name)}, ` : '' }${data})`
+    }
+    to_dict <T = Record<string, any>> () {
+        if (this.form !== DdbForm.dict)
+            throw new Error('this.form 不是 dict, 不能转换为 Object')
+        
+        const [{ value: keys }, { value: values }] = this.value as [DdbObj<DdbObj[]>, DdbObj<DdbObj[]>]
+        
+        let obj = { }
+        
+        for (let i = 0;  i < this.rows;  i++)
+            obj[keys[i] as any] = values[i].value
+        
+        return obj as T
     }
 }
 
@@ -1265,6 +1426,25 @@ export class DdbFunction extends DdbObj<DdbFunctionDefValue> {
 }
 
 
+export function date2str (date: number) {
+    return date === nulls.int32 ? 
+        ''
+    :
+        dayjs(
+            timezone_offset + 1000 * 3600 * 24 * date
+        ).format('YYYY.MM.DD')
+}
+
+export function timestamp2str (timestamp: bigint) {
+    return timestamp === nulls.int64 ?
+        ''
+    :
+        dayjs(
+            timezone_offset + Number(timestamp)
+        ).format('YYYY.MM.DD HH:mm:ss.SSS')
+}
+
+
 export class DDB {
     port = 8848
     
@@ -1407,7 +1587,7 @@ export class DDB {
     }
     
     
-    /** rpc through websocket (function command)  
+    /** rpc through websocket (function/script/variable command)  
         - type: API 类型: 'script' | 'function' | 'variable'
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
@@ -1519,7 +1699,7 @@ export class DDB {
         {
             urgent
         }: {
-            /** 紧急 flag，使用 urgent worker 处理，防止被其它作业阻塞 */
+            /** 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞 */
             urgent?: boolean
         } = { }
     ) {
@@ -1531,7 +1711,7 @@ export class DDB {
         - func: 函数名
         - args?: `[ ]` 调用参数 (传入的原生 string 和 boolean 会被自动转换为 DdbObj<string> 和 DdbObj<boolean>)
         - options?: 调用选项
-            - urgent?: 紧急 flag，使用 urgent worker 处理，防止被其它作业阻塞
+            - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞
             - node?: 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法)
             - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)
             - func_type?: 设置 node 参数时必传，需指定函数类型，其它情况下不传

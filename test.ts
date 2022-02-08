@@ -25,8 +25,8 @@ import { DDB, DdbForm, DdbInt, DdbType, DdbVectorDouble } from './index.js'
     console.log('测试 ddb.call 上传不同类型的变量')
     const result1 = await ddb.call('typestr', [new DdbVectorDouble([0.1, 0.2, 0.3])])
     console.log(result1)
-    assert(result0.form === DdbForm.scalar)
-    assert(result0.type === DdbType.string)
+    assert(result1.form === DdbForm.scalar)
+    assert(result1.type === DdbType.string)
     assert(result1.value === 'FAST DOUBLE VECTOR')
     
     

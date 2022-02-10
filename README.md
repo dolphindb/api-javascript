@@ -44,7 +44,7 @@ npm install dolphindb
 ## Usage
 ### 0. Initialize and connect to DolphinDB
 ```ts
-import DDB from 'dolphindb'
+import { DDB } from 'dolphindb'
 // The import method for existing projects using CommonJS modules is const { DDB } = require('dolphindb')
 
 // Create a database object and initialize the WebSocket URL

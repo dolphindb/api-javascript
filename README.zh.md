@@ -28,16 +28,24 @@ https://www.npmjs.com/package/dolphindb
 
 ## 安装
 ```bash
-# 在机器上安装最新版的 Node.js 及浏览器
+# 1. 在机器上安装最新版的 Node.js 及浏览器
 
-# 在项目中安装 npm 包
+# 2. 创建新项目
+mkdir dolphindb-example
+cd dolphindb-example
+npm init --yes
+# 用编辑器打开 package.json 文件，在 "main": "./index.js", 下面加入一行 "type": "module",
+# 这样能够启用 ECMAScript modules，在后面代码中可以使用 import { DDB } from 'dolphindb' 导入 npm 包
+
+# 3. 在项目中安装 npm 包
 npm install dolphindb
 ```
 
 ## 用法
 ### 0. 初始化并连接到 DolphinDB
 ```ts
-import DDB from 'dolphindb'
+import { DDB } from 'dolphindb'
+// 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = require('dolphindb')
 
 // 创建数据库对象，初始化 WebSocket 连接地址
 let ddb = new DDB('ws://127.0.0.1:8848')

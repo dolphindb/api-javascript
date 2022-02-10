@@ -28,9 +28,16 @@ https://www.npmjs.com/package/dolphindb
 
 ## Installation
 ```bash
-# Install the latest version of Node.js and browser on the machine
+# 1. Install the latest version of Node.js and browser on the machine
 
-# Install npm packages in your project
+# 2. Create a new project (skip this step if you already have a project)
+mkdir dolphindb-example
+cd dolphindb-example
+npm init --yes
+# Open the package.json file with an editor, add the line "type": "module", below "main": "./index.js",
+# This enables the use of ECMAScript modules, and in the code behind you can use import { DDB } from 'dolphindb' to import npm packages
+
+# 3. Install npm packages in your project
 npm install dolphindb
 ```
 
@@ -38,6 +45,7 @@ npm install dolphindb
 ### 0. Initialize and connect to DolphinDB
 ```ts
 import DDB from 'dolphindb'
+// The import method for existing projects using CommonJS modules is const { DDB } = require('dolphindb')
 
 // Create a database object and initialize the WebSocket URL
 let ddb = new DDB('ws://127.0.0.1:8848')

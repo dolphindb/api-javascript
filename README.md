@@ -79,7 +79,8 @@ async connect (
 ```ts
 import { DdbInt } from 'dolphindb'
 
-const result = await ddb.call<DdbInt>('add', [new DdbInt(1), new DdbInt(1)])
+const result = await ddb.call('add', [new DdbInt(1), new DdbInt(1)])
+// TypeScript: const result = await ddb.call<DdbInt>('add', [new DdbInt(1), new DdbInt(1)])
 
 console.log(result.value === 2)  // true
 ```
@@ -219,14 +220,16 @@ async call <T extends DdbObj> (
 ### 2. Execute Script
 #### Example
 ```ts
-import type { DdbLong } from 'dolphindb'
-
-const result = await ddb.eval<DdbLong>(
+const result = await ddb.eval(
     'def foo (a, b) {\n' +
     '    return a + b\n' +
     '}\n' +
     'foo(1l, 1l)\n'
 )
+
+// TypeScript:
+// import type { DdbLong } from 'dolphindb'
+// const result = await ddb.eval<DdbLong>(...)
 
 console.log(result.value === 2n)  // true
 ```

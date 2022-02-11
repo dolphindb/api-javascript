@@ -187,6 +187,40 @@ enum DdbType {
 }
 ```
 
+##### 不在快捷类中的类型，比如 DolphinDB 中的 datetime 类型, 可以指定 form 和 type 创建 DdbObj 对象
+```ts
+const obj = new DdbObj({
+    form: DdbForm.scalar,
+    type: DdbType.datetime,
+    value: 1644573600,
+    length: 0
+})
+```
+
+value 的在 js 中对应类型及取值可以参考 ddb.eval 返回的结果 (见后文 `eval` 方法声明)
+
+```ts
+const obj = await ddb.eval('2022.02.11 10:00:00')
+console.log(obj.form === DdbForm.scalar)
+console.log(obj.type === DdbType.datetime)
+console.log(obj.value)
+```
+
+##### 再比如创建一个 set
+```ts
+// 参考 ddb.eval
+// const obj = await ddb.eval('set([1, 2, 3])')
+// console.log(obj.value)
+
+const obj = new DdbObj({
+    form: DdbForm.set,
+    type: DdbType.int,
+    value: Int32Array.of(1, 2, 3),
+    length: 0
+})
+```
+
+
 #### `call` 方法声明
 ```ts
 async call <T extends DdbObj> (

@@ -187,6 +187,40 @@ enum DdbType {
 }
 ```
 
+##### For types that are not in the utility classes, such as the datetime type in DolphinDB, we can specify form and type to create a DdbObj object
+```ts
+const obj = new DdbObj({
+    form: DdbForm.scalar,
+    type: DdbType.datetime,
+    value: 1644573600,
+    length: 0
+})
+```
+
+The corresponding type and value of value property in js can refer to the result returned by `ddb.eval` (see below: `eval` Method Declaration)
+
+```ts
+const obj = await ddb.eval('2022.02.11 10:00:00')
+console.log(obj.form === DdbForm.scalar)
+console.log(obj.type === DdbType.datetime)
+console.log(obj.value)
+```
+
+##### Another example is to create a set
+```ts
+// refer to ddb.eval
+// const obj = await ddb.eval('set([1, 2, 3])')
+// console.log(obj.value)
+
+const obj = new DdbObj({
+    form: DdbForm.set,
+    type: DdbType.int,
+    value: Int32Array.of(1, 2, 3),
+    length: 0
+})
+```
+
+
 #### `call` Method Declaration
 ```ts
 async call <T extends DdbObj> (

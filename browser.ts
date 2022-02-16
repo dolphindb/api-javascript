@@ -1228,7 +1228,11 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     to_cols () {
         return (this.value as DdbObj[]).map(col => {
-            let col_: any = {
+            let col_: {
+                title: string
+                dataIndex: string
+                render?: any
+            } = {
                 title: col.name,
                 dataIndex: col.name,
             }
@@ -1477,6 +1481,11 @@ export class DDB {
         )[0]
     )
     
+    /** print message handler */
+    printer (message: string) {
+        console.log(message)
+    }
+    
     /** resolver, rejector, promise of last rpc */
     presolver (buf: Uint8Array) { }
     prejector (error: Error) { }
@@ -1506,7 +1515,7 @@ export class DDB {
             username = 'admin',
             password = '123456',
         }: {
-            /** 默认使用实例初始化时传入的 WebSocket 链接 */
+            /** 默认使用实例初始化时传入的 WebSocket URL */
             ws_url?: string
             
             /** 是否在建立连接后自动登录，默认 true */
@@ -1556,11 +1565,16 @@ export class DDB {
         
         ws.addEventListener('message', ({ data: buf }) => {
             try {
-                this.presolver(
-                    this.parse_message(
-                        new Uint8Array(buf as ArrayBuffer)
-                    )
+                const { type, data } = this.parse_message(
+                    new Uint8Array(buf as ArrayBuffer)
                 )
+                
+                if (type === 'message') {
+                    this.printer(data as string)
+                    return
+                }
+                
+                this.presolver(data as Uint8Array)
             } catch (error) {
                 this.prejector(error)
             }
@@ -1677,7 +1691,7 @@ export class DDB {
         
         const message = concat([
             this.enc.encode(
-                `API ${this.sid} ${command.length}${ urgent ? ` / 1_1_8_8` : '' }\n`
+                `API2 ${this.sid} ${command.length}${ urgent ? ` / 1_1_8_8` : '' }\n`
             ),
             command,
             ... args.map((arg: DdbObj) =>
@@ -1787,6 +1801,19 @@ export class DDB {
     
     /** 解析服务端响应报文，返回去掉 header 的 data buf */
     parse_message (buf: Uint8Array) {
+        // MSG\n
+        // <message>\0
+        // 'M'.codePointAt(0).to_hex_str()
+        if (buf[0] === 0x4d && buf[1] === 0x53 && buf[2] === 0x47 && buf[3] === 0x0a)
+            return {
+                type: 'message' as const,
+                data: 
+                    this.dec.decode(
+                        buf.subarray(4)
+                    )
+            }
+        
+        
         // '1166953221 1 1\n'
         // 'OK\n'
         // '\x04\x00\x02\x00\x00\x00'
@@ -1821,7 +1848,10 @@ export class DDB {
         if (message !== 'OK')
             throw new Error(message)
         
-        return buf.subarray(i_lf_1 + 1)
+        return {
+            type: 'object' as const,
+            data: buf.subarray(i_lf_1 + 1)
+        }
     }
     
     

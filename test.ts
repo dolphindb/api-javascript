@@ -30,8 +30,9 @@ import { DDB, DdbForm, DdbInt, DdbType, DdbVectorDouble } from './index.js'
     assert(result1.value === 'FAST DOUBLE VECTOR')
     
     
-    console.log('测试 array vector')
+    console.log('测试 array vector 和 print message')
     const av = await ddb.eval(
+        'print("test print message 中文")\n' +
         'av = array(INT[], 0, 3)\n' +
         'append!(av, [1..4])\n' +
         'append!(av, [1..70000])\n' +

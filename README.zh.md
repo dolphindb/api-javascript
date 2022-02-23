@@ -320,3 +320,18 @@ async upload (
 ): Promise<void>
 ```
 
+
+### Notes
+```ts
+import { nulls, DdbInt, timestamp2str } from 'dolphindb'
+
+// 创建 DolphinDB 空值 (最小的 32-bit 整数)
+new DdbInt(nulls.int32)
+
+// 将 DolphinDB 中的 timestamp 格式化为 string
+timestamp2str(
+    (
+        await ddb.call<DdbObj<bigint>>('now', [false])
+    ).value
+) === '2022.02.23 17:23:13.494'
+```

@@ -1216,6 +1216,21 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     }
     
     
+    to_dict <T = Record<string, any>> () {
+        if (this.form !== DdbForm.dict)
+            throw new Error('this.form 不是 dict, 不能转换为 Object')
+        
+        const [{ value: keys }, { value: values }] = this.value as [DdbObj<DdbObj[]>, DdbObj<DdbObj[]>]
+        
+        let obj = { }
+        
+        for (let i = 0;  i < this.rows;  i++)
+            obj[keys[i] as any] = values[i].value
+        
+        return obj as T
+    }
+    
+    
     [inspect.custom] () {
         const type = (() => {
             const tname = DdbType[this.type]
@@ -1267,19 +1282,6 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         })()
         
         return `${type.blue}(${ this.name ? `${inspect(this.name)}, ` : '' }${data})`
-    }
-    to_dict <T = Record<string, any>> () {
-        if (this.form !== DdbForm.dict)
-            throw new Error('this.form 不是 dict, 不能转换为 Object')
-        
-        const [{ value: keys }, { value: values }] = this.value as [DdbObj<DdbObj[]>, DdbObj<DdbObj[]>]
-        
-        let obj = { }
-        
-        for (let i = 0;  i < this.rows;  i++)
-            obj[keys[i] as any] = values[i].value
-        
-        return obj as T
     }
 }
 
@@ -1496,7 +1498,7 @@ export class DDB {
         let ddb = new DDB('ws://127.0.0.1:8848')
         let ddb_secure = new DDB('wss://dolphindb.com')
     */
-    constructor (url?: string) {
+    constructor (url: string) {
         this.url = url
     }
     

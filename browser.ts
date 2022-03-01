@@ -52,6 +52,7 @@ export enum DdbType {
     complex = 34,
     point = 35,
     duration = 36,
+    object = 37,
     
     symbol_extended = 145,
 }
@@ -1595,11 +1596,11 @@ export class DDB {
                     const { type, data } = this.parse_message(buf)
                     
                     if (type === 'message') {
-                        this.printer(data as string)
+                        this.printer(data)
                         return
                     }
                     
-                    this.presolver(data as Uint8Array)
+                    this.presolver(data)
                 } catch (error) {
                     this.prejector(error)
                 }

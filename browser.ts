@@ -1,5 +1,5 @@
 import dayjs from 'dayjs'
-import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat'
+import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
 
 import 'xshell/prototype.browser'

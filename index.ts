@@ -1,6 +1,6 @@
 import { WebSocket } from 'ws'
 import dayjs from 'dayjs'
-import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat'
+import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
 
 import { concat, inspect, typed_array_to_buffer } from 'xshell/utils.js'

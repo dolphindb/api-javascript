@@ -1216,21 +1216,6 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     }
     
     
-    to_dict <T = Record<string, any>> () {
-        if (this.form !== DdbForm.dict)
-            throw new Error('this.form 不是 dict, 不能转换为 Object')
-        
-        const [{ value: keys }, { value: values }] = this.value as [DdbObj<DdbObj[]>, DdbObj<DdbObj[]>]
-        
-        let obj = { }
-        
-        for (let i = 0;  i < this.rows;  i++)
-            obj[keys[i] as any] = values[i].value
-        
-        return obj as T
-    }
-    
-    
     [inspect.custom] () {
         const type = (() => {
             const tname = DdbType[this.type]
@@ -1282,6 +1267,21 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         })()
         
         return `${type.blue}(${ this.name ? `${inspect(this.name)}, ` : '' }${data})`
+    }
+    
+    
+    to_dict <T = Record<string, any>> () {
+        if (this.form !== DdbForm.dict)
+            throw new Error('this.form is not DdbForm.dict, cannot convert to Object')
+        
+        const [{ value: keys }, { value: values }] = this.value as [DdbObj<DdbObj[]>, DdbObj<DdbObj[]>]
+        
+        let obj = { }
+        
+        for (let i = 0;  i < this.rows;  i++)
+            obj[keys[i] as any] = values[i].value
+        
+        return obj as T
     }
 }
 
@@ -1353,7 +1353,7 @@ export class DdbDouble extends DdbObj<number> {
 }
 
 export class DdbVectorInt extends DdbObj<Int32Array> {
-    constructor (value: number[]) {
+    constructor (value: number[], name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.int,
@@ -1361,45 +1361,49 @@ export class DdbVectorInt extends DdbObj<Int32Array> {
             rows: value.length,
             cols: 1,
             value: Int32Array.from(value),
+            name,
         })
     }
 }
 
 export class DdbVectorString extends DdbObj<string[]> {
-    constructor (value: string[]) {
+    constructor (value: string[], name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.string,
             length: 0,
             rows: value.length,
             cols: 1,
-            value
+            value,
+            name,
         })
     }
 }
 
 export class DdbVectorDouble extends DdbObj<Float64Array> {
-    constructor (value: number[]) {
+    constructor (value: number[], name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.double,
             length: 0,
             rows: value.length,
             cols: 1,
-            value: Float64Array.from(value)
+            value: Float64Array.from(value),
+            name,
         })
     }
 }
 
 export class DdbVectorAny extends DdbObj {
-    constructor (value: DdbObj<DdbValue>[]) {
+    constructor (value: DdbObj<DdbValue>[], name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.any,
             length: 0,
             rows: value.length,
             cols: 1,
-            value
+            value,
+            name,
         })
     }
 }

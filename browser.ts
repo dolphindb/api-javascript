@@ -1,4 +1,6 @@
 import dayjs from 'dayjs'
+import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat'
+dayjs.extend(DayjsCustomParseFormat)
 
 import 'xshell/prototype.browser'
 import { concat } from 'xshell/utils.browser'
@@ -1318,6 +1320,17 @@ export class DdbBool extends DdbObj<boolean> {
     }
 }
 
+export class DdbChar extends DdbObj<string> {
+    constructor (value: string) {
+        super({
+            form: DdbForm.scalar,
+            type: DdbType.char,
+            length: 1,
+            value,
+        })
+    }
+}
+
 export class DdbInt extends DdbObj<number> {
     constructor (value: number) {
         super({
@@ -1356,6 +1369,39 @@ export class DdbDouble extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.double,
+            length: 8,
+            value
+        })
+    }
+}
+
+export class DdbDateTime extends DdbObj<number> {
+    constructor (value: number) {
+        super({
+            form: DdbForm.scalar,
+            type: DdbType.datetime,
+            length: 4,
+            value
+        })
+    }
+}
+
+export class DdbTimeStamp extends DdbObj<bigint> {
+    constructor (value: bigint) {
+        super({
+            form: DdbForm.scalar,
+            type: DdbType.timestamp,
+            length: 8,
+            value
+        })
+    }
+}
+
+export class DdbNanoTimeStamp extends DdbObj<bigint> {
+    constructor (value: bigint) {
+        super({
+            form: DdbForm.scalar,
+            type: DdbType.nanotimestamp,
             length: 8,
             value
         })
@@ -1443,13 +1489,22 @@ export class DdbFunction extends DdbObj<DdbFunctionDefValue> {
 }
 
 
-export function date2str (date: number) {
+export function date2str (date: number, format = 'YYYY.MM.DD') {
     return date === nulls.int32 ? 
         ''
     :
         dayjs(
             timezone_offset + 1000 * 3600 * 24 * date
-        ).format('YYYY.MM.DD')
+        ).format(format)
+}
+
+export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') {
+    return datetime === nulls.int32 ?
+        ''
+    :
+        dayjs(
+            timezone_offset + 1000 * datetime
+        ).format(format)
 }
 
 export function timestamp2str (timestamp: bigint) {
@@ -1459,6 +1514,42 @@ export function timestamp2str (timestamp: bigint) {
         dayjs(
             timezone_offset + Number(timestamp)
         ).format('YYYY.MM.DD HH:mm:ss.SSS')
+}
+
+export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss') {
+    return nanotimestamp === nulls.int64 ?
+        ''
+    :
+        dayjs(
+            timezone_offset + (Number(nanotimestamp) / 1000000)
+        ).format(format) + `.${nanotimestamp % 1000000000n}`
+}
+
+/** parse nano timestamp string to bigint value 
+    - str: nano timestamp string, 如果为空字符串会返回对应的空值 (nulls.int64)
+    - format?: Format string up to and including seconds of the passed string, default is `YYYY.MM.DD HH:mm:ss`
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
+*/
+export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss') {
+    if (!str)
+        return nulls.int64
+    
+    if (str.length - format.length !== 9)
+        throw new Error('nanotimestamp 字符串长度减格式串长度应该等于 9')
+    
+    return (
+            BigInt(
+                -timezone_offset +
+                dayjs(
+                    str.slice(0, format.length),
+                    format
+                ).valueOf()
+            ) * 1000000n
+        +
+            BigInt(
+                str.slice(format.length)
+            )
+    )
 }
 
 

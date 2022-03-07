@@ -46,6 +46,7 @@ npm install dolphindb
 ```ts
 import { DDB } from 'dolphindb'
 // 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = require('dolphindb')
+// 在浏览器中使用: import { DDB } form 'dolphindb/browser.js'
 
 // 创建数据库对象，初始化 WebSocket 连接地址
 let ddb = new DDB('ws://127.0.0.1:8848')

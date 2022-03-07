@@ -199,7 +199,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     le,
                     form, 
                     type,
-                    length: 2 + length,
+                    length: i_data + length,
                     value,
                 })
             }
@@ -208,7 +208,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             case DdbForm.pair:
             case DdbForm.set: {
                 let vector = this.parse_vector(buf_data, le, type)
-                vector.length += 2
+                vector.length += i_data
                 vector.form = form
                 return vector
             }
@@ -257,26 +257,26 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 for (let i = 0;  i < cols;  i++) {
                     const type = buf_data[i_start] as DdbType
                     
-                    const i_vector_head = i_start + 2
-                    
                     let col = this.parse_vector(
-                        buf_data.subarray(i_vector_head),
+                        buf_data.subarray(i_start + 2),
                         le,
                         type
                     )
+                    
+                    col.length += 2
                     
                     col.name = colnames[i]
                     
                     value[i] = col
                     
-                    i_start = i_vector_head + col.length
+                    i_start += col.length
                 }
                 
                 return new this({
                     le,
                     form,
                     type,
-                    length: i_start,
+                    length: i_data + i_start,
                     name,
                     rows,
                     cols,
@@ -315,7 +315,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     le,
                     form,
                     type,
-                    length: 2 + keys.length + values.length,
+                    length: i_data + keys.length + values.length,
                     rows: keys.rows,
                     cols: 2,
                     value: [
@@ -361,7 +361,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     le,
                     form, 
                     type,
-                    length: 11 + len_items,
+                    length: i_data + 11 + len_items,
                     rows,
                     cols,
                     datatype,
@@ -375,7 +375,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     le,
                     form,
                     type,
-                    length: buf_data.length,
+                    length: i_data + buf_data.length,
                     value: buf_data
                 })
         }
@@ -1199,7 +1199,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     return `pair<${tname}>`
                 
                 case DdbForm.set:
-                    return `set<${tname}>`
+                    return `set<${tname}>[${this.rows}]`
                 
                 case DdbForm.table:
                     return `table[${this.rows} rows][${this.cols} cols]`
@@ -1261,19 +1261,28 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     
     to_rows <T extends Record<string, any> = Record<string, any>> () {
+        if (this.form !== DdbForm.table)
+            throw new Error('this.form is not DdbForm.table, cannot call to_rows')
+        
         let rows = new Array<T>(this.rows)
         
         for (let i = 0;  i < this.rows;  i++) {
             let row: any = { }
             for (let j = 0;  j < this.cols;  j++) {
-                const c: DdbObj = this.value[j]
+                const { type, name, value }: DdbObj = this.value[j]  // column
                 
-                if (c.type === DdbType.ipaddr) {
-                    row[c.name] = (c.value as Uint8Array).subarray(16 * i, 16 * (i + 1))
-                    continue
+                switch (type) {
+                    case DdbType.bool:
+                        row[name] = Boolean(value[i])
+                        break
+                    
+                    case DdbType.ipaddr:
+                        row[name] = (value as Uint8Array).subarray(16 * i, 16 * (i + 1))
+                        break
+                        
+                    default:
+                        row[name] = value[i]
                 }
-                
-                row[c.name] = c.value[i]
             }
             rows[i] = row
         }

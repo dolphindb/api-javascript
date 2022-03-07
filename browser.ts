@@ -1280,6 +1280,12 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         row[name] = (value as Uint8Array).subarray(16 * i, 16 * (i + 1))
                         break
                         
+                    case DdbType.symbol_extended: {
+                        const { base, data } = value as DdbSymbolExtendedValue
+                        row[name] = base[data[i]]
+                        break
+                    }
+                    
                     default:
                         row[name] = value[i]
                 }
@@ -1733,7 +1739,10 @@ export class DDB {
             )
         
         if (login)
-            await this.call('login', [username, password], { urgent: true })
+            if (this.python)
+                await this.eval(`login(${username.quote('double')}, ${password.quote('double')})`, { urgent: true })
+            else
+                await this.call('login', [username, password], { urgent: true })
     }
     
     

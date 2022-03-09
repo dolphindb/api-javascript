@@ -1529,6 +1529,7 @@ export function date2str (date: number, format = 'YYYY.MM.DD') {
         ).format(format)
 }
 
+
 export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') {
     return datetime === nulls.int32 ?
         ''
@@ -1538,47 +1539,110 @@ export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') 
         ).format(format)
 }
 
-export function timestamp2str (timestamp: bigint) {
+
+/** format timestamp (bigint) to string 
+    - timestamp: bigint value
+    - format?:  
+        format string, default to `YYYY.MM.DD HH:mm:ss.SSS`  
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
+*/
+export function timestamp2str (timestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     return timestamp === nulls.int64 ?
         ''
     :
         dayjs(
             timezone_offset + Number(timestamp)
-        ).format('YYYY.MM.DD HH:mm:ss.SSS')
+        ).format(format)
 }
 
-export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss') {
-    return nanotimestamp === nulls.int64 ?
-        ''
-    :
-        dayjs(
-            timezone_offset + (Number(nanotimestamp) / 1000000)
-        ).format(format) + `.${nanotimestamp % 1000000000n}`
-}
 
-/** parse nano timestamp string to bigint value 
-    - str: nano timestamp string, 如果为空字符串会返回对应的空值 (nulls.int64)
-    - format?: 对应传入字符串的到秒之前 (包括) 的格式串，默认是 `YYYY.MM.DD HH:mm:ss`
+/** parse timestamp string to bigint value  
+    - str: timestamp string, If it is an empty string, it will return the corresponding empty value (nulls.int64)
+    - format?:  
+        The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSS`  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
-export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss') {
+export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
+    if (!str)
+        return nulls.int64
+        
+    if (str.length !== format.length)
+        throw new Error('The length of the timestamp string is not equal to the length of the format string')
+    
+    return BigInt(
+        -timezone_offset +
+        dayjs(str, format).valueOf()
+    )
+}
+
+
+/** format nanotimestamp value (bigint) to string 
+    - nanotimestamp: bigint value
+    - format?:  
+        format string, default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
+        Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
+*/
+export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
+    if (nanotimestamp === nulls.int64)
+        return ''
+    
+    const i_second_start = format.indexOf('ss')
+    if (i_second_start === -1)
+        throw new Error('The format string must contain the format for seconds (ss)')
+    
+    const i_second_end = i_second_start + 2
+    
+    const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
+    if (i_nanosecond_start === -1)
+        throw new Error('The format string must contain the format for nanoseconds (SSSSSSSSS)')
+    
+    return (
+        dayjs(
+            timezone_offset + (Number(nanotimestamp) / 1000000)
+        ).format(
+            format.slice(0, i_second_end)
+        ) + 
+        format.slice(i_second_end, i_nanosecond_start) + 
+        String(nanotimestamp % 1000000000n)
+    )
+}
+
+/** parse nano timestamp string to bigint value  
+    - str: nano timestamp string, If it is an empty string, it will return the corresponding empty value (nulls.int64)
+    - format?:  
+        The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
+        Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
+*/
+export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
     if (!str)
         return nulls.int64
     
-    if (str.length - format.length !== 9)
-        throw new Error('nanotimestamp 字符串长度减格式串长度应该等于 9')
+    if (str.length !== format.length)
+        throw new Error('nanotimestamp string length is not equal to format string length')
+    
+    const i_second_start = format.indexOf('ss')
+    if (i_second_start === -1)
+        throw new Error('The format string must contain the format for seconds (ss)')
+    
+    const i_second_end = i_second_start + 2
+    
+    const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
+    if (i_nanosecond_start === -1)
+        throw new Error('Format string must contain nanosecond format (SSSSSSSSS)')
     
     return (
             BigInt(
                 -timezone_offset +
                 dayjs(
-                    str.slice(0, format.length),
-                    format
+                    str.slice(0, i_second_end),
+                    format.slice(0, i_second_end)
                 ).valueOf()
             ) * 1000000n
         +
             BigInt(
-                str.slice(format.length)
+                str.slice(i_nanosecond_start, i_nanosecond_start + 9)
             )
     )
 }

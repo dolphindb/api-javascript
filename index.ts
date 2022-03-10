@@ -138,10 +138,19 @@ export type DdbVectorValue = string | string[] | Uint8Array | Int16Array | Int32
 
 
 export const nulls = {
+    bool: 0x80,
     char: '\x80',
     int16: -0x80_00,  // -32768
     int32: -0x80_00_00_00,  // -21_4748_3648
     int64: -0x80_00_00_00_00_00_00_00n,  // -922_3372_0368_5477_5808
+    float32: -3.4028234663852886e+38,
+    
+    /** -Number.MAX_VALUE */
+    double: -Number.MAX_VALUE,
+    
+    bytes16: Uint8Array.from(
+        new Array(16).fill(0)
+    )
 } as const
 
 
@@ -154,7 +163,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     static enc = new TextEncoder()
     
-    /** 维护已解析的 symbol base，比如流数据中后续的 symbol 向量可能只发送一个 base.id, base.size == 0, 依赖之前发送的 symbol base */
+    /** 维护已解析的 symbol base，比如流数据中后续的 symbol 向量可能只发送一个 base.id, base.size == 0, 依赖之前发送的 symbol base ？
+        只是暂存，如果一张表有多个 symbol 列，可能这个 symbol base 会被复用，不同的对象之间 symbol base 一般不复用
+    */
     static symbol_bases: Record<number, string[]> = { }
     
     /** little endian (client) */
@@ -213,7 +224,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 form: DdbForm.scalar,
                 type: DdbType.void,
                 length: 0,
-                value: undefined
+                value: null
             })
         
         const type = buf[0]
@@ -429,17 +440,22 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 return [1, null]
             
             
-            case DdbType.bool:
-                return [1, Boolean(buf[0])]
+            case DdbType.bool: {
+                const value = buf[0] as number
+                return [1, value === nulls.bool ? null : Boolean(value)]
+            }
             
             
-            case DdbType.char:
-                return [1, String.fromCharCode(buf[0])]
+            case DdbType.char: {
+                const value = String.fromCharCode(buf[0])
+                return [1, value === nulls.char ? null : value]
+            }
             
             
             case DdbType.short: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                return [2, dv.getInt16(0, le)]
+                const value = dv.getInt16(0, le)
+                return [2, value === nulls.int16 ? null : value]
             }
             
             
@@ -453,19 +469,22 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             case DdbType.datetime: 
             case DdbType.datehour: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                return [4, dv.getInt32(0, le)]
+                const value = dv.getInt32(0, le)
+                return [4, value === nulls.int32 ? null : value]
             }
             
             
             case DdbType.float: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                return [4, dv.getFloat32(0, le)]
+                const value = dv.getFloat32(0, le)
+                return [4, value === nulls.float32 ? null : value]
             }
             
             
             case DdbType.double: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                return [8, dv.getFloat64(0, le)]
+                const value = dv.getFloat64(0, le)
+                return [8, value === nulls.double ? null : value]
             }
             
             
@@ -475,7 +494,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             case DdbType.nanotime:
             case DdbType.nanotimestamp: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                return [8, dv.getBigInt64(0, le)]
+                const value = dv.getBigInt64(0, le)
+                return [8, value === nulls.int64 ? null : value]
             }
             
             
@@ -929,7 +949,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     pack (): Uint8Array {
         const { form, type, value } = this
         
-        let header = new Uint8Array(new ArrayBuffer(2))
+        let header = new Uint8Array(
+            new ArrayBuffer(2)
+        )
         header[0] = type
         header[1] = form
         
@@ -941,15 +963,37 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             return [Uint8Array.of(1)]
                         
                         case DdbType.bool:
-                            return [Uint8Array.of(Number(value as boolean))]
+                            return [
+                                Uint8Array.of(
+                                    value === null ?
+                                        nulls.bool
+                                    :
+                                        Number(value)
+                                )
+                            ]
                         
                         
                         case DdbType.char:
-                            return [Uint8Array.of((value as string).charCodeAt(0))]
+                            return [
+                                Uint8Array.of(
+                                    (value === null ?
+                                        nulls.char
+                                    :
+                                        (value as string)
+                                    ).charCodeAt(0)
+                                )
+                            ]
                         
                         
                         case DdbType.short:
-                            return [Int16Array.of(value as number)]
+                            return [
+                                Int16Array.of(
+                                    value === null ?
+                                        nulls.int16
+                                    :
+                                        value as number
+                                )
+                            ]
                         
                         
                         case DdbType.int:
@@ -961,15 +1005,36 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         case DdbType.second:
                         case DdbType.datetime:
                         case DdbType.datehour:
-                            return [Int32Array.of(value as number)]
+                            return [
+                                Int32Array.of(
+                                    value === null ?
+                                        nulls.int32
+                                    :
+                                        value as number
+                                )
+                            ]
                         
                         
                         case DdbType.float:
-                            return [Float32Array.of(value as number)]
+                            return [
+                                Float32Array.of(
+                                    value === null ?
+                                        nulls.float32
+                                    :
+                                        value as number
+                                )
+                            ]
                         
                         
                         case DdbType.double:
-                            return [Float64Array.of(value as number)]
+                            return [
+                                Float64Array.of(
+                                    value === null ?
+                                        nulls.double
+                                    :
+                                        value as number
+                                )
+                            ]
                         
                         
                         case DdbType.long:
@@ -977,7 +1042,14 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         case DdbType.timestamp:
                         case DdbType.nanotime:
                         case DdbType.nanotimestamp:
-                            return [BigInt64Array.of(this.value as bigint)]
+                            return [
+                                BigInt64Array.of(
+                                    value === null ?
+                                        nulls.int64
+                                    :
+                                        value as bigint
+                                )
+                            ]
                         
                         
                         case DdbType.string:
@@ -1207,7 +1279,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 
                 return [
                     Uint32Array.of(
-                        base_id,
+                        base_id || 0,
                         base.length,
                     ),
                     ...this.pack_vector_body(base, DdbType.string, base.length),
@@ -1335,13 +1407,14 @@ export class DdbVoid extends DdbObj<undefined> {
             form: DdbForm.scalar,
             type: DdbType.void,
             length: 0,
+            value: null,
         })
     }
 }
 
 
 export class DdbBool extends DdbObj<boolean> {
-    constructor (value: boolean) {
+    constructor (value: boolean | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.bool,
@@ -1352,7 +1425,7 @@ export class DdbBool extends DdbObj<boolean> {
 }
 
 export class DdbChar extends DdbObj<string> {
-    constructor (value: string) {
+    constructor (value: string | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.char,
@@ -1363,12 +1436,12 @@ export class DdbChar extends DdbObj<string> {
 }
 
 export class DdbInt extends DdbObj<number> {
-    constructor (value: number) {
+    constructor (value: number | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.int,
             length: 4,
-            value
+            value,
         })
     }
 }
@@ -1385,7 +1458,7 @@ export class DdbString extends DdbObj<string> {
 }
 
 export class DdbLong extends DdbObj<bigint> {
-    constructor (value: bigint) {
+    constructor (value: bigint | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.long,
@@ -1396,7 +1469,7 @@ export class DdbLong extends DdbObj<bigint> {
 }
 
 export class DdbDouble extends DdbObj<number> {
-    constructor (value: number) {
+    constructor (value: number | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.double,
@@ -1407,7 +1480,7 @@ export class DdbDouble extends DdbObj<number> {
 }
 
 export class DdbDateTime extends DdbObj<number> {
-    constructor (value: number) {
+    constructor (value: number | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.datetime,
@@ -1418,7 +1491,7 @@ export class DdbDateTime extends DdbObj<number> {
 }
 
 export class DdbTimeStamp extends DdbObj<bigint> {
-    constructor (value: bigint) {
+    constructor (value: bigint | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.timestamp,
@@ -1429,7 +1502,7 @@ export class DdbTimeStamp extends DdbObj<bigint> {
 }
 
 export class DdbNanoTimeStamp extends DdbObj<bigint> {
-    constructor (value: bigint) {
+    constructor (value: bigint | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.nanotimestamp,
@@ -1440,14 +1513,22 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
 }
 
 export class DdbVectorInt extends DdbObj<Int32Array> {
-    constructor (value: number[], name?: string) {
+    constructor (value: (number | null)[] | Int32Array, name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.int,
             length: 0,
             rows: value.length,
             cols: 1,
-            value: Int32Array.from(value),
+            value: value instanceof Int32Array ?
+                    value
+                :
+                    Int32Array.from(value, v => 
+                        v === null ?
+                            nulls.int32
+                        :
+                            v
+                    ),
             name,
         })
     }
@@ -1468,14 +1549,22 @@ export class DdbVectorString extends DdbObj<string[]> {
 }
 
 export class DdbVectorDouble extends DdbObj<Float64Array> {
-    constructor (value: number[], name?: string) {
+    constructor (value: (number | null)[] | Float64Array, name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.double,
             length: 0,
             rows: value.length,
             cols: 1,
-            value: Float64Array.from(value),
+            value: value instanceof Float64Array ?
+                    value
+                :
+                    Float64Array.from(value, v => 
+                        v === null ?
+                            nulls.double
+                        :
+                            v
+                    ),
             name,
         })
     }
@@ -1495,15 +1584,55 @@ export class DdbVectorAny extends DdbObj {
     }
 }
 
+export class DdbVectorSymbol extends DdbObj <DdbSymbolExtendedValue> {
+    constructor (value: string[], name?: string) {
+        let map = new Map<string, number>([
+            ['', 0]
+        ])
+        
+        let data = new Uint32Array(value.length)
+        
+        for (let i = 0;  i < value.length;  i++) {
+            const x = value[i]
+            
+            let index = map.get(x)
+            
+            if (index === undefined) {
+                index = map.size
+                map.set(x, index)
+            }
+            
+            data[i] = index
+        }
+        
+        super({
+            form: DdbForm.vector,
+            type: DdbType.symbol_extended,
+            length: 0,
+            rows: value.length,
+            cols: 1,
+            value: {
+                base: [...map.keys()],
+                base_id: null,
+                data,
+            },
+            name
+        })
+    }
+}
+
 export class DdbPair extends DdbObj<Int32Array> {
-    constructor (l: number, r = -2147483648) {
+    constructor (l: number | null, r: number | null = null) {
         super({
             form: DdbForm.pair,
             type: DdbType.int,
             length: 0,
             rows: 2,
             cols: 1,
-            value: Int32Array.of(l, r)
+            value: Int32Array.of(
+                l === null ? nulls.int32 : l,
+                r === null ? nulls.int32 : r,
+            )
         })
     }
 }
@@ -1691,6 +1820,12 @@ export class DDB {
     prejector (error: Error) { }
     presult = Promise.resolve(null) as Promise<Uint8Array>
     
+    
+    get connected () {
+        return this.websocket?.readyState === WebSocket.OPEN
+    }
+    
+    
     /**
         Initialize an instance of DolphinDB Client using the WebSocket URL  
         (without establishing an actual network connection)
@@ -1731,8 +1866,7 @@ export class DDB {
         this.url = url
         this.python = python
         
-        if (this.websocket?.readyState === WebSocket.OPEN)
-            this.disconnect()
+        this.disconnect()
         
         let websocket = new WebSocket(
             url,
@@ -1907,7 +2041,11 @@ export class DDB {
     
     
     disconnect () {
-        this.websocket?.close(1000)
+        if (this.connected)
+            this.websocket.close(1000)
+        this.presolver = buf => { }
+        this.prejector = error => { }
+        this.presult = Promise.resolve(null)
     }
     
     
@@ -1935,7 +2073,7 @@ export class DDB {
         if (!this.websocket)
             await this.connect()
         
-        if (this.websocket.readyState !== WebSocket.OPEN)
+        if (!this.connected)
             throw new Error(`${this.url} is already disconnected`)
         
         // 临界区：保证多个 rpc 并发时形成 promise 链
@@ -1964,7 +2102,7 @@ export class DDB {
         if (urgent && type !== 'script' && type !== 'function')
             throw new Error('urgent 只适用于 script 和 funciton')
         
-        this.to_ddbobjs(args)
+        args = this.to_ddbobjs(args)
         
         const command = this.enc.encode(
             (() => {
@@ -2195,12 +2333,13 @@ export class DDB {
     }
     
     
-    /** 转换 js 数组为 DdbObj[] (in place, 会修改原数组) */
+    /** 转换 js 数组为 DdbObj[] */
     to_ddbobjs (values: any[]) {
-        for (let i = 0;  i < values.length;  i++)
-            values[i] = this.to_ddbobj(values[i])
-        return values as DdbObj<DdbValue>[]
+        return values.map(value => 
+            this.to_ddbobj(value)
+        )
     }
+    
 }
 
 export default DDB

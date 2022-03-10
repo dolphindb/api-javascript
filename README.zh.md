@@ -221,6 +221,15 @@ const obj = new DdbObj({
 })
 ```
 
+##### scalar 形式的 NULL 对象, 对应 DdbObj 的 value 为 JavaScript 中的 null
+```ts
+;(await ddb.eval('double()')).value === null
+
+// 创建 NULL 对象
+new DdbInt(null)
+new DdbDouble(null)
+```
+
 
 #### `call` 方法声明
 ```ts
@@ -322,12 +331,9 @@ async upload (
 ```
 
 
-### Notes
+### 其它
 ```ts
-import { nulls, DdbInt, timestamp2str } from 'dolphindb'
-
-// 创建 DolphinDB 空值 (最小的 32-bit 整数)
-new DdbInt(nulls.int32)
+import { nulls, DdbInt, timestamp2str, DdbVectorSymbol } from 'dolphindb'
 
 // 将 DolphinDB 中的 timestamp 格式化为 string
 timestamp2str(
@@ -335,4 +341,17 @@ timestamp2str(
         await ddb.call<DdbObj<bigint>>('now', [false])
     ).value
 ) === '2022.02.23 17:23:13.494'
+
+// 创建 symbol vector
+new DdbVectorSymbol(['aaa', 'aaa', 'aaa', 'aaa', 'aaa', 'bbb'])
+
+// 使用 JavaScript 原生数组创建含有 NULL 值的 double vector
+new DdbVectorDouble([0.1, null, 0.3])
+
+// 使用 JavaScript TypedArray 更加高效且节约内存的创建 double vector
+let av = new Float64Array(3)
+av[0] = 0.1
+av[1] = nulls.double
+av[2] = 0.3
+new DdbVectorDouble(av)
 ```

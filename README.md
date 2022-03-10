@@ -220,6 +220,15 @@ const obj = new DdbObj({
 })
 ```
 
+##### NULL object in the form of scalar, the value corresponding to DdbObj is null in JavaScript
+```ts
+;(await ddb.eval('double()')).value === null
+
+// create NULL object
+new DdbInt(null)
+new DdbDouble(null)
+```
+
 
 #### `call` Method Declaration
 ```ts
@@ -321,18 +330,28 @@ async upload (
 ```
 
 
-### Notes
+### Others
 ```ts
-import { nulls, DdbInt, timestamp2str } from 'dolphindb'
+import { nulls, DdbInt, timestamp2str, DdbVectorSymbol } from 'dolphindb'
 
-// create DolphinDB null integer value (the smallest 32-bit integer)
-new DdbInt(nulls.int32)
-
-// convert DolphinDB timestamp value to string
+// Format timestamp in DolphinDB as string
 timestamp2str(
     (
         await ddb.call<DdbObj<bigint>>('now', [false])
     ).value
 ) === '2022.02.23 17:23:13.494'
+
+// create symbol vector
+new DdbVectorSymbol(['aaa', 'aaa', 'aaa', 'aaa', 'aaa', 'bbb'])
+
+// Create a double vector with NULL values using JavaScript native arrays
+new DdbVectorDouble([0.1, null, 0.3])
+
+// More efficient and memory efficient double vector creation using JavaScript TypedArray
+let av = new Float64Array(3)
+av[0] = 0.1
+av[1] = nulls.double
+av[2] = 0.3
+new DdbVectorDouble(av)
 ```
 

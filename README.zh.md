@@ -331,14 +331,15 @@ async upload (
 ```
 
 
-### 其它
+### 一些例子
 ```ts
-import { nulls, DdbInt, timestamp2str, DdbVectorSymbol } from 'dolphindb'
+import { nulls, DdbInt, timestamp2str, DdbVectorSymbol, DdbTable, DdbVectorDouble } from 'dolphindb'
 
 // 将 DolphinDB 中的 timestamp 格式化为 string
 timestamp2str(
     (
-        await ddb.call<DdbObj<bigint>>('now', [false])
+        await ddb.call('now', [false])
+        // TypeScript: await ddb.call<DdbObj<bigint>>('now', [false])
     ).value
 ) === '2022.02.23 17:23:13.494'
 
@@ -354,4 +355,13 @@ av[0] = 0.1
 av[1] = nulls.double
 av[2] = 0.3
 new DdbVectorDouble(av)
+
+// 创建 DdbTable
+new DdbTable(
+    [
+        new DdbVectorDouble([0.1, 0.2, null], 'col0'),
+        new DdbVectorSymbol(['a', 'b', 'c'], 'col1')
+    ],
+    'mytable'
+)
 ```

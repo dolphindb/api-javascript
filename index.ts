@@ -1130,19 +1130,22 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 case DdbForm.table:
                     return [
                         Uint32Array.of(this.rows, this.cols),
-                        DdbObj.enc.encode(this.name),
+                        DdbObj.enc.encode(this.name || ''),
+                        
+                        // column names
                         Uint8Array.of(0),
                         ...DdbObj.pack_vector_body(
-                            (this.value as DdbObj[]).map(col => col.name),
-                            DdbType.string, 
+                            (this.value as DdbObj[]).map((col, i) => 
+                                col.name || `col${i}`
+                            ),
+                            DdbType.string,
                             this.cols
                         ),
-                        ...(() => {
-                            let cols = new Array<Uint8Array>(this.cols)
-                            for (let i = 0;  i < cols.length;  i++)
-                                cols[i] = (this.value as DdbObj[])[i].pack()
-                            return cols
-                        })()
+                        
+                        // column vectors
+                        ...(this.value as DdbObj[]).map(col => 
+                            col.pack()
+                        )
                     ]
                 
                 
@@ -1512,115 +1515,6 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
     }
 }
 
-export class DdbVectorInt extends DdbObj<Int32Array> {
-    constructor (value: (number | null)[] | Int32Array, name?: string) {
-        super({
-            form: DdbForm.vector,
-            type: DdbType.int,
-            length: 0,
-            rows: value.length,
-            cols: 1,
-            value: value instanceof Int32Array ?
-                    value
-                :
-                    Int32Array.from(value, v => 
-                        v === null ?
-                            nulls.int32
-                        :
-                            v
-                    ),
-            name,
-        })
-    }
-}
-
-export class DdbVectorString extends DdbObj<string[]> {
-    constructor (value: string[], name?: string) {
-        super({
-            form: DdbForm.vector,
-            type: DdbType.string,
-            length: 0,
-            rows: value.length,
-            cols: 1,
-            value,
-            name,
-        })
-    }
-}
-
-export class DdbVectorDouble extends DdbObj<Float64Array> {
-    constructor (value: (number | null)[] | Float64Array, name?: string) {
-        super({
-            form: DdbForm.vector,
-            type: DdbType.double,
-            length: 0,
-            rows: value.length,
-            cols: 1,
-            value: value instanceof Float64Array ?
-                    value
-                :
-                    Float64Array.from(value, v => 
-                        v === null ?
-                            nulls.double
-                        :
-                            v
-                    ),
-            name,
-        })
-    }
-}
-
-export class DdbVectorAny extends DdbObj {
-    constructor (value: DdbObj<DdbValue>[], name?: string) {
-        super({
-            form: DdbForm.vector,
-            type: DdbType.any,
-            length: 0,
-            rows: value.length,
-            cols: 1,
-            value,
-            name,
-        })
-    }
-}
-
-export class DdbVectorSymbol extends DdbObj <DdbSymbolExtendedValue> {
-    constructor (value: string[], name?: string) {
-        let map = new Map<string, number>([
-            ['', 0]
-        ])
-        
-        let data = new Uint32Array(value.length)
-        
-        for (let i = 0;  i < value.length;  i++) {
-            const x = value[i]
-            
-            let index = map.get(x)
-            
-            if (index === undefined) {
-                index = map.size
-                map.set(x, index)
-            }
-            
-            data[i] = index
-        }
-        
-        super({
-            form: DdbForm.vector,
-            type: DdbType.symbol_extended,
-            length: 0,
-            rows: value.length,
-            cols: 1,
-            value: {
-                base: [...map.keys()],
-                base_id: null,
-                data,
-            },
-            name
-        })
-    }
-}
-
 export class DdbPair extends DdbObj<Int32Array> {
     constructor (l: number | null, r: number | null = null) {
         super({
@@ -1648,6 +1542,129 @@ export class DdbFunction extends DdbObj<DdbFunctionDefValue> {
     }
 }
 
+
+export class DdbVectorInt extends DdbObj<Int32Array> {
+    constructor (ints: (number | null)[] | Int32Array, name?: string) {
+        super({
+            form: DdbForm.vector,
+            type: DdbType.int,
+            length: 0,
+            rows: ints.length,
+            cols: 1,
+            value: ints instanceof Int32Array ?
+                    ints
+                :
+                    Int32Array.from(ints, v => 
+                        v === null ?
+                            nulls.int32
+                        :
+                            v
+                    ),
+            name,
+        })
+    }
+}
+
+export class DdbVectorString extends DdbObj<string[]> {
+    constructor (strings: string[], name?: string) {
+        super({
+            form: DdbForm.vector,
+            type: DdbType.string,
+            length: 0,
+            rows: strings.length,
+            cols: 1,
+            value: strings,
+            name,
+        })
+    }
+}
+
+export class DdbVectorDouble extends DdbObj<Float64Array> {
+    constructor (doubles: (number | null)[] | Float64Array, name?: string) {
+        super({
+            form: DdbForm.vector,
+            type: DdbType.double,
+            length: 0,
+            rows: doubles.length,
+            cols: 1,
+            value: doubles instanceof Float64Array ?
+                    doubles
+                :
+                    Float64Array.from(doubles, v => 
+                        v === null ?
+                            nulls.double
+                        :
+                            v
+                    ),
+            name,
+        })
+    }
+}
+
+export class DdbVectorAny extends DdbObj {
+    constructor (objs: DdbObj<DdbValue>[], name?: string) {
+        super({
+            form: DdbForm.vector,
+            type: DdbType.any,
+            length: 0,
+            rows: objs.length,
+            cols: 1,
+            value: objs,
+            name,
+        })
+    }
+}
+
+export class DdbVectorSymbol extends DdbObj <DdbSymbolExtendedValue> {
+    constructor (strings: string[], name?: string) {
+        let map = new Map<string, number>([
+            ['', 0]
+        ])
+        
+        let data = new Uint32Array(strings.length)
+        
+        for (let i = 0;  i < strings.length;  i++) {
+            const x = strings[i]
+            
+            let index = map.get(x)
+            
+            if (index === undefined) {
+                index = map.size
+                map.set(x, index)
+            }
+            
+            data[i] = index
+        }
+        
+        super({
+            form: DdbForm.vector,
+            type: DdbType.symbol_extended,
+            length: 0,
+            rows: strings.length,
+            cols: 1,
+            value: {
+                base: [...map.keys()],
+                base_id: null,
+                data,
+            },
+            name
+        })
+    }
+}
+
+export class DdbTable extends DdbObj <DdbObj[]> {
+    constructor (columns: DdbObj[], name: string = '') {
+        super({
+            form: DdbForm.table,
+            type: DdbType.void,
+            length: 0,
+            rows: columns[0].rows,
+            cols: columns.length,
+            name,
+            value: columns,
+        })
+    }
+}
 
 export function date2str (date: number, format = 'YYYY.MM.DD') {
     return date === nulls.int32 ? 

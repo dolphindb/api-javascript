@@ -1,12 +1,12 @@
 {
     "name": "dolphindb",
     "description": "DolphinDB JavaScript API",
-    "version": "2.0.501",
+    "version": "2.0.502",
     "type": "commonjs",
     "main": "./index.js",
     "browser": "./browser.js",
     "scripts": {
-        "test": "tsc && node ./test.js"
+        "test": "tsc && node ./test/index.js"
     },
     "engines": {
         "node": ">=17.3.1"

@@ -3,6 +3,8 @@ node_modules/
 *.ts
 !*.d.ts
 
+/test/
+
 /.gitignore
 /.npmignore
 /tsconfig.json

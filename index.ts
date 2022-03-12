@@ -1822,8 +1822,18 @@ export class DDB {
         )[0]
     )
     
+    /** 是否在建立连接后自动登录，默认 true */
+    autologin = true
+    
+    /** DolphinDB 登录用户名 */
+    username = 'admin'
+    
+    /** DolphinDB 登录密码 */
+    password = '123456'
+    
     /** python session flag (2048) */
     python = false
+    
     
     message_hook = null as (message: Uint8Array) => any
     
@@ -1846,48 +1856,79 @@ export class DDB {
     /**
         Initialize an instance of DolphinDB Client using the WebSocket URL  
         (without establishing an actual network connection)
+        - url: DolphinDB WebSocket URL. e.g.：`ws://127.0.0.1:8848`
+        - options?:
+            - autologin?: Whether to log in automatically after establishing a connection, default `true`
+            - username?: DolphinDB username, default `'admin'`
+            - password?: DolphinDB password, default `'123456'`
+            - python?: set python session flag, default `false`
+        
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
-        let ddb_secure = new DDB('wss://dolphindb.com')
+        let ddbsecure = new DDB('wss://dolphindb.com', {
+            autologin: true,
+            username: 'admin',
+            password: '123456',
+            python: false
+        })
     */
-    constructor (url: string) {
+    constructor (url: string, options: {
+        autologin?: boolean
+        username?: string
+        password?: string
+        python?: boolean
+    } = { }) {
         this.url = url
+        
+        if (options.autologin !== undefined)
+            this.autologin = options.autologin
+        
+        if (options.username !== undefined)
+            this.username = options.username
+        
+        if (options.password !== undefined)
+            this.password = options.password
+        
+        if (options.python !== undefined)
+            this.python = options.python
     }
     
     
-    /** Establish the actual WebSocket connection to the DolphinDB corresponding to the URL */
-    async connect (
-        {
-            url = this.url,
-            login = true,
-            username = 'admin',
-            password = '123456',
-            python = false,
-        }: {
-            /** By default, the WebSocket URL passed in when the instance is initialized is used */
-            url?: string
-            
-            /** Whether to automatically log in after the connection is established, the default is true */
-            login?: boolean
-            
-            /** DolphinDB username */
-            username?: string
-            
-            /** DolphinDB password */
-            password?: string
-            
-            /** set python session flag */
-            python?: boolean
-        } = { }
-    ) {
-        this.url = url
-        this.python = python
+    /** Establish the actual WebSocket connection to the DolphinDB corresponding to the URL
+        - options?:
+            - url?: DolphinDB WebSocket URL. By default, the WebSocket URL passed in when the instance is initialized is used
+            - autologin?: Whether to log in automatically after establishing a connection, default `true`
+            - username?: DolphinDB username, default `'admin'`
+            - password?: DolphinDB password, default `'123456'`
+            - python?: set python session flag, default `false`
+    */
+    async connect (options: {
+        url?: string
+        autologin?: boolean
+        username?: string
+        password?: string
+        python?: boolean
+     } = { }) {
+        if (options.url !== undefined)
+            this.url = options.url
+        
+        if (options.autologin !== undefined)
+            this.autologin = options.autologin
+        
+        if (options.username !== undefined)
+            this.username = options.username
+        
+        if (options.password !== undefined)
+            this.password = options.password
+        
+        if (options.python !== undefined)
+            this.python = options.python
         
         this.disconnect()
         
         let websocket = new WebSocket(
-            url,
-            python ? ['python'] : [ ],
+            this.url,
+            this.python ? ['python'] : [ ],
             {
                 maxPayload: 2 ** 33  // 8 GB
             }
@@ -1963,11 +2004,11 @@ export class DDB {
                 { urgent: true }
             )
         
-        if (login)
+        if (this.autologin)
             if (this.python)
-                await this.eval(`login(${username.quote('double')}, ${password.quote('double')})`, { urgent: true })
+                await this.eval(`login(${this.username.quote('double')}, ${this.password.quote('double')})`, { urgent: true })
             else
-                await this.call('login', [username, password], { urgent: true })
+                await this.call('login', [this.username, this.password], { urgent: true })
     }
     
     

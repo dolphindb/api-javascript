@@ -1565,20 +1565,6 @@ export class DdbVectorInt extends DdbObj<Int32Array> {
     }
 }
 
-export class DdbVectorString extends DdbObj<string[]> {
-    constructor (strings: string[], name?: string) {
-        super({
-            form: DdbForm.vector,
-            type: DdbType.string,
-            length: 0,
-            rows: strings.length,
-            cols: 1,
-            value: strings,
-            name,
-        })
-    }
-}
-
 export class DdbVectorDouble extends DdbObj<Float64Array> {
     constructor (doubles: (number | null)[] | Float64Array, name?: string) {
         super({
@@ -1596,6 +1582,20 @@ export class DdbVectorDouble extends DdbObj<Float64Array> {
                         :
                             v
                     ),
+            name,
+        })
+    }
+}
+
+export class DdbVectorString extends DdbObj<string[]> {
+    constructor (strings: string[], name?: string) {
+        super({
+            form: DdbForm.vector,
+            type: DdbType.string,
+            length: 0,
+            rows: strings.length,
+            cols: 1,
+            value: strings,
             name,
         })
     }
@@ -1651,6 +1651,71 @@ export class DdbVectorSymbol extends DdbObj <DdbSymbolExtendedValue> {
         })
     }
 }
+
+export class DdbSetInt extends DdbObj<Int32Array> {
+    constructor (ints: (number | null)[] | Set<number> | Int32Array) {
+        super({
+            form: DdbForm.set,
+            type: DdbType.int,
+            length: 0,
+            rows: ints instanceof Set ? 
+                    ints.size
+                :
+                    ints.length,
+            cols: 1,
+            value: ints instanceof Int32Array ?
+                    ints
+                :
+                    Int32Array.from(ints, v => 
+                        v === null ?
+                            nulls.int32
+                        :
+                            v
+                    ),
+        })
+    }
+}
+
+export class DdbSetDouble extends DdbObj<Float64Array> {
+    constructor (doubles: (number | null)[] | Set<number> | Float64Array) {
+        super({
+            form: DdbForm.set,
+            type: DdbType.double,
+            length: 0,
+            rows: doubles instanceof Set ? 
+                    doubles.size
+                :
+                    doubles.length,
+            cols: 1,
+            value: doubles instanceof Int32Array ?
+                    doubles
+                :
+                    Int32Array.from(doubles, v => 
+                        v === null ?
+                            nulls.int32
+                        :
+                            v
+                    ),
+        })
+    }
+}
+
+export class DdbSetString extends DdbObj<string[]> {
+    constructor (strings: string[] | Set<string>) {
+        if (strings instanceof Set)
+            strings = [...strings]
+        
+        super({
+            form: DdbForm.set,
+            type: DdbType.string,
+            length: 0,
+            rows: strings.length,
+            cols: 1,
+            value: strings
+        })
+    }
+}
+
 
 export class DdbTable extends DdbObj <DdbObj[]> {
     constructor (columns: DdbObj[], name: string = '') {
@@ -1865,6 +1930,8 @@ export class DDB {
         
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
+        
+        // 使用 HTTPS 加密
         let ddbsecure = new DDB('wss://dolphindb.com', {
             autologin: true,
             username: 'admin',

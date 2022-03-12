@@ -55,23 +55,24 @@ let ddb = new DDB('ws://127.0.0.1:8848')
 await ddb.connect()
 ```
 
-#### connect 方法声明
+#### DDB 选项
 ```ts
-async connect (
-    options?: {
-        /** 默认使用实例初始化时传入的 WebSocket 链接 */
-        ws_url?: string
-        
-        /** 是否在建立连接后自动登录，默认 true */
-        login?: boolean
-        
-        /** DolphinDB 登录用户名 */
-        username?: string
-        
-        /** DolphinDB 登录密码 */
-        password?: string
-    } = { }
-): Promise<void>
+let ddb = new DDB('ws://127.0.0.1:8848')
+
+// 使用 HTTPS 加密
+let ddbsecure = new DDB('wss://dolphindb.com', {
+    // 是否在建立连接后自动登录，默认 `true`
+    autologin: true,
+    
+    // DolphinDB 登录用户名，默认 `'admin'`
+    username: 'admin',
+    
+    // DolphinDB 登录密码，默认 `'123456'`
+    password: '123456',
+    
+    // 设置 python session flag，默认 `false`
+    python: false
+})
 ```
 
 
@@ -188,37 +189,41 @@ enum DdbType {
 }
 ```
 
-##### 不在快捷类中的类型，比如 DolphinDB 中的 datetime 类型, 可以指定 form 和 type 创建 DdbObj 对象
+##### 没有快捷类的类型，也可以指定 form 和 type 手动创建 DdbObj 对象
 ```ts
+// 通过 DdbDateTime 快捷类创建
+new DdbDateTime(1644573600)
+
+// 等价于手动通过 DdbObj 创建 form = scalar, type = datetime 的对象
 const obj = new DdbObj({
     form: DdbForm.scalar,
     type: DdbType.datetime,
     value: 1644573600,
     length: 0
 })
-```
 
-value 的在 js 中对应类型及取值可以参考 ddb.eval 返回的结果 (见后文 `eval` 方法声明)
 
-```ts
+// value 在 js 中对应类型及取值可以参考 ddb.eval 返回的结果 (见后文 `eval` 方法声明)
 const obj = await ddb.eval('2022.02.11 10:00:00')
 console.log(obj.form === DdbForm.scalar)
 console.log(obj.type === DdbType.datetime)
 console.log(obj.value)
-```
 
-##### 再比如创建一个 set
-```ts
+// 再比如创建一个 set
 // 参考 ddb.eval
 // const obj = await ddb.eval('set([1, 2, 3])')
 // console.log(obj.value)
-
 const obj = new DdbObj({
     form: DdbForm.set,
     type: DdbType.int,
     value: Int32Array.of(1, 2, 3),
     length: 0
 })
+
+// 使用快捷类较为简单
+const obj = new DdbSetInt(
+    new Set([1, 2, 3])
+)
 ```
 
 ##### scalar 形式的 NULL 对象, 对应 DdbObj 的 value 为 JavaScript 中的 null

@@ -54,23 +54,24 @@ let ddb = new DDB('ws://127.0.0.1:8848')
 await ddb.connect()
 ```
 
-#### Connect Method Declaration
+#### DDB options
 ```ts
-async connect (
-    options?: {
-        /** by default, the WebSocket URL passed in when the instance is initialized is used */
-        ws_url?: string
-        
-        /** whether to automatically log in after the connection is established, the default is true */
-        login?: boolean
-        
-        /** DolphinDB username */
-        username?: string
-        
-        /** DolphinDB password */
-        password?: string
-    } = { }
-): Promise<void>
+let ddb = new DDB('ws://127.0.0.1:8848')
+
+// Encrypt with HTTPS
+let ddbsecure = new DDB('wss://dolphindb.com', {
+    // Whether to log in automatically after establishing a connection, default `true`
+    autologin: true,
+    
+    // DolphinDB username, default `'admin'`
+    username: 'admin',
+    
+    // DolphinDB password, default `'123456'`
+    password: '123456',
+    
+    // set python session flag, default `false`
+    python: false
+})
 ```
 
 
@@ -187,37 +188,41 @@ enum DdbType {
 }
 ```
 
-##### For types that are not in the utility classes, such as the datetime type in DolphinDB, we can specify form and type to create a DdbObj object
+##### If there is no shortcut class, you can also specify form and type to manually create a DdbObj object
 ```ts
+// Created by the DdbDateTime shortcut class
+new DdbDateTime(1644573600)
+
+// Equivalent to manually creating an object of form = scalar, type = datetime through DdbObj
 const obj = new DdbObj({
-    form: DdbForm.scalar,
-    type: DdbType.datetime,
-    value: 1644573600,
-    length: 0
+     form: DdbForm.scalar,
+     type: DdbType.datetime,
+     value: 1644573600,
+     length: 0
 })
-```
 
-The corresponding type and value of value property in js can refer to the result returned by `ddb.eval` (see below: `eval` Method Declaration)
 
-```ts
+// The corresponding type and value of value in js can refer to the result returned by ddb.eval (see the `eval` method declaration below)
 const obj = await ddb.eval('2022.02.11 10:00:00')
 console.log(obj.form === DdbForm.scalar)
 console.log(obj.type === DdbType.datetime)
 console.log(obj.value)
-```
 
-##### Another example is to create a set
-```ts
+// Another example is to create a set
 // refer to ddb.eval
 // const obj = await ddb.eval('set([1, 2, 3])')
 // console.log(obj.value)
-
 const obj = new DdbObj({
-    form: DdbForm.set,
-    type: DdbType.int,
-    value: Int32Array.of(1, 2, 3),
-    length: 0
+     form: DdbForm.set,
+     type: DdbType.int,
+     value: Int32Array.of(1, 2, 3),
+     length: 0
 })
+
+// It's easier to use shortcut classes
+const obj = new DdbSetInt(
+     new Set([1, 2, 3])
+)
 ```
 
 ##### NULL object in the form of scalar, the value corresponding to DdbObj is null in JavaScript

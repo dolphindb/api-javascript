@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
 
+import { connect_websocket } from 'xshell/net.js'
 import { concat, inspect, typed_array_to_buffer } from 'xshell/utils.js'
 
 
@@ -131,15 +132,14 @@ export interface DdbArrayVectorBlock {
 }
 
 
-export type DdbValue = null | boolean | number | [number, number] | bigint | string | string[] | Uint8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbFunctionDefValue | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
+export type DdbValue = null | boolean | number | [number, number] | bigint | string | string[] | Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbFunctionDefValue | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
 
 
-export type DdbVectorValue = string | string[] | Uint8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
+export type DdbVectorValue = string | string[] | Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
 
 
 export const nulls = {
-    bool: 0x80,
-    char: '\x80',
+    int8: -0x80,  // -128
     int16: -0x80_00,  // -32768
     int32: -0x80_00_00_00,  // -21_4748_3648
     int64: -0x80_00_00_00_00_00_00_00n,  // -922_3372_0368_5477_5808
@@ -210,6 +210,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据 */
     value: T
+    
+    /** 原始二进制数据 */
+    buffer?: Uint8Array
     
     
     constructor (data: Partial<DdbObj> & { form: DdbForm, type: DdbType, length: number }) {
@@ -441,14 +444,16 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             
             
             case DdbType.bool: {
-                const value = buf[0] as number
-                return [1, value === nulls.bool ? null : Boolean(value)]
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                const value = dv.getInt8(0)
+                return [1, value === nulls.int8 ? null : Boolean(value)]
             }
             
             
             case DdbType.char: {
-                const value = String.fromCharCode(buf[0])
-                return [1, value === nulls.char ? null : value]
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                const value = dv.getInt8(0)
+                return [1, value === nulls.int8 ? null : value]
             }
             
             
@@ -712,17 +717,16 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     ] {
         switch (type) {
             case DdbType.bool:
-                return [length, buf.slice(0, length)]
-            
-            
             case DdbType.char:
                 return [
                     length,
-                    this.dec.decode(
-                        buf.subarray(0, length)
+                    new Int8Array(
+                        buf.buffer.slice(
+                            buf.byteOffset,
+                            buf.byteOffset + length
+                        )
                     )
                 ]
-            
             
             case DdbType.short:
                 return [
@@ -964,9 +968,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         
                         case DdbType.bool:
                             return [
-                                Uint8Array.of(
+                                Int8Array.of(
                                     value === null ?
-                                        nulls.bool
+                                        nulls.int8
                                     :
                                         Number(value)
                                 )
@@ -975,12 +979,12 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         
                         case DdbType.char:
                             return [
-                                Uint8Array.of(
+                                Int8Array.of(
                                     (value === null ?
-                                        nulls.char
+                                        nulls.int8
                                     :
-                                        (value as string)
-                                    ).charCodeAt(0)
+                                        value as number
+                                    )
                                 )
                             ]
                         
@@ -1187,11 +1191,11 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     ): ArrayBufferView[] {
         switch (type) {
             case DdbType.bool:
-                return [value as Uint8Array]
+                return [value as Int8Array]
             
             
             case DdbType.char:
-                return [this.enc.encode(value as string)]
+                return [value as Int8Array]
             
             
             case DdbType.short:
@@ -1304,6 +1308,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 case DdbForm.scalar:
                     if (this.type === DdbType.functiondef)
                         return `functiondef<${DdbFunctionType[(this.value as DdbFunctionDefValue).type]}>`
+                    
                     return tname
                 
                 case DdbForm.vector:
@@ -1336,7 +1341,10 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 return `${inspect(this.value[0], options)}, ${inspect(this.value[1], options)}`
             
             if (this.form === DdbForm.scalar && this.type === DdbType.functiondef)
-                return inspect((this.value as DdbFunctionDefValue).name, options)
+                return inspect(
+                    (this.value as DdbFunctionDefValue).name,
+                    options
+                )
             
             if (this.value instanceof Uint8Array)
                 return inspect(
@@ -1428,12 +1436,15 @@ export class DdbBool extends DdbObj<boolean> {
 }
 
 export class DdbChar extends DdbObj<string> {
-    constructor (value: string | null) {
+    constructor (value: string | number | null) {
         super({
             form: DdbForm.scalar,
             type: DdbType.char,
             length: 1,
-            value,
+            value: typeof value === 'string' ?
+                    value.charCodeAt(0)
+                :
+                    value
         })
     }
 }
@@ -1900,17 +1911,28 @@ export class DDB {
     python = false
     
     
-    message_hook = null as (message: Uint8Array) => any
+    parse_object = true
     
-    /** print message handler */
-    printer (message: string) {
-        console.log(message)
+    /** message handler */
+    on_message ({ type, data }: DdbMessage, _this: DDB) {
+        switch (type) {
+            case 'print':
+                console.log(data)
+                return
+            
+            case 'object':
+                if (this.print_buffer)
+                    console.log(
+                        typed_array_to_buffer(data.buffer)
+                    )
+                return
+        }
     }
     
     /** resolver, rejector, promise of last rpc */
-    presolver (buf: Uint8Array) { }
+    presolver (message: DdbMessage) { }
     prejector (error: Error) { }
-    presult = Promise.resolve(null) as Promise<Uint8Array>
+    presult = Promise.resolve(null) as Promise<DdbMessage>
     
     
     get connected () {
@@ -1993,61 +2015,30 @@ export class DDB {
         
         this.disconnect()
         
-        let websocket = new WebSocket(
-            this.url,
-            this.python ? ['python'] : [ ],
-            {
-                maxPayload: 2 ** 33  // 8 GB
-            }
-        )
-        
-        // https://stackoverflow.com/questions/11821096/what-is-the-difference-between-an-arraybuffer-and-a-blob/39951543
-        websocket.binaryType = 'arraybuffer'
-        
-        this.websocket = websocket
-        
-        await new Promise<void>((resolve, reject) => {
-            websocket.addEventListener('open', async event => {
-                console.log(`${websocket.url} opened`)
-                
+        await connect_websocket(this.url, {
+            protocols: this.python ? ['python'] : [ ],
+            
+            on_open: async (event, websocket) => {
+                this.websocket = websocket
                 await this.rpc('connect', { })
-                resolve()
-            })
+            },
             
-            websocket.addEventListener('close', event => {
-                console.log(`${websocket.url} closed with code = ${event.code}, reason = '${event.reason}'`)
-            })
-            
-            websocket.addEventListener('error', event => {
-                const message = `${websocket.url} errored`
-                console.error(message, event)
-                reject(
-                    Object.assign(
-                        new Error(message),
-                        { event }
-                    )
-                )
-            })
-            
-            websocket.addEventListener('message', event => {
+            on_message: event => {
                 const buf = new Uint8Array(event.data as ArrayBuffer)
                 
-                if (this.message_hook)
-                    this.message_hook(buf)
-                
                 try {
-                    const { type, data } = this.parse_message(buf)
+                    const message = this.parse_message(buf)
                     
-                    if (type === 'message') {
-                        this.printer(data)
+                    this.on_message(message, this)
+                    
+                    if (message.type === 'print')
                         return
-                    }
                     
-                    this.presolver(data)
+                    this.presolver(message)
                 } catch (error) {
                     this.prejector(error)
                 }
-            })
+            }
         })
         
         if (!this.python)
@@ -2161,7 +2152,7 @@ export class DDB {
             ] : [ ],
         ]
         
-        return `/ ${options.join('_')}`
+        return options.join('_')
     }
     
     
@@ -2179,6 +2170,9 @@ export class DDB {
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
             - vars?: type === 'variable' 时必传，variable 指令中待上传的变量名
+            - on_message?:   在该次 rpc 期间设置 message handler, 结束后恢复原有
+            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
+                不做解析，以便后续转发、序列化
     */
     async rpc <T extends DdbObj = DdbObj> (
         type: 'script' | 'function' | 'variable' | 'connect',
@@ -2188,12 +2182,16 @@ export class DDB {
             args = [ ],
             vars = [ ],
             urgent,
+            on_message,
+            parse_object,
         }: {
             script?: string
             func?: string
             args?: (DdbObj | string | boolean)[]
             vars?: string[]
             urgent?: boolean
+            on_message?: DDB['on_message']
+            parse_object?: boolean
     }) {
         if (!this.websocket)
             await this.connect()
@@ -2208,10 +2206,10 @@ export class DDB {
         // 2. windows 下 ddb server 返回多个相同的结果
         
         const ptail = this.presult
-        let presolver: (buf: Uint8Array) => void
+        let presolver: (message: DdbMessage) => void
         let prejector: (error: Error) => void
         
-        const presult = this.presult = new Promise<Uint8Array>((resolve, reject) => {
+        const presult = this.presult = new Promise<DdbMessage>((resolve, reject) => {
             presolver = resolve
             prejector = reject
         })
@@ -2256,7 +2254,7 @@ export class DDB {
         
         const message = concat([
             this.enc.encode(
-                `API2 ${this.sid} ${command.length}${this.get_rpc_options({ urgent })}\n`
+                `API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent })}\n`
             ),
             command,
             ... args.map((arg: DdbObj) =>
@@ -2264,36 +2262,49 @@ export class DDB {
             )
         ])
         
-        this.websocket.send(message)
+        const _on_message = this.on_message
+        const _parse_object = this.parse_object
         
-        const buf_data = await presult
+        if (on_message)
+            this.on_message = on_message
         
-        if (this.print_buffer)
-            console.log(
-                typed_array_to_buffer(buf_data)
-            )
+        if (parse_object !== undefined)
+            this.parse_object = parse_object
         
-        // LOCAL: 便于 repl
-        // return global.DdbObj.parse(data_buf) as DdbObj
-        
-        return DdbObj.parse(buf_data, this.le) as T
+        try {
+            this.websocket.send(message)
+            
+            const { data } = (await presult) as DdbObjectMessage
+            
+            return data as T
+        } finally {
+            this.on_message = _on_message
+            this.parse_object = _parse_object
+        }
     }
     
     
-    /** eval script through websocket (script command) */
+    /** eval script through websocket (script command)  
+        - script?: 执行的脚本
+        - options?: 执行选项
+            - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞
+            - on_message?: 在该次 rpc 期间设置 message handler, 结束后恢复原有
+            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
+                不做解析，以便后续转发、序列化
+    */
     async eval <T extends DdbObj> (
-        /** 执行的脚本 */
         script: string,
-        
-        /** 执行选项 */
         {
-            urgent
+            urgent,
+            on_message,
+            parse_object,
         }: {
-            /** 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞 */
             urgent?: boolean
+            on_message?: DDB['on_message']
+            parse_object?: boolean
         } = { }
     ) {
-        return this.rpc<T>('script', { script, urgent })
+        return this.rpc<T>('script', { script, urgent, on_message, parse_object })
     }
     
     
@@ -2306,6 +2317,9 @@ export class DDB {
             - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)
             - func_type?: 设置 node 参数时必传，需指定函数类型，其它情况下不传
             - add_node_alias?: 设置 nodes 参数时选传，其它情况不传
+            - on_message?: 在该次 rpc 期间设置 message handler, 结束后恢复原有
+            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
+                不做解析，以便后续转发、序列化
     */
     async call <T extends DdbObj> (
         func: string,
@@ -2315,13 +2329,17 @@ export class DDB {
             node,
             nodes,
             func_type,
-            add_node_alias
+            add_node_alias,
+            on_message,
+            parse_object,
         }: {
             urgent?: boolean
             node?: string
             nodes?: string[]
             func_type?: DdbFunctionType
             add_node_alias?: boolean
+            on_message?: DDB['on_message']
+            parse_object?: boolean
         } = { }
     ) {
         if (this.python)
@@ -2363,6 +2381,8 @@ export class DDB {
             func,
             args,
             urgent,
+            on_message,
+            parse_object
         })
     }
     
@@ -2373,23 +2393,31 @@ export class DDB {
         vars: string[],
         
         /** Uploaded variables' value */
-        args: (DdbObj | string | boolean)[]
+        args: (DdbObj | string | boolean)[],
+        
+        {
+            on_message,
+            parse_object,
+        }: {
+            on_message?: DDB['on_message']
+            parse_object?: boolean
+        } = { }
     ) {
         if (!args.length || args.length !== vars.length)
             throw new Error('variable 指令参数为空或参数名为空，或数量不匹配')
         
-        return this.rpc('variable', { vars, args })
+        return this.rpc('variable', { vars, args, on_message, parse_object })
     }
     
     
     /** 解析服务端响应报文，返回去掉 header 的 data buf */
-    parse_message (buf: Uint8Array) {
+    parse_message (buf: Uint8Array, parse_object = this.parse_object): DdbMessage {
         // MSG\n
         // <message>\0
         // 'M'.codePointAt(0).to_hex_str()
         if (buf[0] === 0x4d && buf[1] === 0x53 && buf[2] === 0x47 && buf[3] === 0x0a)
             return {
-                type: 'message' as const,
+                type: 'print',
                 data: 
                     this.dec.decode(
                         buf.subarray(4)
@@ -2431,9 +2459,23 @@ export class DDB {
         if (message !== 'OK')
             throw new Error(message)
         
+        const buf_obj = buf.subarray(i_lf_1 + 1)
+        
         return {
-            type: 'object' as const,
-            data: buf.subarray(i_lf_1 + 1)
+            type: 'object',
+            data: parse_object ?
+                    Object.assign(
+                        DdbObj.parse(buf_obj, this.le),
+                        { buffer: buf_obj }
+                    )
+                :
+                    new DdbObj({
+                        form: DdbForm.scalar,
+                        type: DdbType.void,
+                        length: 0,
+                        le: this.le,
+                        buffer: buf_obj,
+                    })
         }
     }
     
@@ -2466,5 +2508,18 @@ export class DDB {
     }
     
 }
+
+export interface DdbPrintMessage {
+    type: 'print'
+    data: string
+}
+
+export interface DdbObjectMessage {
+    type: 'object'
+    data: DdbObj
+}
+
+export type DdbMessage = DdbPrintMessage | DdbObjectMessage
+
 
 export default DDB

@@ -1,7 +1,7 @@
 {
     "name": "dolphindb",
     "description": "DolphinDB JavaScript API",
-    "version": "2.0.505",
+    "version": "2.0.506",
     "type": "commonjs",
     "main": "./index.js",
     "browser": "./browser.js",

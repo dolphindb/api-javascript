@@ -1899,22 +1899,23 @@ export class DDB {
     /** python session flag (2048) */
     python = false
     
+    print_message_buffer = false
+    
+    print_object_buffer = false
+    
+    print_message = true
     
     parse_object = true
     
-    /** message handler */
-    on_message ({ type, data }: DdbMessage, _this: DDB) {
-        switch (type) {
-            case 'print':
-                console.log(data)
-                return
-        }
-    }
+    
+    /** message handlers */
+    handlers: DdbMessageHandler[] = [ ]
+    
     
     /** resolver, rejector, promise of last rpc */
-    presolver (message: DdbMessage) { }
+    presolver (ddbobj: DdbObj) { }
     prejector (error: Error) { }
-    presult = Promise.resolve(null) as Promise<DdbMessage>
+    presult = Promise.resolve(null) as Promise<DdbObj>
     
     
     get connected () {
@@ -1935,7 +1936,7 @@ export class DDB {
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
         
-        // 使用 HTTPS 加密
+        // Encrypt with HTTPS
         let ddbsecure = new DDB('wss://dolphindb.com', {
             autologin: true,
             username: 'admin',
@@ -2018,23 +2019,59 @@ export class DDB {
             on_message: event => {
                 const buf = new Uint8Array(event.data as ArrayBuffer)
                 
-                try {
-                    const message = this.parse_message(buf)
-                    
-                    this.on_message(message, this)
-                    
-                    if (message.type === 'print')
+                if (this.print_message_buffer)
+                    console.log(buf)
+                
+                const message = this.parse_message(buf)
+                
+                if (this.handlers.length) {
+                    const _handlers = [...this.handlers].reverse()
+                    for (const handler of _handlers)
+                        handler(message, this)
+                }
+                
+                const { type, data } = message
+                
+                switch (type) {
+                    case 'print':
+                        if (this.print_message)
+                            console.log(data)
                         return
                     
-                    this.presolver(message)
-                } catch (error) {
-                    this.prejector(error)
+                    case 'object':
+                        if (this.print_object_buffer)
+                            console.log(data.buffer)
+                        
+                        this.presolver(data)
+                        return
+                    
+                    case 'error':
+                        this.prejector(data)
+                        return
                 }
             }
         })
         
-        if (!this.python)
-            await this.eval(
+        await this.eval(
+            this.python ?
+                'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
+                '    nargs = size(args)\n' +
+                '    func = funcByName(func_name)\n' +
+                '    \n' +
+                '    if not nargs:\n' +
+                '        return pnodeRun(func, nodes, add_node_alias)\n' +
+                '    \n' +
+                '    args_partial = [ ]\n' +
+                '    args_partial.append(func)\n' +
+                '    for a in args:\n' +
+                '        args_partial.append(a)\n' +
+                '    \n' +
+                '    return pnodeRun(\n' +
+                '        unifiedCall(partial, args_partial),\n' +
+                '        nodes,\n' +
+                '        add_node_alias\n' +
+                '    )\n'
+            :
                 'def pnode_run (nodes, func_name, args, add_node_alias = true) {\n' +
                 '    nargs = size(args)\n' +
                 '    func = funcByName(func_name)\n' +
@@ -2051,8 +2088,8 @@ export class DDB {
                 '        add_node_alias\n' +
                 '    )\n' +
                 '}\n',
-                { urgent: true }
-            )
+            { urgent: true }
+        )
         
         if (this.autologin)
             if (this.python)
@@ -2162,9 +2199,9 @@ export class DDB {
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
             - vars?: type === 'variable' 时必传，variable 指令中待上传的变量名
-            - on_message?:   在该次 rpc 期间设置 message handler, 结束后恢复原有
-            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
-                不做解析，以便后续转发、序列化
+            - handler?: 处理本次 rpc 期间的消息
+            - parse_object?: 在本次 rpc 期间设置 parse_object, 结束后恢复原有  
+                为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化
     */
     async rpc <T extends DdbObj = DdbObj> (
         type: 'script' | 'function' | 'variable' | 'connect',
@@ -2174,7 +2211,7 @@ export class DDB {
             args = [ ],
             vars = [ ],
             urgent,
-            on_message,
+            handler,
             parse_object,
         }: {
             script?: string
@@ -2182,7 +2219,7 @@ export class DDB {
             args?: (DdbObj | string | boolean)[]
             vars?: string[]
             urgent?: boolean
-            on_message?: DDB['on_message']
+            handler?: DdbMessageHandler
             parse_object?: boolean
     }) {
         if (!this.websocket)
@@ -2198,10 +2235,10 @@ export class DDB {
         // 2. windows 下 ddb server 返回多个相同的结果
         
         const ptail = this.presult
-        let presolver: (message: DdbMessage) => void
+        let presolver: (ddbobj: DdbObj) => void
         let prejector: (error: Error) => void
         
-        const presult = this.presult = new Promise<DdbMessage>((resolve, reject) => {
+        const presult = this.presult = new Promise<DdbObj>((resolve, reject) => {
             presolver = resolve
             prejector = reject
         })
@@ -2254,11 +2291,10 @@ export class DDB {
             )
         ])
         
-        const _on_message = this.on_message
         const _parse_object = this.parse_object
         
-        if (on_message)
-            this.on_message = on_message
+        if (handler)
+            this.handlers.push(handler)
         
         if (parse_object !== undefined)
             this.parse_object = parse_object
@@ -2266,11 +2302,12 @@ export class DDB {
         try {
             this.websocket.send(message)
             
-            const { data } = (await presult) as DdbObjectMessage
-            
-            return data as T
+            return (await presult) as T
         } finally {
-            this.on_message = _on_message
+            if (handler)
+                this.handlers = this.handlers.filter(h => 
+                    h !== handler
+                )
             this.parse_object = _parse_object
         }
     }
@@ -2280,7 +2317,7 @@ export class DDB {
         - script?: Script to execute
         - options?: execution options
             - urgent?: Urgent flag to ensure that submitted scripts are processed by urgent workers to prevent being blocked by other jobs
-            - on_message?: Set the message handler during this rpc, and restore the original after the end
+            - handler?: Process messages during this rpc
             - parse_object?: Set parse_object during this rpc, and restore the original after the end.
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
@@ -2289,15 +2326,15 @@ export class DDB {
         script: string,
         {
             urgent,
-            on_message,
+            handler,
             parse_object,
         }: {
             urgent?: boolean
-            on_message?: DDB['on_message']
+            handler?: DdbMessageHandler
             parse_object?: boolean
         } = { }
     ) {
-        return this.rpc<T>('script', { script, urgent, on_message, parse_object })
+        return this.rpc<T>('script', { script, urgent, handler, parse_object })
     }
     
     
@@ -2310,7 +2347,7 @@ export class DDB {
             - nodes?: When setting multiple node aliases, send them to the corresponding multiple nodes in the cluster for execution (using the pnodeRun method in DolphinDB)
             - func_type?: It must be passed when setting the node parameter, the function type needs to be specified, and it is not passed in other cases
             - add_node_alias?: Select to pass when setting the nodes parameter, otherwise not pass
-            - on_message?: Set the message handler during this rpc, and restore the original after the end
+            - handler?: Process messages during this rpc
             - parse_object?: Set parse_object during this rpc, and restore the original after the end.
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
@@ -2324,7 +2361,7 @@ export class DDB {
             nodes,
             func_type,
             add_node_alias,
-            on_message,
+            handler,
             parse_object,
         }: {
             urgent?: boolean
@@ -2332,13 +2369,10 @@ export class DDB {
             nodes?: string[]
             func_type?: DdbFunctionType
             add_node_alias?: boolean
-            on_message?: DDB['on_message']
+            handler?: DdbMessageHandler
             parse_object?: boolean
         } = { }
     ) {
-        if (this.python)
-            throw new Error('call doesn\'t support python session yet')
-        
         if (node) {
             if (typeof func_type === 'undefined')
                 throw new Error('指定 node 时必须设置 func_type')
@@ -2375,7 +2409,7 @@ export class DDB {
             func,
             args,
             urgent,
-            on_message,
+            handler,
             parse_object
         })
     }
@@ -2390,17 +2424,17 @@ export class DDB {
         args: (DdbObj | string | boolean)[],
         
         {
-            on_message,
+            handler,
             parse_object,
         }: {
-            on_message?: DDB['on_message']
+            handler?: DdbMessageHandler
             parse_object?: boolean
         } = { }
     ) {
         if (!args.length || args.length !== vars.length)
             throw new Error('variable 指令参数为空或参数名为空，或数量不匹配')
         
-        return this.rpc('variable', { vars, args, on_message, parse_object })
+        return this.rpc('variable', { vars, args, handler, parse_object })
     }
     
     
@@ -2451,7 +2485,10 @@ export class DDB {
         )
         
         if (message !== 'OK')
-            throw new Error(message)
+            return {
+                type: 'error',
+                data: new Error(message)
+            }
         
         const buf_obj = buf.subarray(i_lf_1 + 1)
         
@@ -2502,6 +2539,12 @@ export class DDB {
     }
 }
 
+
+export interface DdbMessageHandler {
+    (message: DdbMessage, _this: DDB): any
+}
+
+
 export interface DdbPrintMessage {
     type: 'print'
     data: string
@@ -2512,7 +2555,13 @@ export interface DdbObjectMessage {
     data: DdbObj
 }
 
-export type DdbMessage = DdbPrintMessage | DdbObjectMessage
+export interface DdbErrorMessage {
+    type: 'error',
+    data: Error
+}
+
+export type DdbMessage = DdbPrintMessage | DdbObjectMessage | DdbErrorMessage
+
 
 export let ddb = (window as any).ddb = new DDB()
 

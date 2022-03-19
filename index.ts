@@ -211,7 +211,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据 */
     value: T
     
-    /** 原始二进制数据，仅 parse_message 生成的顶层对象有 */
+    /** 原始二进制数据，仅在 parse_object 为 false 时通过 parse_message 生成的顶层对象有这个属性 */
     buffer?: Uint8Array
     
     

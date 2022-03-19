@@ -1912,16 +1912,11 @@ export class DDB {
     
     parse_object = true
     
+    /** DdbMessage listeners */
+    listeners: DdbMessageListener[] = [ ]
     
-    /** message handlers */
-    handlers: DdbMessageHandler[] = [ ]
     
-    
-    /** resolver, rejector, promise of last rpc */
-    presolver (ddbobj: DdbObj) { }
-    prejector (error: Error) { }
-    presult = Promise.resolve(null) as Promise<DdbObj>
-    
+    promise = Promise.resolve(null)
     
     get connected () {
         return this.websocket?.readyState === WebSocket.OPEN
@@ -1981,6 +1976,8 @@ export class DDB {
     }
     
     
+    private on_message (event: { data: ArrayBuffer }) { }
+    
     /** Establish the actual WebSocket connection to the DolphinDB corresponding to the URL
         - options?:
             - url?: DolphinDB WebSocket URL. By default, the WebSocket URL passed in when the instance is initialized is used
@@ -2022,38 +2019,7 @@ export class DDB {
             },
             
             on_message: event => {
-                const buf = new Uint8Array(event.data as ArrayBuffer)
-                
-                if (this.print_message_buffer)
-                    console.log(buf)
-                
-                const message = this.parse_message(buf)
-                
-                if (this.handlers.length) {
-                    const _handlers = [...this.handlers].reverse()
-                    for (const handler of _handlers)
-                        handler(message, this)
-                }
-                
-                const { type, data } = message
-                
-                switch (type) {
-                    case 'print':
-                        if (this.print_message)
-                            console.log(data)
-                        return
-                    
-                    case 'object':
-                        if (this.print_object_buffer)
-                            console.log(data.buffer)
-                        
-                        this.presolver(data)
-                        return
-                    
-                    case 'error':
-                        this.prejector(data)
-                        return
-                }
+                this.on_message(event)
             }
         })
         
@@ -2193,9 +2159,8 @@ export class DDB {
     disconnect () {
         if (this.connected)
             this.websocket.close(1000)
-        this.presolver = buf => { }
-        this.prejector = error => { }
-        this.presult = Promise.resolve(null)
+        this.on_message = () => { }
+        this.promise = Promise.resolve(null)
     }
     
     
@@ -2204,7 +2169,7 @@ export class DDB {
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
             - vars?: type === 'variable' 时必传，variable 指令中待上传的变量名
-            - handler?: 处理本次 rpc 期间的消息
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage)
             - parse_object?: 在本次 rpc 期间设置 parse_object, 结束后恢复原有  
                 为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化
     */
@@ -2216,7 +2181,7 @@ export class DDB {
             args = [ ],
             vars = [ ],
             urgent,
-            handler,
+            listener,
             parse_object,
         }: {
             script?: string
@@ -2224,7 +2189,7 @@ export class DDB {
             args?: (DdbObj | string | boolean)[]
             vars?: string[]
             urgent?: boolean
-            handler?: DdbMessageHandler
+            listener?: DdbMessageListener
             parse_object?: boolean
     }) {
         if (!this.websocket)
@@ -2233,31 +2198,60 @@ export class DDB {
         if (!this.connected)
             throw new Error(`${this.url} is already disconnected`)
         
+        // this 上的当前配置需要在 message 到达后使用，先保存起来
+        const _handlers = [...this.listeners].reverse()
+        
+        
         // 临界区：保证多个 rpc 并发时形成 promise 链
         // ddb 世界观：需要等待上一个 rpc 结果从 server 返回之后才能发起下一个调用  
         // 违反世界观可能造成:  
         // 1. 并发多个请求只返回第一个结果（阻塞，需后续请求疏通）
         // 2. windows 下 ddb server 返回多个相同的结果
         
-        const ptail = this.presult
-        let presolver: (ddbobj: DdbObj) => void
-        let prejector: (error: Error) => void
+        const ptail = this.promise
         
-        const presult = this.presult = new Promise<DdbObj>((resolve, reject) => {
-            presolver = resolve
-            prejector = reject
+        let resolve: (ddbobj: T) => void
+        let reject: (error: Error) => void
+        const promise = this.promise = new Promise<T>((_resolve, _reject) => {
+                resolve = _resolve
+                reject = _reject
         })
         
         try {
             await ptail
         } catch { }
+        // 临界区结束，只有一个 rpc 函数调用运行到这里，可以独占 this.on_message 然后写 WebSocket
         
-        this.presolver = presolver
-        this.prejector = prejector
-        // 临界区结束，只有一个 rpc 请求可以写 WebSocket
         
-        if (urgent && type !== 'script' && type !== 'function')
-            throw new Error('urgent 只适用于 script 和 funciton')
+        this.on_message = ({ data: buffer }) => {
+            const buf = new Uint8Array(buffer)
+            
+            if (this.print_message_buffer)
+                console.log(buf)
+            
+            const message = this.parse_message(buf, parse_object)
+            
+            listener?.(message, this)
+            for (const listener of _handlers)
+                listener(message, this)
+            
+            const { type, data } = message
+            
+            switch (type) {
+                case 'print':
+                    if (this.print_message)
+                        console.log(data)
+                    return
+                
+                case 'object':
+                    resolve(data as T)
+                    return
+                
+                case 'error':
+                    reject(data)
+                    return
+            }
+        }
         
         args = this.to_ddbobjs(args)
         
@@ -2286,35 +2280,19 @@ export class DDB {
             })()
         )
         
-        const message = concat([
-            this.enc.encode(
-                `API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent })}\n`
-            ),
-            command,
-            ... args.map((arg: DdbObj) =>
-                arg.pack()
-            )
-        ])
-        
-        const _parse_object = this.parse_object
-        
-        if (handler)
-            this.handlers.push(handler)
-        
-        if (parse_object !== undefined)
-            this.parse_object = parse_object
-        
-        try {
-            this.websocket.send(message)
-            
-            return (await presult) as T
-        } finally {
-            if (handler)
-                this.handlers = this.handlers.filter(h => 
-                    h !== handler
+        this.websocket.send(
+            concat([
+                this.enc.encode(
+                    `API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent })}\n`
+                ),
+                command,
+                ... args.map((arg: DdbObj) =>
+                    arg.pack()
                 )
-            this.parse_object = _parse_object
-        }
+            ])
+        )
+        
+        return promise
     }
     
     
@@ -2322,7 +2300,7 @@ export class DDB {
         - script?: Script to execute
         - options?: execution options
             - urgent?: Urgent flag to ensure that submitted scripts are processed by urgent workers to prevent being blocked by other jobs
-            - handler?: Process messages during this rpc
+            - listener?: Process messages during this rpc (DdbMessage)
             - parse_object?: Set parse_object during this rpc, and restore the original after the end.
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
@@ -2331,15 +2309,15 @@ export class DDB {
         script: string,
         {
             urgent,
-            handler,
+            listener,
             parse_object,
         }: {
             urgent?: boolean
-            handler?: DdbMessageHandler
+            listener?: DdbMessageListener
             parse_object?: boolean
         } = { }
     ) {
-        return this.rpc<T>('script', { script, urgent, handler, parse_object })
+        return this.rpc<T>('script', { script, urgent, listener, parse_object })
     }
     
     
@@ -2352,7 +2330,7 @@ export class DDB {
             - nodes?: When setting multiple node aliases, send them to the corresponding multiple nodes in the cluster for execution (using the pnodeRun method in DolphinDB)
             - func_type?: It must be passed when setting the node parameter, the function type needs to be specified, and it is not passed in other cases
             - add_node_alias?: Select to pass when setting the nodes parameter, otherwise not pass
-            - handler?: Process messages during this rpc
+            - listener?: Process messages during this rpc (DdbMessage)
             - parse_object?: Set parse_object during this rpc, and restore the original after the end.
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
@@ -2366,7 +2344,7 @@ export class DDB {
             nodes,
             func_type,
             add_node_alias,
-            handler,
+            listener,
             parse_object,
         }: {
             urgent?: boolean
@@ -2374,7 +2352,7 @@ export class DDB {
             nodes?: string[]
             func_type?: DdbFunctionType
             add_node_alias?: boolean
-            handler?: DdbMessageHandler
+            listener?: DdbMessageListener
             parse_object?: boolean
         } = { }
     ) {
@@ -2414,7 +2392,7 @@ export class DDB {
             func,
             args,
             urgent,
-            handler,
+            listener,
             parse_object
         })
     }
@@ -2429,17 +2407,17 @@ export class DDB {
         args: (DdbObj | string | boolean)[],
         
         {
-            handler,
+            listener,
             parse_object,
         }: {
-            handler?: DdbMessageHandler
+            listener?: DdbMessageListener
             parse_object?: boolean
         } = { }
     ) {
         if (!args.length || args.length !== vars.length)
             throw new Error('variable 指令参数为空或参数名为空，或数量不匹配')
         
-        return this.rpc('variable', { vars, args, handler, parse_object })
+        return this.rpc('variable', { vars, args, listener, parse_object })
     }
     
     
@@ -2497,13 +2475,13 @@ export class DDB {
         
         const buf_obj = buf.subarray(i_lf_1 + 1)
         
+        if (this.print_object_buffer)
+            console.log(buf_obj)
+        
         return {
             type: 'object',
             data: parse_object ?
-                    Object.assign(
-                        DdbObj.parse(buf_obj, this.le),
-                        { buffer: buf_obj }
-                    )
+                    DdbObj.parse(buf_obj, this.le)
                 :
                     new DdbObj({
                         form: DdbForm.scalar,
@@ -2545,7 +2523,7 @@ export class DDB {
 }
 
 
-export interface DdbMessageHandler {
+export interface DdbMessageListener {
     (message: DdbMessage, _this: DDB): any
 }
 

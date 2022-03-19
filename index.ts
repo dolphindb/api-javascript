@@ -211,7 +211,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据 */
     value: T
     
-    /** 原始二进制数据 */
+    /** 原始二进制数据，仅 parse_message 生成的顶层对象有 */
     buffer?: Uint8Array
     
     
@@ -1374,25 +1374,30 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         for (let i = 0;  i < this.rows;  i++) {
             let row: any = { }
             for (let j = 0;  j < this.cols;  j++) {
-                const { type, name, value }: DdbObj = this.value[j]  // column
+                const { type, name, value: values }: DdbObj = this.value[j]  // column
                 
                 switch (type) {
-                    case DdbType.bool:
-                        row[name] = Boolean(value[i])
+                    case DdbType.bool: {
+                        const value = values[i]
+                        row[name] = value === nulls.int8 ?
+                                null
+                            :
+                                Boolean(value)
                         break
+                    }
                     
                     case DdbType.ipaddr:
-                        row[name] = (value as Uint8Array).subarray(16 * i, 16 * (i + 1))
+                        row[name] = (values as Uint8Array).subarray(16 * i, 16 * (i + 1))
                         break
                         
                     case DdbType.symbol_extended: {
-                        const { base, data } = value as DdbSymbolExtendedValue
+                        const { base, data } = values as DdbSymbolExtendedValue
                         row[name] = base[data[i]]
                         break
                     }
                     
                     default:
-                        row[name] = value[i]
+                        row[name] = values[i]
                 }
             }
             rows[i] = row

@@ -174,7 +174,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     buffer?: Uint8Array
     
     
-    constructor (data: Partial<DdbObj> & { form: DdbForm, type: DdbType, length: number }) {
+    constructor (data: Partial<DdbObj> & { form: DdbForm, type: DdbType /* (parse 对象时必须设置) , length: number */ }) {
         Object.assign(this, data)
     }
     

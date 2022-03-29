@@ -90,8 +90,14 @@ export interface DdbArrayVectorBlock {
     data: DdbVectorValue
 }
 
+export interface DdbMatrixValue {
+    rows: DdbObj
+    cols: DdbObj
+    data: DdbVectorValue
+}
 
-export type DdbValue = null | boolean | number | [number, number] | bigint | string | string[] | Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbFunctionDefValue | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
+
+export type DdbValue = null | boolean | number | [number, number] | bigint | string | string[] | Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbFunctionDefValue | DdbSymbolExtendedValue | DdbArrayVectorBlock[] | DdbMatrixValue
 
 
 export type DdbVectorValue = string | string[] | Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
@@ -162,10 +168,6 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     /** 第 2 维 */
     cols?: number
-    
-    
-    /** matrix 中值的类型，仅 matrix 才有 */
-    datatype?: DdbType
     
     /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据 */
     value: T
@@ -341,15 +343,28 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             
             
             case DdbForm.matrix: {
-                // matrix([
+                // rename!(
+                //     1..9$3:3,
                 //     [1, 2, 3],
-                //     [3, 2, 1]
-                // ])
+                //     ['c1', 'c2', 'c3']
+                // )
                 
-                // <Buffer 00 has_row_label = , has_col_label = 
-                // 04 03 type = int, form = matrix
-                // 03 00 00 00 02 00 00 00 rows = 3, cols = 2
-                // 01 00 00 00 02 00 00 00 03 00 00 00 03 00 00 00 02 00 00 00 01 00 00 00>
+                // <Buffer 04 03 type = int, form = matrix
+                // 03 has_row_label (& 0x01) = 1, has_col_label (& 0x02) = 1
+                
+                // row labels
+                // 04 01 type = int, form = vector
+                // 03 00 00 00 01 00 00 00 rows = 3, cols = 1
+                // 01 00 00 00 02 00 00 00 03 00 00 00 vector values
+                
+                // col labels
+                // 12 01 type = string, form = vector
+                // 03 00 00 00 01 00 00 00 rows = 3, cols = 1
+                // 63 31 00 63 32 00 63 33 00 
+                
+                // matrix data
+                // 04 03 type = matrix.type, form = matrix
+                // 03 00 00 00 03 00 00 00 rows = 3, cols = 3
                 
                 const dv = new DataView(buf.buffer, buf.byteOffset + i_data)
                 
@@ -357,30 +372,59 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 const has_row_labels = Boolean(label_flags & 0x01)
                 const has_col_labels = Boolean(label_flags & 0x02)
                 
-                if (has_row_labels || has_col_labels)
-                    throw new Error('matrix 暂不支持 row labels 和 col labels')
+                let row_labels: DdbObj<DdbVectorValue> | null = null
+                let col_labels: DdbObj<DdbVectorValue> | null = null
                 
-                const datatype = buf_data[1] as DdbType
-                const rows = dv.getUint32(3, le)
-                const cols = dv.getUint32(7, le)
+                let offset = 1
                 
-                const [len_items, value] = this.parse_vector_items(
-                    buf_data.subarray(11),
+                if (has_row_labels) {
+                    row_labels = this.parse_vector(
+                        buf_data.subarray(offset + 2),
+                        le,
+                        buf_data[offset] as DdbType
+                    )
+                    row_labels.length += 2
+                    offset += row_labels.length
+                }
+                
+                if (has_col_labels) {
+                    col_labels = this.parse_vector(
+                        buf_data.subarray(offset + 2),
+                        le,
+                        buf_data[offset] as DdbType
+                    )
+                    col_labels.length += 2
+                    offset += col_labels.length
+                }
+                
+                if (buf_data[offset] !== type)
+                    throw new Error('matrix.datatype !== matrix.type')
+                
+                const rows = dv.getUint32(offset + 2, le)
+                const cols = dv.getUint32(offset + 6, le)
+                
+                const [len_items, data] = this.parse_vector_items(
+                    buf_data.subarray(offset + 10),
                     le,
-                    datatype,
+                    type,
                     rows * cols  // 假设小于 2**32
                 )
+                
+                offset += 10 + len_items
                 
                 return new this({
                     le,
                     form, 
                     type,
-                    length: i_data + 11 + len_items,
+                    length: i_data + offset,
                     rows,
                     cols,
-                    datatype,
-                    value,
-                })    
+                    value: {
+                        rows: row_labels,
+                        cols: col_labels,
+                        data,
+                    },
+                })
             }
             
             
@@ -535,7 +579,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     /** parse: rows, cols, items  
         返回的 ddbobj.length 不包括 vector 的 type 和 form
     */
-    static parse_vector (buf: Uint8Array, le: boolean, type: DdbType): DdbObj {
+    static parse_vector (buf: Uint8Array, le: boolean, type: DdbType): DdbObj<DdbVectorValue> {
         const dv = new DataView(buf.buffer, buf.byteOffset)
         
         const rows = dv.getUint32(0, le)
@@ -912,9 +956,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     pack (): Uint8Array {
         const { form, type, value } = this
         
-        let header = new Uint8Array(
-            new ArrayBuffer(2)
-        )
+        let header = new Uint8Array(2)
         header[0] = type
         header[1] = form
         
@@ -1119,13 +1161,20 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     ]
                 
                 
-                case DdbForm.matrix:
+                case DdbForm.matrix: {
+                    const { rows, cols, data } = value as DdbMatrixValue
+                    
                     return [
-                        Uint8Array.of(0, this.datatype, this.form),
+                        Uint8Array.of(
+                            (rows && 0x01) | (cols && 0x02),
+                        ),
+                        ... rows ? [rows.pack()] : [ ],
+                        ... cols ? [cols.pack()] : [ ],
+                        Uint8Array.of(this.type, this.form),
                         Uint32Array.of(this.rows, this.cols),
-                        ... DdbObj.pack_vector_body(value as DdbVectorValue, this.datatype, this.rows * this.cols)
+                        ... DdbObj.pack_vector_body(data, this.type, this.rows * this.cols)
                     ]
-                
+                }
                 
                 default:
                     throw new Error(`${DdbForm[form]} 暂不支持序列化`)
@@ -1288,7 +1337,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>`
                 
                 case DdbForm.matrix:
-                    return `matrix<${DdbType[this.datatype]}>[${this.rows} rows][${this.cols} cols]`
+                    return `matrix<${DdbType[this.type]}>[${this.rows} rows][${this.cols} cols]`
                 
                 default:
                     return `${DdbForm[this.form]} ${tname}`

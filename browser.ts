@@ -72,9 +72,30 @@ export enum DdbFunctionType {
     JitPartialFunc = 8,
 }
 
+export enum DdbDurationUnit {
+    ns = 0,
+    us = 1,
+    ms = 2,
+    s = 3,
+    m = 4,
+    H = 5,
+    d = 6,
+    w = 7,
+    M = 8,
+    y = 9,
+    B = 10
+}
+
 export interface DdbFunctionDefValue {
     type: DdbFunctionType
     name: string
+}
+
+export interface DdbDurationValue {
+    unit: DdbDurationUnit
+    
+    /** int32 */
+    data: number
 }
 
 export interface DdbSymbolExtendedValue {
@@ -100,7 +121,8 @@ export type DdbScalarValue =
     null | boolean | number | bigint | string |
     Uint8Array | // uuid, ipaddr, int128, blob
     [number, number] | // complex, point
-    DdbFunctionDefValue
+    DdbFunctionDefValue |
+    DdbDurationValue
 
 export type DdbVectorValue = 
     Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | 
@@ -580,6 +602,17 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             }
             
             
+            case DdbType.duration: {
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                return [
+                    8,
+                    {
+                        unit: dv.getUint32(4, le),
+                        data: dv.getInt32(0, le)
+                    } as DdbDurationValue
+                ]
+            }
+            
             default:
                 return [0, buf]
         }
@@ -957,6 +990,14 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 ]
             }
             
+            // case DdbType.duration: -> 实际会返回一个 any vector
+            // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
+            // <Buffer 19 01 type = any, form = vector
+            // 09 00 00 00 01 00 00 00 rows = 9, cols = 1
+            // 24 00 type = DdbType.duration, form = scalar
+            // 02 00 00 00 09 00 00 00 
+            // 24 00 01 00 00 00 08 00 00 00 24 00 03 00 00 00 06 00 00 00 24 00 07 00 00 00 05 00 00 00 ... 50 more bytes>
+            
             
             default:
                 return [0, buf]
@@ -1103,9 +1144,11 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             return [Float64Array.from(this.value as [number, number])]
                         
                         
-                        case DdbType.duration:
-                            return [value as Uint8Array]
-                            
+                        case DdbType.duration: {
+                            const { unit, data } = this.value as DdbDurationValue
+                            return [Int32Array.of(data, unit)]
+                        }
+                        
                         case DdbType.handle:
                             throw new Error('DolphinDB Server 不支持 handle 的反序列化')
                         
@@ -1365,7 +1408,12 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     switch (this.type) {
                         case DdbType.functiondef:
                             return `'${(this.value as DdbFunctionDefValue).name}'`
-                            
+                        
+                        case DdbType.duration: {
+                            const { data, unit } = this.value as DdbDurationValue
+                            return `${data}${DdbDurationUnit[unit]}`
+                        }
+                        
                         case DdbType.string:
                             return `'${this.value}'`
                     }

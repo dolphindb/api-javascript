@@ -91,16 +91,26 @@ export interface DdbArrayVectorBlock {
 }
 
 export interface DdbMatrixValue {
-    rows: DdbObj
-    cols: DdbObj
+    rows: DdbObj<DdbVectorValue>
+    cols: DdbObj<DdbVectorValue>
     data: DdbVectorValue
 }
 
+export type DdbScalarValue = 
+    null | boolean | number | bigint | string |
+    Uint8Array | // uuid, ipaddr, int128, blob
+    [number, number] | // complex, point
+    DdbFunctionDefValue
 
-export type DdbValue = null | boolean | number | [number, number] | bigint | string | string[] | Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbFunctionDefValue | DdbSymbolExtendedValue | DdbArrayVectorBlock[] | DdbMatrixValue
+export type DdbVectorValue = 
+    Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | 
+    string[] | // string[]
+    Uint8Array[] | // blob
+    DdbObj[] | // any
+    DdbSymbolExtendedValue | 
+    DdbArrayVectorBlock[]
 
-
-export type DdbVectorValue = string | string[] | Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | Uint8Array[] | DdbObj[] | DdbSymbolExtendedValue | DdbArrayVectorBlock[]
+export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue
 
 
 export const nulls = {
@@ -440,7 +450,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     }
     
     
-    static parse_scalar (buf: Uint8Array, le: boolean, type: DdbType): [number, DdbValue] {
+    static parse_scalar (buf: Uint8Array, le: boolean, type: DdbType): [number, DdbScalarValue] {
         switch (type) {
             case DdbType.void:
                 return [1, null]
@@ -751,6 +761,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             case DdbType.minute:
             case DdbType.second:
             case DdbType.datetime:
+            case DdbType.datehour:
                 return [
                     4 * length,
                     new Int32Array(
@@ -1218,6 +1229,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             case DdbType.minute:
             case DdbType.second:
             case DdbType.datetime:
+            case DdbType.datehour:
                 return [value as Int32Array]
             
             

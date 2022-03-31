@@ -2292,34 +2292,38 @@ export class DDB {
         
         
         this.on_message = ({ data: buffer }) => {
-            const buf = new Uint8Array(buffer)
-            
-            if (this.print_message_buffer)
-                console.log(
-                    typed_array_to_buffer(buf)
-                )
-            
-            const message = this.parse_message(buf, parse_object)
-            
-            listener?.(message, this)
-            for (const listener of _handlers)
-                listener(message, this)
-            
-            const { type, data } = message
-            
-            switch (type) {
-                case 'print':
-                    if (this.print_message)
-                        console.log(data)
-                    return
+            try {
+                const buf = new Uint8Array(buffer)
                 
-                case 'object':
-                    resolve(data as T)
-                    return
+                if (this.print_message_buffer)
+                    console.log(
+                        typed_array_to_buffer(buf)
+                    )
                 
-                case 'error':
-                    reject(data)
-                    return
+                const message = this.parse_message(buf, parse_object)
+                
+                listener?.(message, this)
+                for (const listener of _handlers)
+                    listener(message, this)
+                
+                const { type, data } = message
+                
+                switch (type) {
+                    case 'print':
+                        if (this.print_message)
+                            console.log(data)
+                        return
+                    
+                    case 'object':
+                        resolve(data as T)
+                        return
+                    
+                    case 'error':
+                        reject(data)
+                        return
+                }
+            } catch (error) {
+                reject(error)
             }
         }
         

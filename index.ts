@@ -63,44 +63,6 @@ export enum DdbType {
     symbol_extended = 145,
 }
 
-export const ddb_sizes = [
-    0,  // void = 0
-    1,  // bool = 1
-    1,  // char = 2
-    2,  // short = 3
-    4,  // int = 4
-    8,  // long = 5
-    4,  // date = 6
-    4,  // month = 7
-    4,  // time = 8
-    4,  // minute = 9
-    4,  // second = 10
-    4,  // datetime = 11
-    8,  // timestamp = 12
-    8,  // nanotime = 13
-    8,  // nanotimestamp = 14
-    4,  // float = 15
-    8,  // double = 16
-    0,  // symbol = 17
-    0,  // string = 18
-    16, // uuid = 19
-    0,  // functiondef = 20
-    0,  // handle = 21
-    0,  // code = 22
-    0,  // datasource = 23
-    0,  // resource = 24
-    0,  // any = 25
-    1,  // compress = 26,
-    0,  // dict = 27,
-    0,  // datehour = 28,
-    16, // ipaddr = 30,
-    16, // int128 = 31,
-    0,  // blob = 32,
-    0,  // complex = 34,
-    0,  // point = 35,
-    0,  // duration = 36,
-] as const
-
 export enum DdbFunctionType {
     SystemFunc = 0,
     SystemProc = 1,
@@ -583,6 +545,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             case DdbType.string:
             case DdbType.symbol:
             case DdbType.code:
+            case DdbType.handle:
             case DdbType.functiondef: {
                 const i_head = type === DdbType.functiondef ? 1 : 0
                 let i_zero = buf.indexOf(0, i_head)
@@ -655,7 +618,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             }
             
             default:
-                return [0, buf]
+                throw new Error(`${DdbType[type] || type} 暂时不支持解析`)
         }
     }
     
@@ -887,8 +850,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 ]
             
             
-            case DdbType.string: 
-            case DdbType.symbol: 
+            case DdbType.string:
+            case DdbType.symbol:
+            case DdbType.handle:
             case DdbType.code: {
                 let value = new Array<string>(length)
                 let i_head = 0, i_tail = i_head
@@ -1153,6 +1117,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         case DdbType.string:
                         case DdbType.symbol:
                         case DdbType.code:
+                        case DdbType.handle:
                             return [
                                 DdbObj.enc.encode(value as string),
                                 Uint8Array.of(0),
@@ -1190,11 +1155,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             return [Int32Array.of(data, unit)]
                         }
                         
-                        case DdbType.handle:
-                            throw new Error('DolphinDB Server 不支持 handle 的反序列化')
-                        
                         default:
-                            throw new Error(`${DdbType[type]} 暂时不支持序列化`)
+                            throw new Error(`${DdbType[type] || type} 暂时不支持序列化`)
                     }
                 
                 
@@ -1332,8 +1294,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 return [value as BigInt64Array]
             
             
-            case DdbType.string: 
-            case DdbType.symbol: 
+            case DdbType.string:
+            case DdbType.symbol:
+            case DdbType.handle:
             case DdbType.code: {
                 let bufs = new Array<Uint8Array>(length * 2)
                 for (let i = 0;  i < length;  i++) {

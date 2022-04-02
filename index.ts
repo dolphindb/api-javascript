@@ -1390,13 +1390,13 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     return `set<${tname}>[${this.rows}]`
                 
                 case DdbForm.table:
-                    return `table[${this.rows} rows][${this.cols} cols]`
+                    return `table[${this.rows}r][${this.cols}c]`
                 
                 case DdbForm.dict:
                     return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>`
                 
                 case DdbForm.matrix:
-                    return `matrix<${DdbType[this.type]}>[${this.rows} rows][${this.cols} cols]`
+                    return `matrix<${DdbType[this.type]}>[${this.rows}r][${this.cols}c]`
                 
                 default:
                     return `${DdbForm[this.form]} ${tname}`
@@ -1405,24 +1405,113 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         
         const data = (() => {
             switch (this.form) {
-                case DdbForm.pair:
-                    return `${inspect(this.value[0], options)}, ${inspect(this.value[1], options)}`
-                    
                 case DdbForm.scalar:
+                    return format(this.type, this.value, this.le, options)
+                
+                case DdbForm.vector:
+                case DdbForm.pair:
+                case DdbForm.set: {
+                    const form = this.form
+                    
+                    function format_array (items: string[], ellipsis: boolean) {
+                        const str_items = items.join(', ') + (ellipsis ? ', ...' : '')
+                        
+                        return form === DdbForm.pair ?
+                                str_items
+                            :
+                                str_items.bracket('square')
+                    }
+                    
                     switch (this.type) {
-                        case DdbType.functiondef:
-                            return inspect(
-                                (this.value as DdbFunctionDefValue).name,
-                                options
+                        case DdbType.symbol_extended: {
+                            const limit = 50 as const
+                            
+                            const { base, data } = this.value as DdbSymbolExtendedValue
+                            
+                            let items = new Array(
+                                Math.min(limit, data.length)
                             )
                             
-                        case DdbType.duration: {
-                            const { data, unit } = this.value as DdbDurationValue
-                            const str = `${data}${DdbDurationUnit[unit]}`
-                            return options.colors ? str.green : str
+                            for (let i = 0;  i < items.length;  i++)
+                                items[i] = inspect(base[data[i]], options)
+                            
+                            return format_array(
+                                items,
+                                data.length > limit
+                            )
+                        }
+                        
+                        case DdbType.uuid: 
+                        case DdbType.int128: 
+                        case DdbType.ipaddr: {
+                            const limit = 10 as const
+                            
+                            const value = this.value as Uint8Array
+                            
+                            const len_data = value.length / 16
+                            
+                            let items = new Array(
+                                Math.min(limit, len_data)
+                            )
+                            
+                            for (let i = 0;  i < items.length;  i++)
+                                items[i] = format(
+                                    this.type,
+                                    value.subarray(16 * i, 16 * (i + 1)),
+                                    this.le,
+                                    options
+                                )
+                            
+                            return format_array(
+                                items,
+                                len_data > limit
+                            )
+                        }
+                        
+                        case DdbType.complex:
+                        case DdbType.point: {
+                            const limit = 20 as const
+                            
+                            const value = this.value as Float64Array
+                            
+                            const len_data = value.length / 2
+                            
+                            let items = new Array(
+                                Math.min(limit, len_data)
+                            )
+                            
+                            for (let i = 0;  i < items.length;  i++)
+                                items[i] = format(
+                                    this.type,
+                                    value.subarray(2 * i, 2 * (i + 1)),
+                                    this.le,
+                                    options
+                                )
+                            
+                            return format_array(
+                                items,
+                                len_data > limit
+                            )
+                        }
+                        
+                        default: {
+                            const limit = 50 as const
+                            
+                            let items = new Array(
+                                Math.min(limit, (this.value as any[]).length)
+                            )
+                            
+                            for (let i = 0;  i < items.length;  i++)
+                                items[i] = format(this.type, this.value[i], this.le, options)
+                            
+                            return format_array(
+                                items,
+                                (this.value as any[]).length > limit
+                            )
                         }
                     }
-                    break
+                    
+                }
             }
             
             if (this.value instanceof Uint8Array)
@@ -1440,7 +1529,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     to_rows <T extends Record<string, any> = Record<string, any>> () {
         if (this.form !== DdbForm.table)
-            throw new Error('this.form is not DdbForm.table, cannot call to_rows')
+            throw new Error('this.form 不是 DdbForm.table, 不能 to_rows')
         
         let rows = new Array<T>(this.rows)
         
@@ -1462,7 +1551,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     case DdbType.ipaddr:
                         row[name] = (values as Uint8Array).subarray(16 * i, 16 * (i + 1))
                         break
-                        
+                    
                     case DdbType.symbol_extended: {
                         const { base, data } = values as DdbSymbolExtendedValue
                         row[name] = base[data[i]]
@@ -1482,7 +1571,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     to_dict <T = Record<string, any>> () {
         if (this.form !== DdbForm.dict)
-            throw new Error('this.form is not DdbForm.dict, cannot convert to Object')
+            throw new Error('this.form 不是 DdbForm.dict, 不能转换为 Object')
         
         const [{ value: keys }, { value: values }] = this.value as [DdbObj<DdbObj[]>, DdbObj<DdbObj[]>]
         
@@ -1492,6 +1581,221 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             obj[keys[i] as any] = values[i].value
         
         return obj as T
+    }
+}
+
+
+export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions) {
+    switch (type) {
+        case DdbType.bool:
+            return inspect(
+                (value === null || value === nulls.int8) ?
+                    null
+                :
+                    Boolean(value),
+                options
+            )
+        
+        case DdbType.char:
+            return inspect(
+                (value === null || value === nulls.int8) ?
+                    null
+                :
+                    value,
+                options
+            )
+        
+        case DdbType.short:
+            return inspect(
+                (value === null || value === nulls.int16) ?
+                    null
+                :
+                    value,
+                options
+            )
+        
+        case DdbType.int:
+            return inspect(
+                (value === null || value === nulls.int32) ?
+                    null
+                :
+                    value,
+                options
+            )
+        
+        case DdbType.long:
+            return (value === null || value === nulls.int64) ?
+                'null'
+            :
+                options.colors ?
+                    String(value).green
+                :
+                    String(value)
+        
+        case DdbType.date:
+            return (value === null || value === nulls.int32) ?
+                'null'
+            :
+                options.colors ?
+                    date2str(value as number).green
+                :
+                    date2str(value as number)
+        
+        case DdbType.month:
+            return (value === null || value === nulls.int32) ?
+                'null'
+            :
+                options.colors ?
+                    month2str(value as number).green
+                :
+                    month2str(value as number)
+        
+        case DdbType.time:
+            return (value === null || value === nulls.int32) ?
+                'null'
+            :
+                options.colors ?
+                    time2str(value as number).green
+                :
+                    time2str(value as number)
+        
+        case DdbType.minute:
+            return (value === null || value === nulls.int32) ?
+                'null'
+            :
+                options.colors ?
+                    minute2str(value as number).green
+                :
+                    minute2str(value as number)
+        
+        case DdbType.second:
+            return (value === null || value === nulls.int32) ?
+                'null'
+            :
+                options.colors ?
+                    second2str(value as number).green
+                :
+                    second2str(value as number)
+        
+        case DdbType.datetime:
+            return (value === null || value === nulls.int32) ?
+                'null'
+            :
+                options.colors ?
+                    datetime2str(value as number).green
+                :
+                    datetime2str(value as number)
+        
+        case DdbType.timestamp:
+            return (value === null || value === nulls.int64) ?
+                'null'
+            :
+                options.colors ?
+                    timestamp2str(value as bigint).green
+                :
+                    timestamp2str(value as bigint)
+        
+        case DdbType.nanotime:
+            return (value === null || value === nulls.int64) ?
+                'null'
+            :
+                options.colors ?
+                    nanotime2str(value as bigint).green
+                :
+                    nanotime2str(value as bigint)
+        
+        case DdbType.nanotimestamp:
+            return (value === null || value === nulls.int64) ?
+                'null'
+            :
+                options.colors ?
+                    nanotimestamp2str(value as bigint).green
+                :
+                    nanotimestamp2str(value as bigint)
+        
+        case DdbType.float:
+            return (value === null || value === nulls.float32) ?
+                'null'
+            :
+                inspect(value as number, options)
+        
+        case DdbType.double:
+            return (value === null || value === nulls.double) ?
+                'null'
+            :
+                inspect(value as number, options)
+        
+        case DdbType.symbol:
+        case DdbType.string:
+            return inspect(value as string, options)
+        
+        case DdbType.uuid: 
+            return options.colors ?
+                uuid2str(value as Uint8Array, le).green
+            :
+                uuid2str(value as Uint8Array, le)
+        
+        case DdbType.functiondef:
+            return inspect(
+                (value as DdbFunctionDefValue).name,
+                options
+            )
+        
+        case DdbType.handle:
+        case DdbType.code:
+            return inspect(value as string, options)
+        
+        case DdbType.datehour:
+            return (value === null || value === nulls.int32) ?
+                'null'
+            :
+                options.colors ?
+                    datehour2str(value as number).green
+                :
+                    datehour2str(value as number)
+        
+        case DdbType.ipaddr:
+            return options.colors ?
+                ipaddr2str(value as Uint8Array, le).green
+            :
+                ipaddr2str(value as Uint8Array, le)
+        
+        case DdbType.int128:
+            return options.colors ?
+                int1282str(value as Uint8Array, le).green
+            :
+                int1282str(value as Uint8Array, le)
+        
+        case DdbType.blob:
+            return inspect(
+                DdbObj.dec.decode(
+                    (value as Uint8Array).subarray(0, 1000)
+                ),
+                options
+            )
+        
+        case DdbType.complex:
+        case DdbType.point: {
+            let [x, y] = value as [number, number]
+            if (x === nulls.double)
+                x = null
+            if (y === nulls.double)
+                y = null
+                
+            return options.colors ?
+                `(${String(x).green}, ${String(y).green})`
+            :
+                `(${String(x)}, ${String(y)})`
+        }
+        
+        case DdbType.duration: {
+            const { data, unit } = value as DdbDurationValue
+            const str = `${data}${DdbDurationUnit[unit]}`
+            return options.colors ? str.green : str
+        }
+        
+        default:
+            return inspect(value, options)
     }
 }
 
@@ -1827,7 +2131,7 @@ export class DdbTable extends DdbObj <DdbObj[]> {
 }
 
 export function date2str (date: number, format = 'YYYY.MM.DD') {
-    return date === nulls.int32 ? 
+    return (date === null || date === nulls.int32) ? 
         ''
     :
         dayjs(
@@ -1835,9 +2139,44 @@ export function date2str (date: number, format = 'YYYY.MM.DD') {
         ).format(format)
 }
 
+export function month2str (month: number | null) {
+    if (month === null || month === nulls.int32)
+        return ''
+    
+    if (month < 0)
+        return String(month)
+    
+    let _month = month % 12
+    let year = Math.floor(month / 12)
+    return `${String(year).padStart(4, '0')}.${String(_month + 1).padStart(2, '0')}`
+}
+
+export function time2str (time: number, format = 'HH:mm:ss.SSS') {
+    return (time === null || time === nulls.int32) ?
+        ''
+    :
+        dayjs(timezone_offset + time)
+            .format(format)
+}
+
+export function minute2str (minute: number | null, format = 'HH:mm') {
+    return (minute === null || minute === nulls.int32) ?
+        ''
+    :
+        dayjs(timezone_offset + 60 * 1000 * minute)
+            .format(format)
+}
+
+export function second2str (second: number | null, format = 'HH:mm:ss') {
+    return (second === null || second === nulls.int32) ?
+        ''
+    :
+        dayjs(timezone_offset + 1000 * second)
+            .format(format)
+}
 
 export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') {
-    return datetime === nulls.int32 ?
+    return (datetime === null || datetime === nulls.int32) ?
         ''
     :
         dayjs(
@@ -1853,7 +2192,7 @@ export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') 
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function timestamp2str (timestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
-    return timestamp === nulls.int64 ?
+    return (timestamp === null || timestamp === nulls.int64) ?
         ''
     :
         dayjs(
@@ -1861,6 +2200,14 @@ export function timestamp2str (timestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.
         ).format(format)
 }
 
+export function datehour2str (datehour: number, format = 'YYYY.MM.DD.HH') {
+    return (datehour === null || datehour === nulls.int32) ?
+        ''
+    :
+        dayjs(
+            timezone_offset + 1000 * 3600 * datehour
+        ).format(format)
+}
 
 /** parse timestamp string to bigint value  
     - str: timestamp string, If it is an empty string, it will return the corresponding empty value (nulls.int64)
@@ -1871,13 +2218,36 @@ export function timestamp2str (timestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.
 export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     if (!str)
         return nulls.int64
-        
+    
     if (str.length !== format.length)
         throw new Error('The length of the timestamp string is not equal to the length of the format string')
     
     return BigInt(
         -timezone_offset +
         dayjs(str, format).valueOf()
+    )
+}
+
+
+export function nanotime2str (nanotime: bigint, format = 'HH:mm:ss.SSSSSSSSS') {
+    const i_second_start = format.indexOf('ss')
+    if (i_second_start === -1)
+        throw new Error('The format string must contain the format for seconds (ss)')
+    
+    const i_second_end = i_second_start + 2
+    
+    const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
+    if (i_nanosecond_start === -1)
+        throw new Error('The format string must contain the format for nanoseconds (SSSSSSSSS)')
+    
+    return (
+        dayjs(
+            timezone_offset + (Number(nanotime) / 1000000)
+        ).format(
+            format.slice(0, i_second_end)
+        ) + 
+        format.slice(i_second_end, i_nanosecond_start) + 
+        String(nanotime % 1000000000n).padStart(9, '0')
     )
 }
 
@@ -1890,7 +2260,7 @@ export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') 
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
-    if (nanotimestamp === nulls.int64)
+    if (nanotimestamp === null || nanotimestamp === nulls.int64)
         return ''
     
     const i_second_start = format.indexOf('ss')
@@ -1910,7 +2280,7 @@ export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD H
             format.slice(0, i_second_end)
         ) + 
         format.slice(i_second_end, i_nanosecond_start) + 
-        String(nanotimestamp % 1000000000n)
+        String(nanotimestamp % 1000000000n).padStart(9, '0')
     )
 }
 
@@ -1953,6 +2323,41 @@ export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SS
     )
 }
 
+
+export function ipaddr2str (buffer: Uint8Array, le = true) {
+    let buf = buffer
+    
+    if (le)
+        buf = buffer.slice().reverse()
+    
+    const i_non_zero = buf.findIndex(x => 
+        x as any)
+    
+    if (i_non_zero !== -1 && i_non_zero < 12)  // ipv6 (i_non_zero === -1 或 0 < i_non_zero < 12)
+        return [...buf].map(x => 
+            x.toString(16)
+                .padStart(2, '0')
+        ).join(':')
+    else  // ipv4
+        return buf.subarray(12).join('.')
+}
+
+export function uuid2str (buffer: Uint8Array, le = true) {
+    const str = int1282str(buffer, le)
+    return `${str.slice(0, 8)}-${str.slice(8, 12)}-${str.slice(12, 16)}-${str.slice(16, 20)}-${str.slice(20)}`
+}
+
+export function int1282str (buffer: Uint8Array, le = true) {
+    let buf = buffer
+    
+    if (le)
+        buf = buffer.slice().reverse()
+    
+    return [...buf].map(x => 
+        x.toString(16)
+            .padStart(2, '0')
+    ).join('')
+}
 
 export class DDB {
     /** 当前的 session id (http 或 tcp) */

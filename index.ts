@@ -22,6 +22,11 @@ export enum DdbForm {
     chunk = 8,
 }
 
+
+/** DolphinDB DataType  
+    对应的 array vector 类型为 64 + 基本类型
+    对应的 extended 类型为 128 + 基本类型
+*/
 export enum DdbType {
     void = 0,
     bool = 1,
@@ -60,7 +65,7 @@ export enum DdbType {
     duration = 36,
     object = 37,
     
-    symbol_extended = 145,
+    symbol_extended = 145,  // 128 + DdbType.symbol
 }
 
 export enum DdbFunctionType {
@@ -111,7 +116,7 @@ export interface DdbArrayVectorBlock {
     unit: 1 | 2 | 4
     rows: number
     lengths: Uint8Array | Uint16Array | Uint32Array
-    data: DdbVectorValue
+    data: Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array
 }
 
 export interface DdbMatrixValue {
@@ -734,7 +739,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 unit,
                 rows,
                 lengths,
-                data
+                data: data as Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array
             })
             
             i_block_start = i_data_start + len_items
@@ -1420,6 +1425,56 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                                 str_items
                             :
                                 str_items.bracket('square')
+                    }
+                    
+                    
+                    if (64 <= this.type && this.type < 128) {  // array vector
+                        // 因为 array vector 目前只支持：Logical, Integral（不包括 INT128, COMPRESS 类型）, Floating, Temporal
+                        // 都对应 TypedArray 中的一格，所以直接根据 index 去取即可
+                        // av = array(INT[], 0, 5)
+                        // append!(av, [1..1])
+                        // append!(av, [1..70000])
+                        // append!(av, [1..1])
+                        // append!(av, [1..500])
+                        // ...
+                        // av
+                        const _type = this.type - 64
+                        
+                        const limit = 10
+                        
+                        let items = new Array(
+                            Math.min(limit, this.rows)
+                        )
+                        
+                        let i_items = 0
+                        
+                        for (const { lengths, data } of this.value as DdbArrayVectorBlock[]) {
+                            let acc_len = 0
+                            
+                            for (const length of lengths) {
+                                let _items = new Array(
+                                    Math.min(limit, length)
+                                )
+                                
+                                for (let i = 0;  i < _items.length;  i++)
+                                    _items[i] = format(_type, data[acc_len + i], this.le, options)
+                                
+                                items[i_items++] = format_array(
+                                    _items,
+                                    length > limit
+                                )
+                                
+                                acc_len += length
+                            }
+                            
+                            if (i_items >= limit)
+                                break
+                        }
+                        
+                        return format_array(
+                            items,
+                            this.rows > limit
+                        )
                     }
                     
                     switch (this.type) {
@@ -2654,7 +2709,7 @@ export class DDB {
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
             - vars?: type === 'variable' 时必传，variable 指令中待上传的变量名
-            - handler?: Process messages during this rpc (DdbMessage)
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage)
             - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
                 不做解析，以便后续转发、序列化
     */
@@ -3040,4 +3095,3 @@ export interface DdbErrorMessage {
 export type DdbMessage = DdbPrintMessage | DdbObjectMessage | DdbErrorMessage
 
 
-export default DDB

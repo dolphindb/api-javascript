@@ -1829,7 +1829,6 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 options
             )
         
-        case DdbType.complex:
         case DdbType.point: {
             let [x, y] = value as [number, number]
             if (x === nulls.double)
@@ -1841,6 +1840,19 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 `(${String(x).green}, ${String(y).green})`
             :
                 `(${String(x)}, ${String(y)})`
+        }
+        
+        case DdbType.complex: {
+            let [x, y] = value as [number, number]
+            if (x === nulls.double)
+                x = null
+            if (y === nulls.double)
+                y = null
+            
+            return options.colors ?
+                    `${String(x).green}+${`${String(y)}i`.green}`
+                :
+                    `${String(x)}+${String(y)}i`
         }
         
         case DdbType.duration: {
@@ -2187,7 +2199,7 @@ export class DdbTable extends DdbObj <DdbObj[]> {
 
 export function date2str (date: number, format = 'YYYY.MM.DD') {
     return (date === null || date === nulls.int32) ? 
-        ''
+        'null'
     :
         dayjs(
             timezone_offset + 1000 * 3600 * 24 * date
@@ -2196,19 +2208,19 @@ export function date2str (date: number, format = 'YYYY.MM.DD') {
 
 export function month2str (month: number | null) {
     if (month === null || month === nulls.int32)
-        return ''
+        return 'null'
     
     if (month < 0)
         return String(month)
     
-    let _month = month % 12
-    let year = Math.floor(month / 12)
-    return `${String(year).padStart(4, '0')}.${String(_month + 1).padStart(2, '0')}`
+    const _month = month % 12
+    const year = Math.trunc(month / 12)
+    return `${String(year).padStart(4, '0')}.${String(_month + 1).padStart(2, '0')}M`
 }
 
 export function time2str (time: number, format = 'HH:mm:ss.SSS') {
     return (time === null || time === nulls.int32) ?
-        ''
+        'null'
     :
         dayjs(timezone_offset + time)
             .format(format)
@@ -2216,7 +2228,7 @@ export function time2str (time: number, format = 'HH:mm:ss.SSS') {
 
 export function minute2str (minute: number | null, format = 'HH:mm') {
     return (minute === null || minute === nulls.int32) ?
-        ''
+        'null'
     :
         dayjs(timezone_offset + 60 * 1000 * minute)
             .format(format)
@@ -2224,7 +2236,7 @@ export function minute2str (minute: number | null, format = 'HH:mm') {
 
 export function second2str (second: number | null, format = 'HH:mm:ss') {
     return (second === null || second === nulls.int32) ?
-        ''
+        'null'
     :
         dayjs(timezone_offset + 1000 * second)
             .format(format)
@@ -2232,7 +2244,7 @@ export function second2str (second: number | null, format = 'HH:mm:ss') {
 
 export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') {
     return (datetime === null || datetime === nulls.int32) ?
-        ''
+        'null'
     :
         dayjs(
             timezone_offset + 1000 * datetime
@@ -2248,30 +2260,31 @@ export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') 
 */
 export function timestamp2str (timestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     return (timestamp === null || timestamp === nulls.int64) ?
-        ''
+        'null'
     :
         dayjs(
             timezone_offset + Number(timestamp)
         ).format(format)
 }
 
-export function datehour2str (datehour: number, format = 'YYYY.MM.DD.HH') {
+export function datehour2str (datehour: number, format = 'YYYY.MM.DDTHH') {
     return (datehour === null || datehour === nulls.int32) ?
-        ''
+        'null'
     :
         dayjs(
             timezone_offset + 1000 * 3600 * datehour
         ).format(format)
 }
 
+
 /** parse timestamp string to bigint value  
-    - str: timestamp string, If it is an empty string, it will return the corresponding empty value (nulls.int64)
+    - str: timestamp string, If it is an empty string or 'null', it will return the corresponding empty value (nulls.int64)
     - format?:  
         The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSS`  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
-    if (!str)
+    if (!str || str === 'null')
         return nulls.int64
     
     if (str.length !== format.length)
@@ -2285,6 +2298,12 @@ export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') 
 
 
 export function nanotime2str (nanotime: bigint, format = 'HH:mm:ss.SSSSSSSSS') {
+    if (nanotime === null || nanotime === nulls.int64)
+        return 'null'
+    
+    if (nanotime < 0n)
+        return String(nanotime)
+    
     const i_second_start = format.indexOf('ss')
     if (i_second_start === -1)
         throw new Error('The format string must contain the format for seconds (ss)')
@@ -2315,8 +2334,15 @@ export function nanotime2str (nanotime: bigint, format = 'HH:mm:ss.SSSSSSSSS') {
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
+    // tests:
+    // nanotimestamp2str(0n)
+    // nanotimestamp2str(-1n)
+    // nanotimestamp2str(-9_9999_9999n)
+    // nanotimestamp2str(-10_0000_0000n)
+    // nanotimestamp2str(-10_0000_0001n)
+    
     if (nanotimestamp === null || nanotimestamp === nulls.int64)
-        return ''
+        return 'null'
     
     const i_second_start = format.indexOf('ss')
     if (i_second_start === -1)
@@ -2328,26 +2354,38 @@ export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD H
     if (i_nanosecond_start === -1)
         throw new Error('The format string must contain the format for nanoseconds (SSSSSSSSS)')
     
+    const remainder = nanotimestamp % 1000000000n
+    const borrow = remainder < 0n
+    
     return (
         dayjs(
-            timezone_offset + (Number(nanotimestamp) / 1000000)
+            timezone_offset +
+            // 去掉 9 位的纳秒部分，转化为毫秒
+            Number(
+                (nanotimestamp - remainder + (borrow ? -1000000000n : 0n)) / 1000000n
+            )
         ).format(
             format.slice(0, i_second_end)
         ) + 
         format.slice(i_second_end, i_nanosecond_start) + 
-        String(nanotimestamp % 1000000000n).padStart(9, '0')
+        String(
+            borrow ?
+                (remainder + 1000000000n) % 1000000000n
+            :
+                remainder
+        ).padStart(9, '0')
     )
 }
 
 /** parse nano timestamp string to bigint value  
-    - str: nano timestamp string, If it is an empty string, it will return the corresponding empty value (nulls.int64)
+    - str: nano timestamp string, If it is an empty string or 'null', it will return the corresponding empty value (nulls.int64)
     - format?:  
         The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
         Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
-    if (!str)
+    if (!str || str === 'null')
         return nulls.int64
     
     if (str.length !== format.length)
@@ -2710,8 +2748,8 @@ export class DDB {
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
             - vars?: type === 'variable' 时必传，variable 指令中待上传的变量名
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage)
-            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
-                不做解析，以便后续转发、序列化
+            - parse_object?: 在本次 rpc 期间设置 parse_object, 结束后恢复原有  
+                为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化
     */
     async rpc <T extends DdbObj = DdbObj> (
         type: 'script' | 'function' | 'variable' | 'connect',

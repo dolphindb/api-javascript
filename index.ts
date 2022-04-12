@@ -1401,7 +1401,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>`
                 
                 case DdbForm.matrix:
-                    return `matrix<${DdbType[this.type]}>[${this.rows}r][${this.cols}c]`
+                    return `matrix<${tname}>[${this.rows}r][${this.cols}c]`
                 
                 default:
                     return `${DdbForm[this.form]} ${tname}`
@@ -1823,9 +1823,12 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.blob:
             return inspect(
-                DdbObj.dec.decode(
-                    (value as Uint8Array).subarray(0, 1000)
-                ),
+                (value as Uint8Array).length > 100 ?
+                    DdbObj.dec.decode(
+                        (value as Uint8Array).subarray(0, 98)
+                    ) + '…'
+                :
+                    DdbObj.dec.decode(value as Uint8Array),
                 options
             )
         
@@ -2226,7 +2229,7 @@ export function time2str (time: number, format = 'HH:mm:ss.SSS') {
             .format(format)
 }
 
-export function minute2str (minute: number | null, format = 'HH:mm') {
+export function minute2str (minute: number | null, format = 'HH:mm[m]') {
     return (minute === null || minute === nulls.int32) ?
         'null'
     :

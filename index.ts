@@ -6,6 +6,9 @@ import dayjs from 'dayjs'
 import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
 
+import ipaddrjs from 'ipaddr.js'
+const { fromByteArray: buf2ipaddr } = ipaddrjs
+
 import { connect_websocket } from 'xshell/net.js'
 import { concat, inspect, typed_array_to_buffer } from 'xshell/utils.js'
 
@@ -1656,7 +1659,12 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 (value === null || value === nulls.int8) ?
                     null
                 :
-                    value,
+                    // ascii printable
+                    // http://facweb.cs.depaul.edu/sjost/it212/documents/ascii-pr.htm
+                    (32 <= (value as number) && (value as number) <= 126) ?
+                        String.fromCharCode(value as number)
+                    :
+                        value,
                 options
             )
         
@@ -2420,7 +2428,7 @@ export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SS
 }
 
 
-export function ipaddr2str (buffer: Uint8Array, le = true) {
+export function ipaddr2str (buffer: Uint8Array, le = true, ipv6?: boolean) {
     let buf = buffer
     
     if (le)
@@ -2429,11 +2437,11 @@ export function ipaddr2str (buffer: Uint8Array, le = true) {
     const i_non_zero = buf.findIndex(x => 
         x as any)
     
-    if (i_non_zero !== -1 && i_non_zero < 12)  // ipv6 (i_non_zero === -1 或 0 < i_non_zero < 12)
-        return [...buf].map(x => 
-            x.toString(16)
-                .padStart(2, '0')
-        ).join(':')
+    if (
+        ipv6 || 
+        i_non_zero !== -1 && i_non_zero < 12
+    ) // ipv6
+        return buf2ipaddr([...buf]).toString()
     else  // ipv4
         return buf.subarray(12).join('.')
 }

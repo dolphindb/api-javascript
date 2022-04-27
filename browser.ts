@@ -20,6 +20,9 @@ export enum DdbForm {
     table = 6,
     chart = 7,
     chunk = 8,
+    
+    /** sysobj */
+    object = 9,
 }
 
 

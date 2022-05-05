@@ -1886,7 +1886,6 @@ export class DdbVoid extends DdbObj<undefined> {
         super({
             form: DdbForm.scalar,
             type: DdbType.void,
-            length: 0,
             value: null,
         })
     }
@@ -1898,7 +1897,6 @@ export class DdbBool extends DdbObj<boolean> {
         super({
             form: DdbForm.scalar,
             type: DdbType.bool,
-            length: 1,
             value,
         })
     }
@@ -1909,7 +1907,6 @@ export class DdbChar extends DdbObj<string> {
         super({
             form: DdbForm.scalar,
             type: DdbType.char,
-            length: 1,
             value: typeof value === 'string' ?
                     value.charCodeAt(0)
                 :
@@ -1923,7 +1920,6 @@ export class DdbInt extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.int,
-            length: 4,
             value,
         })
     }
@@ -1934,7 +1930,6 @@ export class DdbString extends DdbObj<string> {
         super({
             form: DdbForm.scalar,
             type: DdbType.string,
-            length: 0,
             value
         })
     }
@@ -1945,7 +1940,6 @@ export class DdbLong extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.long,
-            length: 8,
             value
         })
     }
@@ -1956,7 +1950,6 @@ export class DdbDouble extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.double,
-            length: 8,
             value
         })
     }
@@ -1967,7 +1960,6 @@ export class DdbDateTime extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.datetime,
-            length: 4,
             value
         })
     }
@@ -1978,7 +1970,6 @@ export class DdbTimeStamp extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.timestamp,
-            length: 8,
             value
         })
     }
@@ -1989,7 +1980,6 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.nanotimestamp,
-            length: 8,
             value
         })
     }
@@ -2000,7 +1990,6 @@ export class DdbPair extends DdbObj<Int32Array> {
         super({
             form: DdbForm.pair,
             type: DdbType.int,
-            length: 0,
             rows: 2,
             cols: 1,
             value: Int32Array.of(
@@ -2016,7 +2005,6 @@ export class DdbFunction extends DdbObj<DdbFunctionDefValue> {
         super({
             form: DdbForm.scalar,
             type: DdbType.functiondef,
-            length: 0,
             value: { type, name }
         })
     }
@@ -2028,7 +2016,6 @@ export class DdbVectorInt extends DdbObj<Int32Array> {
         super({
             form: DdbForm.vector,
             type: DdbType.int,
-            length: 0,
             rows: ints.length,
             cols: 1,
             value: ints instanceof Int32Array ?
@@ -2050,7 +2037,6 @@ export class DdbVectorDouble extends DdbObj<Float64Array> {
         super({
             form: DdbForm.vector,
             type: DdbType.double,
-            length: 0,
             rows: doubles.length,
             cols: 1,
             value: doubles instanceof Float64Array ?
@@ -2072,7 +2058,6 @@ export class DdbVectorString extends DdbObj<string[]> {
         super({
             form: DdbForm.vector,
             type: DdbType.string,
-            length: 0,
             rows: strings.length,
             cols: 1,
             value: strings,
@@ -2086,7 +2071,6 @@ export class DdbVectorAny extends DdbObj {
         super({
             form: DdbForm.vector,
             type: DdbType.any,
-            length: 0,
             rows: objs.length,
             cols: 1,
             value: objs,
@@ -2119,7 +2103,6 @@ export class DdbVectorSymbol extends DdbObj <DdbSymbolExtendedValue> {
         super({
             form: DdbForm.vector,
             type: DdbType.symbol_extended,
-            length: 0,
             rows: strings.length,
             cols: 1,
             value: {
@@ -2137,7 +2120,6 @@ export class DdbSetInt extends DdbObj<Int32Array> {
         super({
             form: DdbForm.set,
             type: DdbType.int,
-            length: 0,
             rows: ints instanceof Set ? 
                     ints.size
                 :
@@ -2161,7 +2143,6 @@ export class DdbSetDouble extends DdbObj<Float64Array> {
         super({
             form: DdbForm.set,
             type: DdbType.double,
-            length: 0,
             rows: doubles instanceof Set ? 
                     doubles.size
                 :
@@ -2188,7 +2169,6 @@ export class DdbSetString extends DdbObj<string[]> {
         super({
             form: DdbForm.set,
             type: DdbType.string,
-            length: 0,
             rows: strings.length,
             cols: 1,
             value: strings
@@ -2202,7 +2182,6 @@ export class DdbTable extends DdbObj <DdbObj[]> {
         super({
             form: DdbForm.table,
             type: DdbType.void,
-            length: 0,
             rows: columns[0].rows,
             cols: columns.length,
             name,

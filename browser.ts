@@ -1787,7 +1787,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean) {
             return uuid2str(value as Uint8Array, le)
         
         case DdbType.functiondef:
-            return (value as string).quote('single')
+            return (value as DdbFunctionDefValue).name.quote('single')
         
         case DdbType.handle:
         case DdbType.code:

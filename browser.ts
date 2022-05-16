@@ -19,6 +19,8 @@ export enum DdbForm {
     dict = 5,
     table = 6,
     chart = 7,
+    
+    /** Node internal communication may be used, calling function execution script generally does not return this type */
     chunk = 8,
     
     /** sysobj */
@@ -26,9 +28,9 @@ export enum DdbForm {
 }
 
 
-/** DolphinDB DataType  
-    对应的 array vector 类型为 64 + 基本类型
-    对应的 extended 类型为 128 + 基本类型
+/** DolphinDB DataType
+     The corresponding array vector type is 64 + base type
+     The corresponding extended type is 128 + base type
 */
 export enum DdbType {
     void = 0,
@@ -128,6 +130,40 @@ export interface DdbMatrixValue {
     data: DdbVectorValue
 }
 
+export type DdbDictValue = [DdbObj<DdbVectorValue>, DdbObj<DdbVectorValue>]
+
+export enum DdbChartType {
+    area = 0,
+    bar = 1,
+    column = 2,
+    histogram = 3,
+    line = 4,
+    pie = 5,
+    scatter = 6,
+    trend = 7,
+    kline = 8,
+    stack = 9,
+}
+
+export interface DdbChartValue {
+    /** 原属性 chartType */
+    type: DdbChartType
+    
+    stacking: boolean
+    
+    titles: {
+        chart: string
+        x_axis: string
+        y_axis: string
+    }
+    
+    extras: {
+        multi_y_axis: boolean
+    }
+    
+    data: DdbObj<DdbMatrixValue>
+}
+
 export type DdbScalarValue = 
     null | boolean | number | bigint | string |
     Uint8Array | // uuid, ipaddr, int128, blob
@@ -143,7 +179,7 @@ export type DdbVectorValue =
     DdbSymbolExtendedValue | 
     DdbArrayVectorBlock[]
 
-export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue
+export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
 
 
 export const nulls = {
@@ -344,7 +380,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             }
             
             
-            case DdbForm.dict: {
+            case DdbForm.dict: 
+            case DdbForm.chart: {
                 // <Buffer 19 05 type = any, form = dict
                 // 12 01 keys.type = string, keys.form = vector
                 // 03 00 00 00 01 00 00 00 keys.cols = 3, keys.rows = 1
@@ -370,9 +407,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 
                 values.length += 2
                 
-                return new this({
+                let dict = new this({
                     le,
-                    form,
+                    form: DdbForm.dict,
                     type,
                     length: i_data + keys.length + values.length,
                     rows: keys.rows,
@@ -382,6 +419,49 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         values
                     ],
                 })
+                
+                if (form === DdbForm.dict)
+                    return dict
+                else {
+                    const {
+                        chartType: type,
+                        stacking,
+                        title: titles,
+                        extras,
+                        data,
+                        ... others
+                    } = dict.to_dict<{
+                        chartType: DdbObj<DdbChartType>
+                        stacking: DdbBool
+                        title: DdbVectorString
+                        extras: DdbObj
+                        data: DdbObj<DdbMatrixValue>
+                    }>()
+                    
+                    const [chart, x_axis, y_axis] = titles.value
+                    
+                    const { multiYAxes: multi_y_axis, ...extras_others } = extras.to_dict<{ multiYAxes: boolean }>({ strip: true })
+                    
+                    dict.form = DdbForm.chart
+                    
+                    dict.value = {
+                        type: type.value,
+                        stacking: stacking.value,
+                        titles: {
+                            chart,
+                            x_axis,
+                            y_axis,
+                        },
+                        extras: {
+                            multi_y_axis,
+                            ...extras_others,
+                        },
+                        data,
+                        ...others,
+                    }
+                    
+                    return dict
+                }
             }
             
             
@@ -1221,10 +1301,44 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 
                 case DdbForm.dict:
                     return [
-                        (value as [DdbObj, DdbObj])[0].pack(),
-                        (value as [DdbObj, DdbObj])[1].pack(),
+                        (value as DdbDictValue)[0].pack(),
+                        (value as DdbDictValue)[1].pack(),
                     ]
                 
+                case DdbForm.chart: {
+                    const {
+                        type,
+                        stacking,
+                        titles: {
+                            chart,
+                            x_axis,
+                            y_axis,
+                        },
+                        extras: {
+                            multi_y_axis,
+                            ...extras_other
+                        },
+                        data
+                    } = this.value as DdbChartValue
+                    
+                    const {
+                        value: [keys, values]
+                    } = new DdbDict({
+                        chartType: new DdbInt(type),
+                        stacking,
+                        title: new DdbVectorString([chart, x_axis, y_axis]),
+                        extras: new DdbDict({
+                            multiYAxis: multi_y_axis,
+                            ...extras_other
+                        }),
+                        data,
+                    })
+                    
+                    return [
+                        keys.pack(),
+                        values.pack(),
+                    ]
+                }
                 
                 case DdbForm.matrix: {
                     const { rows, cols, data } = value as DdbMatrixValue
@@ -1242,7 +1356,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 }
                 
                 default:
-                    throw new Error(`${DdbForm[form]} 暂不支持序列化`)
+                    throw new Error(`${DdbForm[form]} Serialization is not currently supported`)
             }
         })()
         
@@ -1402,6 +1516,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 
                 case DdbForm.dict:
                     return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>`
+                
+                case DdbForm.chart:
+                    return `chart<${DdbChartType[(this.value as DdbChartValue).type]}>`
                 
                 case DdbForm.matrix:
                     return `matrix<${tname}>[${this.rows}r][${this.cols}c]`
@@ -1577,6 +1694,34 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     }
     
     
+    /** 自动转换 js string, boolean 为 DdbObj */
+    static to_ddbobj (value: DdbObj | string | boolean): DdbObj {
+        if (value && value instanceof DdbObj)
+            return value
+        
+        const type = typeof value
+        
+        switch (type) {
+            case 'string':
+                return new DdbString(value as string)
+            
+            case 'boolean':
+                return new DdbBool(value as boolean)
+            
+            default: 
+                throw new Error(`Cannot automatically convert ${type} to DdbObj`)
+        }
+    }
+    
+    
+    /** 转换 js 数组为 DdbObj[] */
+    static to_ddbobjs (values: any[]) {
+        return values.map(value => 
+            this.to_ddbobj(value)
+        )
+    }
+    
+    
     to_cols () {
         return (this.value as DdbObj[]).map(col => {
             let col_: {
@@ -1652,16 +1797,41 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     }
     
     
-    to_dict <T = Record<string, any>> () {
+    /** Automatically convert dict<string, any> to js object (Record<string, any>)
+         - options?:
+             - strip?: `false` Whether to directly extract and strip the value in DdbObj as the value of js object (discard the rest of the information in DdbObj, only keep the value)
+             - deep?: `false` whether to convert recursively
+     */
+    to_dict <T extends Record<string, DdbObj> = Record<string, DdbObj>> (): T
+    to_dict <T extends Record<string, any> = Record<string, any>> (options: { strip: true }): T
+    to_dict <T extends Record<string, any> = Record<string, any>> (options?: { strip?: boolean, deep?: boolean }): T
+    to_dict <T = Record<string, any>> ({
+        strip,
+        deep,
+    }: {
+        strip?: boolean
+        deep?: boolean
+    } = { }) {
         if (this.form !== DdbForm.dict)
-            throw new Error('this.form is not DdbForm.dict, cannot convert to Object')
+            throw new Error('this.form is not DdbForm.dict and cannot be converted to js object')
         
-        const [{ value: keys }, { value: values }] = this.value as [DdbObj<DdbObj[]>, DdbObj<DdbObj[]>]
+        const [{ value: keys, type: key_type }, { value: values, type: value_type }] = this.value as DdbDictValue
+        
+        if (key_type !== DdbType.string || value_type !== DdbType.any)
+            throw new Error('Not dict<string, any>, automatic conversion to js object is not supported for the time being')
+        
+        if (deep && !strip)
+            throw new Error('strip = true must be set when deep = true')
         
         let obj = { }
         
-        for (let i = 0;  i < this.rows;  i++)
-            obj[keys[i] as any] = values[i].value
+        for (let i = 0;  i < this.rows;  i++) {
+            let value: DdbObj = values[i]
+            if (deep && value.form === DdbForm.dict)
+                obj[keys[i]] = value.to_dict({ strip, deep })
+            else
+                obj[keys[i]] = strip ? value.value : value
+        }
         
         return obj as T
     }
@@ -2032,13 +2202,13 @@ export class DdbVectorString extends DdbObj<string[]> {
 }
 
 export class DdbVectorAny extends DdbObj {
-    constructor (objs: DdbObj<DdbValue>[], name?: string) {
+    constructor (objs: (DdbObj | string | boolean)[], name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.any,
             rows: objs.length,
             cols: 1,
-            value: objs,
+            value: DdbObj.to_ddbobjs(objs),
             name,
         })
     }
@@ -2141,6 +2311,40 @@ export class DdbSetString extends DdbObj<string[]> {
     }
 }
 
+/** Constructs a DdbDict object, which supports two usages:
+     - The incoming type is the keys of DdbObj<DdbVectorValue>, and the two parameters of values directly form the DdbDict of dict<keys.type, values.type>
+     - Pass in js object (type is Record<string, boolean | string | DdbObj>), automatically converted to DdbDict of dict<string, any>
+*/
+export class DdbDict extends DdbObj<DdbDictValue> {
+    constructor (obj: Record<string, boolean | string | DdbObj>)
+    constructor (keys: DdbObj<DdbVectorValue>, values: DdbObj<DdbVectorValue>)
+    constructor (arg0: DdbObj | Record<string, boolean | string | DdbObj>, arg1?: DdbObj) {
+        if (arg1)
+            super({
+                form: DdbForm.dict,
+                type: arg1.type,
+                rows: (arg0 as DdbObj).rows,
+                cols: 2,
+                value: [arg0 as DdbObj, arg1] as DdbDictValue
+            })
+        else {
+            const keys = Object.keys(arg0)
+            super({
+                form: DdbForm.dict,
+                type: DdbType.any,
+                rows: keys.length,
+                cols: 2,
+                value: [
+                    new DdbVectorString(keys),
+                    new DdbVectorAny(
+                        Object.values(arg0)
+                    )
+                ] as DdbDictValue
+            })
+        }
+    }
+}
+
 
 export class DdbTable extends DdbObj <DdbObj[]> {
     constructor (columns: DdbObj[], name: string = '') {
@@ -2155,13 +2359,30 @@ export class DdbTable extends DdbObj <DdbObj[]> {
     }
 }
 
-export function date2str (date: number, format = 'YYYY.MM.DD') {
+export function date2ms (date: number | null) {
     return (date === null || date === nulls.int32) ? 
-        'null'
+        null
+    :
+        timezone_offset + 1000 * 3600 * 24 * date
+}
+
+export function date2str (date: number | null, format = 'YYYY.MM.DD') {
+    return (date === null || date === nulls.int32) ? 
+        null
     :
         dayjs(
-            timezone_offset + 1000 * 3600 * 24 * date
+            date2ms(date)
         ).format(format)
+}
+
+export function month2ms (month: number | null): number | null {
+    return (month === null || month === nulls.int32) ?
+        null
+    :
+        dayjs(
+            month2str(month),
+            'YYYY.MM[M]'
+        ).valueOf()
 }
 
 export function month2str (month: number | null) {
@@ -2176,37 +2397,75 @@ export function month2str (month: number | null) {
     return `${String(year).padStart(4, '0')}.${String(_month + 1).padStart(2, '0')}M`
 }
 
-export function time2str (time: number, format = 'HH:mm:ss.SSS') {
+export function time2ms (time: number | null): number | null {
     return (time === null || time === nulls.int32) ?
-        'null'
+        null
     :
-        dayjs(timezone_offset + time)
-            .format(format)
+        timezone_offset + time
+}
+
+export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
+    return (time === null || time === nulls.int32) ?
+        null
+    :
+        dayjs(
+            time2ms(time)
+        ).format(format)
+}
+
+export function minute2ms (minute: number | null): number | null {
+    return (minute === null || minute === nulls.int32) ?
+        null
+    :
+        timezone_offset + 60 * 1000 * minute
 }
 
 export function minute2str (minute: number | null, format = 'HH:mm[m]') {
     return (minute === null || minute === nulls.int32) ?
         'null'
     :
-        dayjs(timezone_offset + 60 * 1000 * minute)
-            .format(format)
+        dayjs(
+            minute2ms(minute)
+        ).format(format)
+}
+
+export function second2ms (second: number | null): number | null {
+    return (second === null || second === nulls.int32) ?
+        null
+    :
+        timezone_offset + 1000 * second
 }
 
 export function second2str (second: number | null, format = 'HH:mm:ss') {
     return (second === null || second === nulls.int32) ?
         'null'
     :
-        dayjs(timezone_offset + 1000 * second)
-            .format(format)
+        dayjs(
+            second2ms(second)
+        ).format(format)
 }
 
-export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') {
+export function datetime2ms (datetime: number | null): number | null {
+    return (datetime === null || datetime === nulls.int32) ?
+        null
+    :
+        timezone_offset + 1000 * datetime
+}
+
+export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:mm:ss') {
     return (datetime === null || datetime === nulls.int32) ?
         'null'
     :
         dayjs(
-            timezone_offset + 1000 * datetime
+            datetime2ms(datetime)
         ).format(format)
+}
+
+export function timestamp2ms (timestamp: bigint | null): number | null {
+    return (timestamp === null || timestamp === nulls.int64) ?
+        null
+    :
+        timezone_offset + Number(timestamp)
 }
 
 
@@ -2216,16 +2475,23 @@ export function datetime2str (datetime: number, format = 'YYYY.MM.DD HH:mm:ss') 
         format string, default to `YYYY.MM.DD HH:mm:ss.SSS`  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
-export function timestamp2str (timestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
+export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     return (timestamp === null || timestamp === nulls.int64) ?
         'null'
     :
         dayjs(
-            timezone_offset + Number(timestamp)
+            timestamp2ms(timestamp)
         ).format(format)
 }
 
-export function datehour2str (datehour: number, format = 'YYYY.MM.DDTHH') {
+export function datehour2ms (datehour: number | null): number | null {
+    return (datehour === null || datehour === nulls.int32) ?
+        null
+    :
+        timezone_offset + 1000 * 3600 * datehour
+}
+
+export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH') {
     return (datehour === null || datehour === nulls.int32) ?
         'null'
     :
@@ -2244,7 +2510,7 @@ export function datehour2str (datehour: number, format = 'YYYY.MM.DDTHH') {
 export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     if (!str || str === 'null')
         return nulls.int64
-        
+    
     if (str.length !== format.length)
         throw new Error('The length of the timestamp string is not equal to the length of the format string')
     
@@ -2254,8 +2520,11 @@ export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') 
     )
 }
 
+export function nanotime2ns (nanotime: bigint | null): bigint | null {
+    return nanotimestamp2ns(nanotime)
+}
 
-export function nanotime2str (nanotime: bigint, format = 'HH:mm:ss.SSSSSSSSS') {
+export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSSSSS') {
     if (nanotime === null || nanotime === nulls.int64)
         return 'null'
     
@@ -2283,6 +2552,12 @@ export function nanotime2str (nanotime: bigint, format = 'HH:mm:ss.SSSSSSSSS') {
     )
 }
 
+export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
+    return (nanotimestamp === null || nanotimestamp === nulls.int64) ?
+        null
+    :
+        BigInt(timezone_offset) * 1000000n + nanotimestamp
+}
 
 /** format nanotimestamp value (bigint) to string 
     - nanotimestamp: bigint value
@@ -2291,7 +2566,7 @@ export function nanotime2str (nanotime: bigint, format = 'HH:mm:ss.SSSSSSSSS') {
         Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
-export function nanotimestamp2str (nanotimestamp: bigint, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
+export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
     // tests:
     // nanotimestamp2str(0n)
     // nanotimestamp2str(-1n)
@@ -2802,7 +3077,7 @@ export class DDB {
             }
         }
         
-        args = this.to_ddbobjs(args)
+        args = DdbObj.to_ddbobjs(args)
         
         const command = this.enc.encode(
             (() => {
@@ -2921,9 +3196,7 @@ export class DDB {
             args = [
                 new DdbVectorString(nodes),
                 func,
-                new DdbVectorAny(
-                    this.to_ddbobjs(args)
-                ),
+                new DdbVectorAny(args),
                 ... (() => {
                     if (typeof add_node_alias !== 'undefined')
                         return [add_node_alias]
@@ -3040,34 +3313,6 @@ export class DDB {
                         buffer: buf_obj,
                     })
         }
-    }
-    
-    
-    /** 自动转换 js string, boolean 为 DdbObj */
-    to_ddbobj (value: DdbObj | string | boolean): DdbObj {
-        if (value instanceof DdbObj)
-            return value
-            
-        const type = typeof value
-        
-        switch (type) {
-            case 'string':
-                return new DdbString(value as string)
-            
-            case 'boolean':
-                return new DdbBool(value as boolean)
-            
-            default: 
-                throw new Error(`不能自动转换 ${type} 至 DdbObj`)
-        }
-    }
-    
-    
-    /** 转换 js 数组为 DdbObj[] */
-    to_ddbobjs (values: any[]) {
-        return values.map(value => 
-            this.to_ddbobj(value)
-        )
     }
 }
 

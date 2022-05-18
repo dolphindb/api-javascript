@@ -142,7 +142,6 @@ export enum DdbChartType {
     scatter = 6,
     trend = 7,
     kline = 8,
-    stack = 9,
 }
 
 export interface DdbChartValue {

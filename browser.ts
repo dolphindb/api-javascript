@@ -1837,7 +1837,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
 }
 
 
-export function format (type: DdbType, value: DdbValue, le: boolean) {
+export function format (type: DdbType, value: DdbValue, le: boolean): string {
     switch (type) {
         case DdbType.bool:
             return String(

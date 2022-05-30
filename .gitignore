@@ -3,3 +3,6 @@ node_modules
 *.js
 *.map
 *.d.ts
+
+/docs.zh.json
+/docs.en.json

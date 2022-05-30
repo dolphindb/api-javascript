@@ -5,8 +5,8 @@ dayjs.extend(DayjsCustomParseFormat)
 import ipaddrjs from 'ipaddr.js'
 const { fromByteArray: buf2ipaddr } = ipaddrjs
 
-import 'xshell/prototype.browser'
-import { concat } from 'xshell/utils.browser'
+import 'xshell/prototype.browser.js'
+import { concat } from 'xshell/utils.browser.js'
 import { connect_websocket } from 'xshell/net.browser.js'
 
 

@@ -2734,8 +2734,9 @@ export class DDB {
     /** DdbMessage listeners */
     listeners: DdbMessageListener[] = [ ]
     
+    pconnect = Promise.resolve()
     
-    promise = Promise.resolve(null)
+    presult = Promise.resolve(null)
     
     get connected () {
         return this.websocket?.readyState === WebSocket.OPEN
@@ -2979,7 +2980,8 @@ export class DDB {
         if (this.connected)
             this.websocket.close(1000)
         this.on_message = () => { }
-        this.promise = Promise.resolve(null)
+        this.presult = Promise.resolve(null)
+        this.pconnect = Promise.resolve()
     }
     
     
@@ -3011,8 +3013,23 @@ export class DDB {
             listener?: DdbMessageListener
             parse_object?: boolean
     }) {
-        if (!this.websocket)
-            await this.connect()
+        if (!this.websocket) {
+            const ptail = this.pconnect
+            
+            let resolve: () => void
+            this.pconnect = new Promise<void>((_resolve, _reject) => {
+                resolve = _resolve
+            })
+            
+            await ptail
+            
+            try {
+                if (!this.websocket)
+                    await this.connect()
+            } finally {
+                resolve()
+            }
+        }
         
         if (!this.connected)
             throw new Error(`${this.url} is already disconnected`)
@@ -3027,11 +3044,11 @@ export class DDB {
         // 1. 并发多个请求只返回第一个结果（阻塞，需后续请求疏通）
         // 2. windows 下 ddb server 返回多个相同的结果
         
-        const ptail = this.promise
+        const ptail = this.presult
         
         let resolve: (ddbobj: T) => void
         let reject: (error: Error) => void
-        const promise = this.promise = new Promise<T>((_resolve, _reject) => {
+        const presult = this.presult = new Promise<T>((_resolve, _reject) => {
                 resolve = _resolve
                 reject = _reject
         })
@@ -3115,7 +3132,7 @@ export class DDB {
             ])
         )
         
-        return promise
+        return presult
     }
     
     

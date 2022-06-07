@@ -1682,8 +1682,14 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             )
                         }
                     }
-                    
                 }
+                
+                case DdbForm.chart:
+                    return JSON.stringify(
+                        this.value,
+                        (key, value) => key === 'data' ? (value as DdbObj).toString() : value,
+                        4
+                    )
             }
             
             return String(this.value)

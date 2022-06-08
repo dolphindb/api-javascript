@@ -159,8 +159,8 @@ export interface DdbChartValue {
         y_axis: string
     }
     
-    extras: {
-        multi_y_axis: boolean
+    extras?: {
+        multi_y_axes: boolean
     }
     
     data: DdbObj<DdbMatrixValue>
@@ -436,13 +436,11 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         chartType: DdbObj<DdbChartType>
                         stacking: DdbBool
                         title: DdbVectorString
-                        extras: DdbObj
+                        extras?: DdbObj
                         data: DdbObj<DdbMatrixValue>
                     }>()
                     
                     const [chart, x_axis, y_axis] = titles.value
-                    
-                    const { multiYAxes: multi_y_axis, ...extras_others } = extras.to_dict<{ multiYAxes: boolean }>({ strip: true })
                     
                     dict.form = DdbForm.chart
                     
@@ -454,10 +452,16 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             x_axis,
                             y_axis,
                         },
-                        extras: {
-                            multi_y_axis,
-                            ...extras_others,
-                        },
+                        ... extras ? (() => {
+                            const { multiYAxes: multi_y_axes = false, ...extras_others } = extras.to_dict<{ multiYAxes: boolean }>({ strip: true })
+                            
+                            return {
+                                extras: {
+                                    multi_y_axes,
+                                    ...extras_others,
+                                }
+                            }
+                        })() : { },
                         data,
                         ...others,
                     }
@@ -1316,10 +1320,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             x_axis,
                             y_axis,
                         },
-                        extras: {
-                            multi_y_axis,
-                            ...extras_other
-                        },
+                        extras,
                         data
                     } = this.value as DdbChartValue
                     
@@ -1329,10 +1330,16 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         chartType: new DdbInt(type),
                         stacking,
                         title: new DdbVectorString([chart, x_axis, y_axis]),
-                        extras: new DdbDict({
-                            multiYAxis: multi_y_axis,
-                            ...extras_other
-                        }),
+                        ... extras ? (() => {
+                            const { multi_y_axes, ...extras_other } = extras
+                            
+                            return {
+                                extras: new DdbDict({
+                                    multiYAxes: multi_y_axes,
+                                    ...extras_other
+                                })
+                            }
+                        })() : { },
                         data,
                     })
                     

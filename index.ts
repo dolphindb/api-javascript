@@ -1499,43 +1499,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     
     
     [inspect.custom] (depth: number, options: InspectOptions, _inspect) {
-        const type = (() => {
-            const tname = DdbType[this.type]
-            
-            switch (this.form) {
-                case DdbForm.scalar:
-                    if (this.type === DdbType.functiondef)
-                        return `functiondef<${DdbFunctionType[(this.value as DdbFunctionDefValue).type]}>`
-                    
-                    return tname
-                
-                case DdbForm.vector:
-                    if (64 <= this.type && this.type < 128)
-                        return `${DdbType[this.type - 64]}[][${this.rows}]`
-                    return `${tname}[${this.rows}]`
-                
-                case DdbForm.pair:
-                    return `pair<${tname}>`
-                
-                case DdbForm.set:
-                    return `set<${tname}>[${this.rows}]`
-                
-                case DdbForm.table:
-                    return `table[${this.rows}r][${this.cols}c]`
-                
-                case DdbForm.dict:
-                    return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>`
-                
-                case DdbForm.chart:
-                    return `chart<${DdbChartType[(this.value as DdbChartValue).type]}>`
-                
-                case DdbForm.matrix:
-                    return `matrix<${tname}>[${this.rows}r][${this.cols}c]`
-                
-                default:
-                    return `${DdbForm[this.form]} ${tname}`
-            }
-        })()
+        const type = this.inspect_type()
         
         const data = (() => {
             switch (this.form) {
@@ -1708,6 +1672,45 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         })()
         
         return `${options.colors ? type.blue : type}(${ this.name ? `${inspect(this.name, options)}, ` : '' }${data})`
+    }
+    
+    
+    inspect_type () {
+        const tname = DdbType[this.type]
+        
+        switch (this.form) {
+            case DdbForm.scalar:
+                if (this.type === DdbType.functiondef)
+                    return `functiondef<${DdbFunctionType[(this.value as DdbFunctionDefValue).type]}>`
+                
+                return tname
+            
+            case DdbForm.vector:
+                if (64 <= this.type && this.type < 128)
+                    return `${DdbType[this.type - 64]}[][${this.rows}]`
+                return `${tname}[${this.rows}]`
+            
+            case DdbForm.pair:
+                return `pair<${tname}>`
+            
+            case DdbForm.set:
+                return `set<${tname}>[${this.rows}]`
+            
+            case DdbForm.table:
+                return `table[${this.rows}r][${this.cols}c]`
+            
+            case DdbForm.dict:
+                return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>`
+            
+            case DdbForm.chart:
+                return `chart<${DdbChartType[(this.value as DdbChartValue).type]}>`
+            
+            case DdbForm.matrix:
+                return `matrix<${tname}>[${this.rows}r][${this.cols}c]`
+            
+            default:
+                return `${DdbForm[this.form]} ${tname}`
+        }
     }
     
     

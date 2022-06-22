@@ -9,7 +9,7 @@
         "test": "tsc && node ./test/index.js"
     },
     "engines": {
-        "node": ">=18.3.0"
+        "node": ">=18.4.0"
     },
     "author": {
         "name": "Hongfei Shen",

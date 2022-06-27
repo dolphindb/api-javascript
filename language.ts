@@ -205,6 +205,13 @@ export const constants = [
     'SCATTER',
     'HISTOGRAM',
     
+    
+    // --- log level
+    'DEBUG',
+    'INFO',
+    'WARNING',
+    'ERROR',
+    
     // keep duplicates
     // https://www.dolphindb.cn/cn/help/200/FunctionsandCommands/FunctionReferences/c/createPartitionedTable.html?highlight=first
     'FIRST',

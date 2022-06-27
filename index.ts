@@ -640,7 +640,10 @@ export class DdbObj <T extends DdbValue = DdbValue> {
             case DdbType.symbol:
             case DdbType.code:
             case DdbType.handle:
-            case DdbType.functiondef: {
+            case DdbType.functiondef: 
+            
+            // mysql 插件 connect 方法会返回 resource 类型的对象
+            case DdbType.resource: {
                 const i_head = type === DdbType.functiondef ? 1 : 0
                 let i_zero = buf.indexOf(0, i_head)
                 let i_end: number  // 整个字符串（包括 0）的末尾，excluding
@@ -1212,6 +1215,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         case DdbType.symbol:
                         case DdbType.code:
                         case DdbType.handle:
+                        case DdbType.resource:
                             return [
                                 DdbObj.enc.encode(value as string),
                                 Uint8Array.of(0),
@@ -1988,6 +1992,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.handle:
         case DdbType.code:
+        case DdbType.resource:
             return inspect(value as string, options)
         
         case DdbType.datehour:
@@ -2873,7 +2878,7 @@ export class DDB {
                 await this.rpc('connect', { })
             },
             
-            on_message: event => {
+            on_message: (event: { data: ArrayBuffer }) => {
                 this.on_message(event)
             }
         })

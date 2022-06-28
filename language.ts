@@ -222,9 +222,6 @@ export const constants = [
     // https://www.dolphindb.cn/cn/help/200/FunctionsandCommands/FunctionReferences/i/isDuplicated.html?highlight=none
     'NONE',
     
-    // unknown
-    'DICT',
-    
     'HASH_PTN',
     
     // 仅 Python 有的

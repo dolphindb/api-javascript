@@ -1829,7 +1829,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
 }
 
 
-export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions) {
+/** Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
+export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions): string {
     switch (type) {
         case DdbType.bool:
             return inspect(
@@ -2061,6 +2062,100 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         default:
             return inspect(value, options)
+    }
+}
+
+
+/** formatted vector, the index-th item in the collection is a string, a null value returns a 'null' string */
+export function formati (obj: DdbObj<DdbVectorValue>, index: number, options: InspectOptions): string {
+    if (64 <= obj.type && obj.type < 128) {  // array vector
+        // 因为 array vector 目前只支持：Logical, Integral（不包括 INT128, COMPRESS 类型）, Floating, Temporal
+        // 都对应 TypedArray 中的一格，所以 lengths.length 等于 block 中的 row 的个数
+        // av = array(INT[], 0, 5)
+        // append!(av, [1..1])
+        // append!(av, [1..70000])
+        // append!(av, [1..1])
+        // append!(av, [1..500])
+        // ...
+        // av
+        
+        const _type = obj.type - 64
+        
+        let offset = 0
+        
+        for (const { lengths, data, rows } of obj.value as DdbArrayVectorBlock[]) {
+            let acc_len = 0
+            
+            if (offset + rows <= index) {
+                offset += rows
+                continue  // 跳过这个 block
+            }
+            
+            for (const length of lengths) {
+                if (offset < index) {
+                    offset++
+                    acc_len += length
+                    continue
+                }
+                
+                const limit = 10
+                
+                let items = new Array(
+                    Math.min(limit, length)
+                )
+                
+                for (let i = 0;  i < items.length;  i++)
+                    items[i] = format(_type, data[acc_len + i], obj.le, options)
+                
+                return (
+                    items.join(', ') + (length > limit ? ', ...' : '')
+                ).bracket('square')
+            }
+        }
+    }
+    
+    switch (obj.type) {
+        case DdbType.string:
+        case DdbType.symbol:
+            return obj.value[index]
+        
+        case DdbType.symbol_extended: {
+            const { base, data } = obj.value as DdbSymbolExtendedValue
+            return base[data[index]]
+        }
+        
+        case DdbType.uuid:
+        case DdbType.int128: 
+        case DdbType.ipaddr:
+            return format(
+                obj.type,
+                (obj.value as Uint8Array).subarray(16 * index, 16 * (index + 1)),
+                obj.le,
+                options
+            )
+        
+        case DdbType.blob: {
+            const value = obj.value[index] as Uint8Array
+            return value.length > 100 ?
+                    DdbObj.dec.decode(
+                        value.subarray(0, 98)
+                    ) + '…'
+                :
+                    DdbObj.dec.decode(value)
+        }
+        
+        case DdbType.complex:
+        case DdbType.point:
+            return format(
+                obj.type,
+                (obj.value as Float64Array).subarray(2 * index, 2 * (index + 1)),
+                obj.le,
+                options
+            )
+        
+        
+        default:
+            return format(obj.type, obj.value[index], obj.le, options)
     }
 }
 

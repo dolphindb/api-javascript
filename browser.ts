@@ -151,6 +151,18 @@ export interface DdbChartValue {
     
     stacking: boolean
     
+    /** 直方图 (Histogram), plotHist 函数返回的 chart 可能具有该属性  
+        原属性 binStart  
+        数值类型的 DdbObj 都有可能？  
+    */
+    bin_start?: DdbObj
+    
+    /** 原属性 binEnd */
+    bin_end?: DdbObj
+    
+    /** 原属性 binCount */
+    bin_count?: DdbObj
+    
     titles: {
         chart: string
         x_axis: string
@@ -426,6 +438,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     const {
                         chartType: type,
                         stacking,
+                        binStart: bin_start,
+                        binEnd: bin_end,
+                        binCount: bin_count,
                         title: titles,
                         extras,
                         data,
@@ -433,6 +448,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     } = dict.to_dict<{
                         chartType: DdbObj<DdbChartType>
                         stacking: DdbBool
+                        binStart: DdbObj
+                        binEnd: DdbObj
+                        binCount: DdbObj
                         title: DdbVectorString
                         extras?: DdbObj
                         data: DdbObj<DdbMatrixValue>
@@ -450,6 +468,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             x_axis,
                             y_axis,
                         },
+                        ... bin_start ? { bin_start, bin_end, } : { },
+                        ... bin_count ? { bin_count } : { },
                         ... extras ? (() => {
                             const { multiYAxes: multi_y_axes = false, ...extras_others } = extras.to_dict<{ multiYAxes: boolean }>({ strip: true })
                             
@@ -1317,6 +1337,9 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     const {
                         type,
                         stacking,
+                        bin_start,
+                        bin_end,
+                        bin_count,
                         titles: {
                             chart,
                             x_axis,
@@ -1331,6 +1354,13 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     } = new DdbDict({
                         chartType: new DdbInt(type),
                         stacking,
+                        ... bin_start ? {
+                            binStart: bin_start,
+                            binEnd: bin_end
+                        } : { },
+                        ... bin_count ? {
+                            binCount: bin_count
+                        } : { },
                         title: new DdbVectorString([chart, x_axis, y_axis]),
                         ... extras ? (() => {
                             const { multi_y_axes, ...extras_other } = extras
@@ -1701,7 +1731,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 return `table[${this.rows}r][${this.cols}c]`
             
             case DdbForm.dict:
-                return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>`
+                return `dict<${DdbType[(this.value[0] as DdbObj).type]}, ${DdbType[(this.value[1] as DdbObj).type]}>[${this.rows}]`
             
             case DdbForm.chart:
                 return `chart<${DdbChartType[(this.value as DdbChartValue).type]}>`
@@ -2847,6 +2877,8 @@ export class DDB {
     /** python session flag (2048) */
     python = false
     
+    
+    // 内部选项, 状态
     print_message_buffer = false
     
     print_object_buffer = false
@@ -2855,10 +2887,15 @@ export class DDB {
     
     parse_object = true
     
+    pnode_run_defined = false
+    
+    
     /** DdbMessage listeners */
     listeners: DdbMessageListener[] = [ ]
     
     pconnect = Promise.resolve()
+    
+    ppnoderun = Promise.resolve()
     
     presult = Promise.resolve(null)
     
@@ -2967,45 +3004,6 @@ export class DDB {
             }
         })
         
-        await this.eval(
-            this.python ?
-                'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
-                '    nargs = size(args)\n' +
-                '    func = funcByName(func_name)\n' +
-                '    \n' +
-                '    if not nargs:\n' +
-                '        return pnodeRun(func, nodes, add_node_alias)\n' +
-                '    \n' +
-                '    args_partial = [ ]\n' +
-                '    args_partial.append(func)\n' +
-                '    for a in args:\n' +
-                '        args_partial.append(a)\n' +
-                '    \n' +
-                '    return pnodeRun(\n' +
-                '        unifiedCall(partial, args_partial),\n' +
-                '        nodes,\n' +
-                '        add_node_alias\n' +
-                '    )\n'
-            :
-                'def pnode_run (nodes, func_name, args, add_node_alias = true) {\n' +
-                '    nargs = size(args)\n' +
-                '    func = funcByName(func_name)\n' +
-                '    \n' +
-                '    if (!nargs)\n' +
-                '        return pnodeRun(func, nodes, add_node_alias)\n' +
-                '    \n' +
-                '    args_partial = array(any, 1 + nargs, 1 + nargs)\n' +
-                '    args_partial[0] = func\n' +
-                '    args_partial[1:] = args\n' +
-                '    return pnodeRun(\n' +
-                '        unifiedCall(partial, args_partial),\n' +
-                '        nodes,\n' +
-                '        add_node_alias\n' +
-                '    )\n' +
-                '}\n',
-            { urgent: true }
-        )
-        
         if (this.autologin)
             if (this.python)
                 await this.eval(`login(${this.username.quote('double')}, ${this.password.quote('double')})`, { urgent: true })
@@ -3106,6 +3104,7 @@ export class DDB {
         this.on_message = () => { }
         this.presult = Promise.resolve(null)
         this.pconnect = Promise.resolve()
+        this.pnode_run_defined = false
     }
     
     
@@ -3157,6 +3156,63 @@ export class DDB {
         
         if (!this.connected)
             throw new Error(`${this.url} is already disconnected`)
+        
+        
+        if (func === 'pnode_run' && !this.pnode_run_defined) {
+            const ptail = this.ppnoderun
+            
+            let resolve: () => void
+            this.ppnoderun = new Promise<void>((_resolve, _reject) => {
+                resolve = _resolve
+            })
+            
+            await ptail
+            
+            try {
+                if (!this.pnode_run_defined)
+                    await this.eval(
+                        this.python ?
+                            'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
+                            '    nargs = size(args)\n' +
+                            '    func = funcByName(func_name)\n' +
+                            '    \n' +
+                            '    if not nargs:\n' +
+                            '        return pnodeRun(func, nodes, add_node_alias)\n' +
+                            '    \n' +
+                            '    args_partial = [ ]\n' +
+                            '    args_partial.append(func)\n' +
+                            '    for a in args:\n' +
+                            '        args_partial.append(a)\n' +
+                            '    \n' +
+                            '    return pnodeRun(\n' +
+                            '        unifiedCall(partial, args_partial),\n' +
+                            '        nodes,\n' +
+                            '        add_node_alias\n' +
+                            '    )\n'
+                        :
+                            'def pnode_run (nodes, func_name, args, add_node_alias = true) {\n' +
+                            '    nargs = size(args)\n' +
+                            '    func = funcByName(func_name)\n' +
+                            '    \n' +
+                            '    if (!nargs)\n' +
+                            '        return pnodeRun(func, nodes, add_node_alias)\n' +
+                            '    \n' +
+                            '    args_partial = array(any, 1 + nargs, 1 + nargs)\n' +
+                            '    args_partial[0] = func\n' +
+                            '    args_partial[1:] = args\n' +
+                            '    return pnodeRun(\n' +
+                            '        unifiedCall(partial, args_partial),\n' +
+                            '        nodes,\n' +
+                            '        add_node_alias\n' +
+                            '    )\n' +
+                            '}\n',
+                        { urgent: true }
+                    )
+            } finally {
+                resolve()
+            }
+        }
+        
         
         // this 上的当前配置需要在 message 到达后使用，先保存起来
         const _handlers = [...this.listeners].reverse()

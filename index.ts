@@ -3452,6 +3452,27 @@ export class DDB {
     }
     
     
+    /** cancel all jobs corresponding to the ddb.sid */
+    async cancel () {
+        let ddb = new DDB(this.url, this)
+        
+        try {
+            await ddb.call(
+                'cancelConsoleJob',
+                (
+                    await ddb.eval<DdbObj<string[]>>(
+                        `exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}`,
+                        { urgent: true }
+                    )
+                ).value,
+                { urgent: true }
+            )
+        } finally {
+            ddb.disconnect()
+        }
+    }
+    
+    
     /** 解析服务端响应报文，返回去掉 header 的 data buf */
     parse_message (buf: Uint8Array, parse_object = this.parse_object): DdbMessage {
         // MSG\n

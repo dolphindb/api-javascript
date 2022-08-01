@@ -84,7 +84,6 @@ export const keywords = [
     'from',
     'where',
     'having',
-    'top',
     'set',
     'as',
     'in',

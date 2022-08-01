@@ -3451,6 +3451,20 @@ export class DDB {
         return this.rpc('variable', { vars, args, listener, parse_object })
     }
     
+    /** cancel all jobs corresponding to the this.sid */
+    async cancel () {
+        const get_jobID_command = "exec rootJobId from getConsoleJobs() where sessionId =" + this.sid
+        const temp_connection = new DDB(this.url, {
+            autologin:this.autologin,
+            username:this.username,
+            password:this.password,
+            python:this.python,
+        })
+        await temp_connection.connect()
+        const jobID_list: DdbObj<string[]>= await temp_connection.eval(get_jobID_command)
+        await temp_connection.call('cancelConsoleJob', jobID_list.value)
+        temp_connection.disconnect()
+    }
     
     /** 解析服务端响应报文，返回去掉 header 的 data buf */
     parse_message (buf: Uint8Array, parse_object = this.parse_object): DdbMessage {

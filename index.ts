@@ -71,7 +71,13 @@ export enum DdbType {
     complex = 34,
     point = 35,
     duration = 36,
-    object = 37,
+    
+    decimal32 = 37,
+    decimal64 = 38,
+    decimal128 = 39,
+    
+    object = 40,
+    pynone = 41,
     
     symbol_extended = 145,  // 128 + DdbType.symbol
 }
@@ -112,6 +118,35 @@ export interface DdbDurationValue {
     
     /** int32 */
     data: number
+}
+
+
+export interface DdbDecimal32Value {
+    /** int32, data needs to be divided by 10^scale to get the original value */
+    scale: number
+    
+    /** int32, ddb null is js null */
+    data: number | null
+}
+
+export interface DdbDecimal64Value {
+    /** int32, data needs to be divided by 10^scale to get the original value */
+    scale: number
+    
+    /** int32, ddb null is js null */
+    data: bigint | null
+}
+
+export interface DdbDecimal32VectorValue {
+    scale: number
+    
+    data: Int32Array
+}
+
+export interface DdbDecimal64VectorValue {
+    scale: number
+    
+    data: BigInt64Array
 }
 
 export interface DdbSymbolExtendedValue {
@@ -183,7 +218,8 @@ export type DdbScalarValue =
     Uint8Array | // uuid, ipaddr, int128, blob
     [number, number] | // complex, point
     DdbFunctionDefValue |
-    DdbDurationValue
+    DdbDurationValue | 
+    DdbDecimal32Value | DdbDecimal64Value
 
 export type DdbVectorValue = 
     Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | 
@@ -191,7 +227,8 @@ export type DdbVectorValue =
     Uint8Array[] | // blob
     DdbObj[] | // any
     DdbSymbolExtendedValue | 
-    DdbArrayVectorBlock[]
+    DdbArrayVectorBlock[] |
+    DdbDecimal32VectorValue | DdbDecimal64VectorValue
 
 export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
 
@@ -213,6 +250,14 @@ export const nulls = {
 
 
 export const timezone_offset = 1000 * 60 * new Date().getTimezoneOffset()
+
+export enum StreamingStatusCode {
+    ok,
+    connection_existed,
+    not_leader,
+    other,
+    error,
+}
 
 
 /** 可以表示所有 DolphinDB 数据库中的数据类型 */
@@ -734,6 +779,36 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 ]
             }
             
+            
+            case DdbType.decimal32: {
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                
+                const data = dv.getInt32(4, le)
+                
+                return [
+                    8,
+                    {
+                        scale: dv.getInt32(0, le),
+                        data: data === nulls.int32 ? null : data,
+                    } as DdbDecimal32Value
+                ]
+            }
+            
+            case DdbType.decimal64: {
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                
+                const data = dv.getBigInt64(4, le)
+                
+                return [
+                    12,
+                    {
+                        scale: dv.getInt32(0, le),
+                        data: data === nulls.int64 ? null : data,
+                    } as DdbDecimal64Value
+                ]
+            }
+            
+            
             default:
                 throw new Error(`${DdbType[type] || type} 暂时不支持解析`)
         }
@@ -994,7 +1069,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 // 00 61 61 00 以 \0 分割的字符串
                 // 01 00 00 00 01 00 00 00 01 00 00 00 01 00 00 00 01 00 00 00>
                 
-                const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+                const dv = new DataView(buf.buffer, buf.byteOffset)
                 const base_id = dv.getUint32(0, le)
                 const base_size = dv.getUint32(4, le)
                 
@@ -1055,7 +1130,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 // 04 00 00 00 61 62 63 64>
                 
                 let value = new Array<Uint8Array>(length)
-                const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength)
+                const dv = new DataView(buf.buffer, buf.byteOffset)
                 let i_head = 0
                 for (let i = 0;  i < length;  i++) {
                     const sublen = dv.getUint32(i_head, le)
@@ -1111,6 +1186,53 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     values
                 ]
             }
+            
+            
+            // 25 01 type = decimal32, form = vector
+            // 02 00 00 00 01 00 00 00
+            // 00 00 00 00 scale = 0
+            // 01 00 00 00 data[0] = 1
+            // 3a 01 00 00 data[1] = 0x013a = 314
+            case DdbType.decimal32: {
+                const dv = new DataView(
+                    buf.buffer,
+                    buf.byteOffset
+                )
+                
+                return [
+                    4 + 4 * length,
+                    {
+                        scale: dv.getInt32(0, le),
+                        data: new Int32Array(
+                            buf.buffer.slice(
+                                buf.byteOffset + 4,
+                                buf.byteOffset + 4 + 4 * length
+                            )
+                        )
+                    } as DdbDecimal32VectorValue
+                ]
+            }
+            
+            case DdbType.decimal64: {
+                const dv = new DataView(
+                    buf.buffer,
+                    buf.byteOffset
+                )
+                
+                return [
+                    4 + 8 * length,
+                    {
+                        scale: dv.getInt32(0, le),
+                        data: new BigInt64Array(
+                            buf.buffer.slice(
+                                buf.byteOffset + 4,
+                                buf.byteOffset + 4 + 8 * length
+                            )
+                        )
+                    } as DdbDecimal64VectorValue
+                ]
+            }
+            
             
             // case DdbType.duration: -> 实际会返回一个 any vector
             // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
@@ -1273,6 +1395,27 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             return [Int32Array.of(data, unit)]
                         }
                         
+                        case DdbType.decimal32: {
+                            const { scale, data } = this.value as DdbDecimal32Value
+                            return [
+                                Int32Array.of(
+                                    scale,
+                                    data === null ?
+                                        nulls.int32
+                                    :
+                                        data
+                                )
+                            ]
+                        }
+                        
+                        case DdbType.decimal64: {
+                            const { scale, data } = this.value as DdbDecimal64Value
+                            return [
+                                Int32Array.of(scale),
+                                BigInt64Array.of(data === null ? nulls.int64 : data)
+                            ]
+                        }
+                        
                         default:
                             throw new Error(`${DdbType[type] || type} 暂时不支持序列化`)
                     }
@@ -1388,7 +1531,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                     
                     return [
                         Uint8Array.of(
-                            (rows && 0x01) | (cols && 0x02),
+                            (rows ? 0x01 : 0x00) | (cols ? 0x02 : 0x00),
                         ),
                         ... rows ? [rows.pack()] : [ ],
                         ... cols ? [cols.pack()] : [ ],
@@ -1522,6 +1665,16 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         base.length,
                     ),
                     ...this.pack_vector_body(base, DdbType.string, base.length),
+                    data
+                ]
+            }
+            
+            case DdbType.decimal32:
+            case DdbType.decimal64: {
+                const { scale, data } = value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
+                
+                return [
+                    Int32Array.of(scale),
                     data
                 ]
             }
@@ -1673,6 +1826,28 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                             return format_array(
                                 items,
                                 len_data > limit
+                            )
+                        }
+                        
+                        case DdbType.decimal32: 
+                        case DdbType.decimal64: {
+                            const limit = 50 as const
+                            
+                            const { data } = this.value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
+                            
+                            let items = new Array(
+                                Math.min(
+                                    limit,
+                                    data.length
+                                )
+                            )
+                            
+                            for (let i = 0;  i < items.length;  i++)
+                                items[i] = formati(this as DdbObj<DdbDecimal32VectorValue | DdbDecimal64VectorValue>, i, options)
+                            
+                            return format_array(
+                                items,
+                                data.length > limit
                             )
                         }
                         
@@ -2090,6 +2265,25 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             return options.colors ? str.green : str
         }
         
+        case DdbType.decimal32: 
+        case DdbType.decimal64: {
+            const { scale, data } = value as DdbDecimal32Value | DdbDecimal64Value
+            
+            if (
+                data === null ||
+                (data === nulls.int64 && type === DdbType.decimal64) ||
+                (data === nulls.int32 && type === DdbType.decimal32)
+            )
+                return 'null'
+            
+            const s = String(data)
+            
+            return scale ?
+                    `${s.slice(0, -scale)}.${s.slice(-scale)}`
+                :
+                    s
+        }
+        
         default:
             return inspect(value, options)
     }
@@ -2183,11 +2377,33 @@ export function formati (obj: DdbObj<DdbVectorValue>, index: number, options: In
                 options
             )
         
+        case DdbType.decimal32:
+        case DdbType.decimal64: {
+            const { scale, data } = obj.value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
+            
+            const x = data[index]
+            
+            if (
+                x === nulls.int64 && obj.type === DdbType.decimal64 ||
+                x === nulls.int32 && obj.type === DdbType.decimal32
+            )
+                return ''
+            
+            const s = String(x)
+            
+            const str = scale ?
+                    `${s.slice(0, -scale)}.${s.slice(-scale)}`
+                :
+                    s
+            
+            return options.colors ? str.green : str
+        }
         
         default:
             return format(obj.type, obj.value[index], obj.le, options)
     }
 }
+
 
 
 export class DdbVoid extends DdbObj<undefined> {
@@ -2642,6 +2858,7 @@ export function timestamp2ms (timestamp: bigint | null): number | null {
         timezone_offset + Number(timestamp)
 }
 
+
 /** format timestamp (bigint) to string 
     - timestamp: bigint value
     - format?:  
@@ -2858,6 +3075,38 @@ export function int1282str (buffer: Uint8Array, le = true) {
     ).join('')
 }
 
+
+export interface StreamingParams {
+    table: string
+    action?: string
+    
+    handler (message: StreamingData): any
+}
+
+export interface StreamingData extends StreamingParams {
+    /**
+        The time the server sent the message (nano seconds since epoch)  
+        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
+    */
+    time: bigint
+    
+    /** message id */
+    id: bigint
+    
+    colnames: string[]
+    
+    /** Subscription topic, which is the name of a subscription.
+        It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/`
+    */
+    topic: string
+    
+    /** Stream data, the type is any vector, each element of which corresponds to a column of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
+    data: DdbObj<
+            DdbObj<DdbVectorValue>[]
+        >
+}
+
+
 export class DDB {
     /** 当前的 session id (http 或 tcp) */
     sid = '0'
@@ -2897,6 +3146,9 @@ export class DDB {
     /** python session flag (2048) */
     python = false
     
+    /** Whether it is a streaming data connection, this field is always null for non-streaming data */
+    streaming = null as StreamingData
+    
     
     // --- 内部选项, 状态
     print_message_buffer = false
@@ -2933,11 +3185,12 @@ export class DDB {
             - username?: DolphinDB username, default `'admin'`
             - password?: DolphinDB password, default `'123456'`
             - python?: set python session flag, default `false`
+            - streaming?: When this option is set, the WebSocket connection is only used for streaming data
         
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
         
-        // 使用 HTTPS 加密
+        // Encrypt with HTTPS
         let ddbsecure = new DDB('wss://dolphindb.com', {
             autologin: true,
             username: 'admin',
@@ -2950,6 +3203,7 @@ export class DDB {
         username?: string
         password?: string
         python?: boolean
+        streaming?: StreamingParams
     } = { }) {
         this.url = url
         
@@ -2964,10 +3218,16 @@ export class DDB {
         
         if (options.python !== undefined)
             this.python = options.python
+        
+        if (options.streaming !== undefined)
+            this.streaming = options.streaming as StreamingData
     }
     
     
-    private on_message (event: { data: ArrayBuffer }) { }
+    private on_message (event: { data: ArrayBuffer }) {
+        console.log('This is the default on_message before calling this.rpc, it should not be called unless the server pushes the message first after the connection is established')
+        console.log(event.data)
+    }
     
     
     /** Establish the actual WebSocket connection to the DolphinDB corresponding to the URL
@@ -2977,6 +3237,7 @@ export class DDB {
             - username?: DolphinDB username, default `'admin'`
             - password?: DolphinDB password, default `'123456'`
             - python?: set python session flag, default `false`
+            - streaming?: When this option is set, the WebSocket connection is only used for streaming data
     */
     async connect (options: {
         url?: string
@@ -2984,6 +3245,7 @@ export class DDB {
         username?: string
         password?: string
         python?: boolean
+        streaming?: StreamingParams
      } = { }) {
         if (options.url !== undefined)
             this.url = options.url
@@ -3000,14 +3262,29 @@ export class DDB {
         if (options.python !== undefined)
             this.python = options.python
         
+        if (options.streaming !== undefined)
+            this.streaming = options.streaming as StreamingData
+        
         this.disconnect()
         
         await connect_websocket(this.url, {
-            protocols: this.python ? ['python'] : [ ],
+            protocols: (() => {
+                if (this.streaming)
+                    return ['streaming']
+                
+                if (this.python)
+                    return ['python']
+                
+                return [ ]
+            })(),
             
             on_open: async (event, websocket) => {
                 this.websocket = websocket
-                await this.rpc('connect', { })
+                
+                if (this.streaming)
+                    await this.subscribe()
+                else
+                    await this.rpc('connect', { })
             },
             
             on_message: (event: { data: ArrayBuffer }) => {
@@ -3015,11 +3292,8 @@ export class DDB {
             }
         })
         
-        if (this.autologin)
-            if (this.python)
-                await this.eval(`login(${this.username.quote('double')}, ${this.password.quote('double')})`, { urgent: true })
-            else
-                await this.call('login', [this.username, this.password], { urgent: true })
+        if (!this.streaming && this.autologin)
+            await this.call('login', [this.username, this.password], { urgent: true })
     }
     
     
@@ -3075,18 +3349,25 @@ export class DDB {
         limit?: boolean
     } = { }) {
         let flag = 0
+        
         if (urgent)
             flag += 1
+        
         if (secondary)
             flag += 2
+        
         if (_async)
             flag += 4
+        
         if (pickle)
             flag += 8
+        
         if (clear)
             flag += 16
+        
         if (api)
             flag += 32
+        
         if (compress)
             flag += 64
         
@@ -3115,6 +3396,7 @@ export class DDB {
         this.on_message = () => { }
         this.presult = Promise.resolve(null)
         this.pconnect = Promise.resolve()
+        this.pnode_run_defined = false
     }
     
     
@@ -3452,19 +3734,15 @@ export class DDB {
     }
     
     
-    /** cancel all jobs corresponding to the ddb.sid */
+    /** Cancel all console jobs corresponding to the current session id */
     async cancel () {
         let ddb = new DDB(this.url, this)
         
         try {
-            await ddb.call(
-                'cancelConsoleJob',
-                (
-                    await ddb.eval<DdbObj<string[]>>(
-                        `exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}`,
-                        { urgent: true }
-                    )
-                ).value,
+            await ddb.eval(
+                `jobs = exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}\n` +
+                'if (size(jobs))\n' +
+                '    cancelConsoleJob(jobs)\n',
                 { urgent: true }
             )
         } finally {
@@ -3493,10 +3771,10 @@ export class DDB {
         // '\x04\x00\x02\x00\x00\x00'
         
         /** index of line feed 0 */
-        const i_lf_0 = buf.indexOf(0x0a)  // '\n'
+        const ilf0 = buf.indexOf(0x0a)  // '\n'
         
         const parts = this.dec.decode(
-            buf.subarray(0, i_lf_0)
+            buf.subarray(0, ilf0)
         ).split(' ')
         
         /** session id */
@@ -3507,16 +3785,16 @@ export class DDB {
         }
         
         /** 返回对象的数量 */
-        const n_obj = Number(parts[1])
+        const nobj = Number(parts[1])
         
         /** 大小端: 协议中大端为 0, 小端为 1 */
         this.le = Number(parts[2]) !== 0
         
-        const i_ls_1 = i_lf_0 + 1
-        const i_lf_1 = buf.indexOf(0x0a, i_ls_1)  // '\n'
+        const ils1 = ilf0 + 1
+        const ilf1 = buf.indexOf(0x0a, ils1)  // '\n'
         /** 'OK' 表示成功，其它文本表示失败 */
         const message = this.dec.decode(
-            buf.subarray(i_ls_1, i_lf_1)
+            buf.subarray(ils1, ilf1)
         )
         
         if (message !== 'OK')
@@ -3525,26 +3803,149 @@ export class DDB {
                 data: new Error(message)
             }
         
-        const buf_obj = buf.subarray(i_lf_1 + 1)
+        const bufobj = buf.subarray(ilf1 + 1)
         
         if (this.print_object_buffer)
             console.log(
-                typed_array_to_buffer(buf_obj)
+                typed_array_to_buffer(bufobj)
             )
         
         return {
             type: 'object',
             data: parse_object ?
-                    DdbObj.parse(buf_obj, this.le)
+                    DdbObj.parse(bufobj, this.le)
                 :
                     new DdbObj({
                         form: DdbForm.scalar,
                         type: DdbType.void,
                         length: 0,
                         le: this.le,
-                        buffer: buf_obj,
+                        buffer: bufobj,
                     })
         }
+    }
+    
+    
+    /** Internal stream subscription method */
+    async subscribe () {
+        const args = DdbObj.to_ddbobjs([
+            new DdbVectorString(
+                this.autologin ?
+                    [this.username, this.password]
+                :
+                    // 不自动登录也要传空的 string vector, 否则 server 无法解析
+                    [ ]
+            ),
+            
+            // todo: 还有用吗？需要获取客户端 IP 吗
+            'localhost',
+            
+            // todo: 端口还有用吗？
+            new DdbInt(0),
+            
+            this.streaming.table,
+            
+            (this.streaming.action ||= `api_js_${new Date().getTime()}`),
+            
+            // new DdbInt(-1),  // offset
+            
+            // filter
+            
+            // allow exists
+        ])
+        
+        
+        return new Promise<void>((resolve, reject) => {
+            let first = true
+            
+            // 先准备好收到 websocket message 的 callback
+            this.on_message = ({ data: buffer }) => {
+                if (first) {
+                    first = false
+                    
+                    try {
+                        const dv = new DataView(buffer)
+                        
+                        const status = dv.getUint8(1) as StreamingStatusCode
+                        
+                        this.le = Boolean(
+                            dv.getUint8(2)
+                        )
+                        
+                        const nobjs = dv.getUint32(3, this.le)
+                        
+                        // 解析返回数据，从 server 实现看其实只有一个 DdbObj
+                        let offset = 7
+                        let objs = new Array<DdbObj>(nobjs)
+                        const buf = new Uint8Array(buffer)
+                        
+                        for (let i = 0;  i < nobjs;  i++) {
+                            const obj = DdbObj.parse(
+                                buf.subarray(offset),
+                                this.le
+                            )
+                            offset += obj.length
+                            objs[i] = obj
+                            console.log(`subscribe table: objs[${i}]:`, obj)
+                        }
+                        
+                        this.streaming.colnames = objs[0].value as string[]
+                        
+                        if (status === StreamingStatusCode.ok) {
+                            console.log(
+                                'subscribe table success:', {
+                                    status: StreamingStatusCode[status],
+                                    result: objs[0]
+                                }
+                            )
+                            resolve()
+                        } else
+                            reject(
+                                new Error(`subscribe table failed: { status: ${StreamingStatusCode[status]}, error: ${(objs[0] as DdbObj<string>)?.value} }`)
+                            )
+                    } catch (error) {
+                        reject(error)
+                    }
+                } else {
+                    const dv = new DataView(buffer)
+                    const buf = new Uint8Array(buffer)
+                    
+                    this.streaming.time = dv.getBigInt64(1, this.le)
+                    
+                    this.streaming.id = dv.getBigInt64(9, this.le)
+                    
+                    const i_topic_end = buf.indexOf(0, 17)
+                    
+                    this.streaming.topic = this.dec.decode(
+                        buf.subarray(17, i_topic_end)
+                    )
+                    
+                    this.streaming.data = DdbObj.parse(
+                        buf.subarray(i_topic_end + 1),
+                        this.le
+                    ) as DdbObj<DdbObj<DdbVectorValue>[]>
+                    
+                    // 复制一份，避免使用同一个引用，下次调用时业务可能未处理完成
+                    this.streaming.handler({ ...this.streaming })
+                }
+            }
+            
+            // 发送订阅 websocket message
+            this.websocket.send(
+                concat([
+                    this.enc.encode('STREAM \n'),
+                    
+                    Uint8Array.of(
+                        1, // from = SubscriberFromType::FROM_API
+                        1, // type = SubscriberRPCType::RPC_START
+                        Number(DDB.le_client), // little endian (目前 server 只支持小端)
+                    ),
+                    Uint32Array.of(args.length),
+                    ... args.map(obj => 
+                        obj.pack())
+                ])
+            )
+        })
     }
 }
 

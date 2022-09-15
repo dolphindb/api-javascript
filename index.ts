@@ -1,4 +1,4 @@
-import type { InspectOptions } from 'util'
+import type { InspectOptions as UtilInspectOptions } from 'util'
 
 import { WebSocket } from 'ws'
 
@@ -9,8 +9,9 @@ dayjs.extend(DayjsCustomParseFormat)
 import ipaddrjs from 'ipaddr.js'
 const { fromByteArray: buf2ipaddr } = ipaddrjs
 
+import { concat, assert, inspect, typed_array_to_buffer } from 'xshell/utils.js'
 import { connect_websocket } from 'xshell/net.js'
-import { concat, inspect, typed_array_to_buffer } from 'xshell/utils.js'
+
 
 
 export enum DdbForm {
@@ -163,12 +164,12 @@ export interface DdbArrayVectorBlock {
 }
 
 export interface DdbMatrixValue {
-    rows: DdbObj<DdbVectorValue>
-    cols: DdbObj<DdbVectorValue>
+    rows: DdbVectorObj
+    cols: DdbVectorObj
     data: DdbVectorValue
 }
 
-export type DdbDictValue = [DdbObj<DdbVectorValue>, DdbObj<DdbVectorValue>]
+export type DdbDictValue = [DdbVectorObj, DdbVectorObj]
 
 export enum DdbChartType {
     area = 0,
@@ -210,7 +211,7 @@ export interface DdbChartValue {
         multi_y_axes: boolean
     }
     
-    data: DdbObj<DdbMatrixValue>
+    data: DdbMatrixObj
 }
 
 export type DdbScalarValue = 
@@ -231,6 +232,20 @@ export type DdbVectorValue =
     DdbDecimal32VectorValue | DdbDecimal64VectorValue
 
 export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
+
+
+export type DdbVectorObj = DdbObj<DdbVectorValue>
+
+export type DdbVectorAnyObj = DdbObj<DdbObj[]>
+export type DdbVectorStringObj = DdbObj<string[]>
+
+export type DdbTableObj = DdbObj<DdbVectorObj[]>
+
+export type DdbDictObj = DdbObj<[DdbVectorObj, DdbVectorObj]>
+
+export type DdbMatrixObj = DdbObj<DdbMatrixValue>
+
+export type DdbChartObj = DdbObj<DdbChartValue>
 
 
 export const nulls = {
@@ -260,8 +275,8 @@ export enum StreamingStatusCode {
 }
 
 
-/** 可以表示所有 DolphinDB 数据库中的数据类型 */
-export class DdbObj <T extends DdbValue = DdbValue> {
+/** Can represent data types in all DolphinDB databases */
+export class DdbObj <TValue extends DdbValue = DdbValue> {
     static dec = new TextDecoder('utf-8')
     
     static enc = new TextEncoder()
@@ -307,8 +322,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     /** 第 2 维 */
     cols?: number
     
-    /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据 */
-    value: T
+    /** The actual data. Different DdbForm, DdbType use different types in DdbValue to represent actual data */
+    value: TValue
     
     /** 原始二进制数据，仅在 parse_object 为 false 时通过 parse_message 生成的顶层对象有这个属性 */
     buffer?: Uint8Array
@@ -500,7 +515,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                         binCount: DdbObj
                         title: DdbVectorString
                         extras?: DdbObj
-                        data: DdbObj<DdbMatrixValue>
+                        data: DdbMatrixObj
                     }>()
                     
                     const [chart, x_axis, y_axis] = titles.value
@@ -566,8 +581,8 @@ export class DdbObj <T extends DdbValue = DdbValue> {
                 const has_row_labels = Boolean(label_flags & 0x01)
                 const has_col_labels = Boolean(label_flags & 0x02)
                 
-                let row_labels: DdbObj<DdbVectorValue> | null = null
-                let col_labels: DdbObj<DdbVectorValue> | null = null
+                let row_labels: DdbVectorObj | null = null
+                let col_labels: DdbVectorObj | null = null
                 
                 let offset = 1
                 
@@ -818,7 +833,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
     /** parse: rows, cols, items  
         返回的 ddbobj.length 不包括 vector 的 type 和 form
     */
-    static parse_vector (buf: Uint8Array, le: boolean, type: DdbType): DdbObj<DdbVectorValue> {
+    static parse_vector (buf: Uint8Array, le: boolean, type: DdbType): DdbVectorObj {
         const dv = new DataView(buf.buffer, buf.byteOffset)
         
         const rows = dv.getUint32(0, le)
@@ -1960,7 +1975,7 @@ export class DdbObj <T extends DdbValue = DdbValue> {
         for (let i = 0;  i < this.rows;  i++) {
             let row: any = { }
             for (let j = 0;  j < this.cols;  j++) {
-                const { type, name, value: values }: DdbObj = this.value[j]  // column
+                const { type, name, value: values } = (this as DdbTableObj).value[j]  // column
                 
                 switch (type) {
                     case DdbType.bool: {
@@ -2034,8 +2049,40 @@ export class DdbObj <T extends DdbValue = DdbValue> {
 }
 
 
+export interface InspectOptions extends UtilInspectOptions {
+    colors?: boolean
+    
+    /** decimal places */
+    decimals?: number
+}
+
+
+/** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个 */
+let default_formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
+
+
+let _decimals = 20
+
+/** 缓存，为了优化性能，通常 options.decimals 都是不变的 */
+let _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
+
+
 /** Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
-export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions): string {
+export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
+    const formatter = (() => {
+        const { decimals } = options
+        
+        if (decimals === undefined || decimals === null)
+            return default_formatter
+        
+        if (decimals !== _decimals) {
+            _decimals = options.decimals
+            _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: options.decimals, minimumFractionDigits: options.decimals })
+        }
+        
+        return _formatter
+    })()
+    
     switch (type) {
         case DdbType.bool:
             return inspect(
@@ -2061,35 +2108,35 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             )
         
         case DdbType.short:
-            return inspect(
-                (value === null || value === nulls.int16) ?
-                    null
-                :
-                    value,
-                options
-            )
-        
-        case DdbType.int:
-            return inspect(
-                (value === null || value === nulls.int32) ?
-                    null
-                :
-                    value,
-                options
-            )
-        
-        case DdbType.long:
-            return (value === null || value === nulls.int64) ?
-                'null'
+            return value === null || value === nulls.int16 ?
+                inspect(null, options)
             :
                 options.colors ?
-                    String(value).green
+                    default_formatter.format(value as number).green
                 :
-                    String(value)
+                    default_formatter.format(value as number)
+        
+        case DdbType.int:
+            return value === null || value === nulls.int32 ?
+                inspect(null, options)
+            :
+                options.colors ?
+                    default_formatter.format(value as number).green
+                :
+                    default_formatter.format(value as number)
+        
+        case DdbType.long:
+            return value === null || value === nulls.int64 ?
+                inspect(null, options)
+            :
+                options.colors ?
+                    default_formatter.format(value as bigint).green
+                :
+                    default_formatter.format(value as bigint)
         
         case DdbType.date:
             return (value === null || value === nulls.int32) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     date2str(value as number).green
@@ -2098,7 +2145,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.month:
             return (value === null || value === nulls.int32) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     month2str(value as number).green
@@ -2107,7 +2154,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.time:
             return (value === null || value === nulls.int32) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     time2str(value as number).green
@@ -2116,7 +2163,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.minute:
             return (value === null || value === nulls.int32) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     minute2str(value as number).green
@@ -2125,7 +2172,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.second:
             return (value === null || value === nulls.int32) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     second2str(value as number).green
@@ -2134,7 +2181,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.datetime:
             return (value === null || value === nulls.int32) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     datetime2str(value as number).green
@@ -2143,7 +2190,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.timestamp:
             return (value === null || value === nulls.int64) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     timestamp2str(value as bigint).green
@@ -2152,7 +2199,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.nanotime:
             return (value === null || value === nulls.int64) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     nanotime2str(value as bigint).green
@@ -2161,7 +2208,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.nanotimestamp:
             return (value === null || value === nulls.int64) ?
-                'null'
+                inspect(null, options)
             :
                 options.colors ?
                     nanotimestamp2str(value as bigint).green
@@ -2170,15 +2217,21 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.float:
             return (value === null || value === nulls.float32) ?
-                'null'
+                inspect(null, options)
             :
-                inspect(value as number, options)
+                options.colors ?
+                    formatter.format(value as number).green
+                :
+                    formatter.format(value as number)
         
         case DdbType.double:
             return (value === null || value === nulls.double) ?
-                'null'
+                inspect(null, options)
             :
-                inspect(value as number, options)
+                options.colors ?
+                    formatter.format(value as number).green
+                :
+                    formatter.format(value as number)
         
         case DdbType.symbol:
         case DdbType.string:
@@ -2234,29 +2287,13 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             )
         
         case DdbType.point: {
-            let [x, y] = value as [number, number]
-            if (x === nulls.double)
-                x = null
-            if (y === nulls.double)
-                y = null
-                
-            return options.colors ?
-                `(${String(x).green}, ${String(y).green})`
-            :
-                `(${String(x)}, ${String(y)})`
+            const [x, y] = value as [number, number]
+            return `(${format(DdbType.double, x, le, options)}, ${format(DdbType.double, y, le, options)})`
         }
         
         case DdbType.complex: {
-            let [x, y] = value as [number, number]
-            if (x === nulls.double)
-                x = null
-            if (y === nulls.double)
-                y = null
-            
-            return options.colors ?
-                    `${String(x).green}+${`${String(y)}i`.green}`
-                :
-                    `${String(x)}+${String(y)}i`
+            const [x, y] = value as [number, number]
+            return `${format(DdbType.double, x, le, options)}+${format(DdbType.double, y, le, options)}i`
         }
         
         case DdbType.duration: {
@@ -2291,7 +2328,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
 
 
 /** formatted vector, the index-th item in the collection is a string, a null value returns a 'null' string */
-export function formati (obj: DdbObj<DdbVectorValue>, index: number, options: InspectOptions): string {
+export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
     if (64 <= obj.type && obj.type < 128) {  // array vector
         // 因为 array vector 目前只支持：Logical, Integral（不包括 INT128, COMPRESS 类型）, Floating, Temporal
         // 都对应 TypedArray 中的一格，所以 lengths.length 等于 block 中的 row 的个数
@@ -2707,7 +2744,7 @@ export class DdbSetString extends DdbObj<string[]> {
 */
 export class DdbDict extends DdbObj<DdbDictValue> {
     constructor (obj: Record<string, boolean | string | DdbObj>)
-    constructor (keys: DdbObj<DdbVectorValue>, values: DdbObj<DdbVectorValue>)
+    constructor (keys: DdbVectorObj, values: DdbVectorObj)
     constructor (arg0: DdbObj | Record<string, boolean | string | DdbObj>, arg1?: DdbObj) {
         if (arg1)
             super({
@@ -3100,11 +3137,26 @@ export interface StreamingData extends StreamingParams {
     */
     topic: string
     
-    /** Stream data, the type is any vector, each element of which corresponds to a column of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
-    data: DdbObj<
-            DdbObj<DdbVectorValue>[]
-        >
+    /** The schema of the flow table, the type is table, there is no data in the column vector (rows === 0), only the column name and type */
+    schema: DdbTableObj
+    
+    /** Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
+    data: DdbObj<DdbVectorObj[]>
+    
+    
+    window: {
+        /** The establishment of the connection starts offset = 0, and gradually increases as the window moves */
+        offset: number
+        
+        /** sum of segment.row in segments */
+        rows: number
+        
+        /** An array of data received each time */
+        segments: DdbObj<DdbVectorObj[]>[]
+    }
 }
+
+export const winsize = 40 as const
 
 
 export class DDB {
@@ -3270,12 +3322,10 @@ export class DDB {
         await connect_websocket(this.url, {
             protocols: (() => {
                 if (this.streaming)
-                    return ['streaming']
+                    return 'streaming'
                 
                 if (this.python)
-                    return ['python']
-                
-                return [ ]
+                    return 'python'
             })(),
             
             on_open: async (event, websocket) => {
@@ -3446,7 +3496,6 @@ export class DDB {
             }
         }
         
-        
         if (!this.connected)
             throw new Error(`${this.url} is already disconnected`)
         
@@ -3537,9 +3586,7 @@ export class DDB {
                 const buf = new Uint8Array(buffer)
                 
                 if (this.print_message_buffer)
-                    console.log(
-                        typed_array_to_buffer(buf)
-                    )
+                    console.log(typed_array_to_buffer(buf))
                 
                 const message = this.parse_message(buf, parse_object)
                 
@@ -3806,9 +3853,7 @@ export class DDB {
         const bufobj = buf.subarray(ilf1 + 1)
         
         if (this.print_object_buffer)
-            console.log(
-                typed_array_to_buffer(bufobj)
-            )
+            console.log(typed_array_to_buffer(bufobj))
         
         return {
             type: 'object',
@@ -3855,8 +3900,9 @@ export class DDB {
         ])
         
         
-        return new Promise<void>((resolve, reject) => {
+        return new Promise<DdbTableObj>((resolve, reject) => {
             let first = true
+            let second = true
             
             // 先准备好收到 websocket message 的 callback
             this.on_message = ({ data: buffer }) => {
@@ -3886,55 +3932,93 @@ export class DDB {
                             )
                             offset += obj.length
                             objs[i] = obj
-                            console.log(`subscribe table: objs[${i}]:`, obj)
+                            console.log(`订阅流表的响应数据: objs[${i}]:`, obj)
                         }
                         
                         this.streaming.colnames = objs[0].value as string[]
                         
-                        if (status === StreamingStatusCode.ok) {
-                            console.log(
-                                'subscribe table success:', {
-                                    status: StreamingStatusCode[status],
-                                    result: objs[0]
-                                }
-                            )
-                            resolve()
-                        } else
-                            reject(
-                                new Error(`subscribe table failed: { status: ${StreamingStatusCode[status]}, error: ${(objs[0] as DdbObj<string>)?.value} }`)
-                            )
+                        if (status === StreamingStatusCode.ok)
+                            console.log('Subscribed to streaming table:', { status: StreamingStatusCode[status], result: objs[0] })
+                        else
+                            reject(new Error(`Failed to subscribe to streaming table: { status: ${StreamingStatusCode[status]}, error: ${(objs[0] as DdbObj<string>)?.value} }`))
                     } catch (error) {
                         reject(error)
                     }
                 } else {
-                    const dv = new DataView(buffer)
-                    const buf = new Uint8Array(buffer)
-                    
-                    this.streaming.time = dv.getBigInt64(1, this.le)
-                    
-                    this.streaming.id = dv.getBigInt64(9, this.le)
-                    
-                    const i_topic_end = buf.indexOf(0, 17)
-                    
-                    this.streaming.topic = this.dec.decode(
-                        buf.subarray(17, i_topic_end)
-                    )
-                    
-                    this.streaming.data = DdbObj.parse(
-                        buf.subarray(i_topic_end + 1),
-                        this.le
-                    ) as DdbObj<DdbObj<DdbVectorValue>[]>
-                    
-                    // 复制一份，避免使用同一个引用，下次调用时业务可能未处理完成
-                    this.streaming.handler({ ...this.streaming })
+                    try {
+                        const dv = new DataView(buffer)
+                        const buf = new Uint8Array(buffer)
+                        
+                        let { streaming } = this
+                        
+                        streaming.time = dv.getBigInt64(1, this.le)
+                        
+                        streaming.id = dv.getBigInt64(9, this.le)
+                        
+                        const i_topic_end = buf.indexOf(0, 17)
+                        
+                        streaming.topic = this.dec.decode(
+                            buf.subarray(17, i_topic_end)
+                        )
+                        
+                        if (second) {
+                            second = false
+                            
+                            // 是 table
+                            streaming.schema = DdbObj.parse(
+                                buf.subarray(i_topic_end + 1),
+                                this.le
+                            ) as DdbTableObj
+                            
+                            console.log('Received streaming table schema:', streaming.schema)
+                            
+                            streaming.window = {
+                                offset: 0,
+                                rows: 0,
+                                segments: [ ],
+                            }
+                            
+                            assert(streaming.schema.rows === 0, 'schema.rows === 0')
+                            
+                            resolve(streaming.schema)
+                        } else {
+                            // 是 column 片段组成的 any vector
+                            const data = streaming.data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                            
+                            let { window: win } = streaming
+                            
+                            win.rows += data.rows
+                            
+                            win.segments.push(data)
+                            
+                            if (win.rows >= winsize * 2 && win.segments.length >= 2) {
+                                let winsize_ = 0
+                                let i = win.segments.length - 1
+                                // 往前移动至首个累计 winsize_ 超过 winsize 的位置
+                                for (;  winsize_ < winsize;  i--)
+                                    winsize_ += win.segments[i].rows
+                                
+                                win.segments = win.segments.slice(i)
+                                
+                                win.offset += win.rows - winsize_
+                                
+                                win.rows = winsize_
+                                
+                                console.log('exceeds winsize, shrink window.segments', win)
+                            }
+                            
+                            streaming.handler(streaming)
+                        }
+                    } catch (error) {
+                        reject(error)
+                    }
                 }
             }
+            
             
             // 发送订阅 websocket message
             this.websocket.send(
                 concat([
-                    this.enc.encode('STREAM \n'),
-                    
                     Uint8Array.of(
                         1, // from = SubscriberFromType::FROM_API
                         1, // type = SubscriberRPCType::RPC_START

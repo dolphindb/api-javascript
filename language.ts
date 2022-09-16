@@ -149,6 +149,8 @@ export const constants = [
     'POINT',
     'DURATION',
     'OBJECT',
+    'DECIMAL32',
+    'DECIMAL64',
     
     // partition type
     'SEQ',
@@ -187,6 +189,7 @@ export const constants = [
     'HINT_KEEPORDER',
     'HINT_SEQ',
     'HINT_EXPLAIN',
+    'HINT_VECTORIZED',
     
     
     // --- seek mode

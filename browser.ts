@@ -1554,7 +1554,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 default:
-                    throw new Error(`${DdbForm[form]} Serialization is not currently supported`)
+                    throw new Error(`${DdbForm[form]} serialization is not currently supported`)
             }
         })()
         

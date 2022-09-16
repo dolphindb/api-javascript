@@ -1557,7 +1557,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 default:
-                    throw new Error(`${DdbForm[form]} 暂不支持序列化`)
+                    throw new Error(`${DdbForm[form]} serialization is not currently supported`)
             }
         })()
         
@@ -2076,8 +2076,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             return default_formatter
         
         if (decimals !== _decimals) {
-            _decimals = options.decimals
-            _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: options.decimals, minimumFractionDigits: options.decimals })
+            _decimals = decimals
+            _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals })
         }
         
         return _formatter

@@ -440,8 +440,8 @@ export const tm_language = {
                     name: 'constant.numeric.dolphindb'
                 },
                 {
-                    // 1.2f
-                    match: '\\b[0-9]+\\.[0-9]+f\\b',
+                    // 1.2f, 1f
+                    match: '\\b[0-9]+(\\.[0-9]+)?f\\b',
                     name: 'constant.numeric.dolphindb'
                 },
                 {

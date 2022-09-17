@@ -750,60 +750,34 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.uuid:
             case DdbType.ipaddr:
             case DdbType.int128:
-                return [
-                    16,
-                    buf.slice(0, 16)
-                ]
+                return [16, buf.slice(0, 16)]
             
             
             case DdbType.blob: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const length = dv.getUint32(0, le)
                 
-                return [
-                    4 + length,
-                    buf.slice(4, 4 + length)
-                ]
+                return [4 + length, buf.slice(4, 4 + length)]
             }
             
             
             case DdbType.complex:
             case DdbType.point: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                return [
-                    16,
-                    [
-                        dv.getFloat64(0, le),
-                        dv.getFloat64(8, le)
-                    ] as [number, number]
-                ]
+                return [16, [dv.getFloat64(0, le), dv.getFloat64(8, le)]]
             }
             
             
             case DdbType.duration: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                return [
-                    8,
-                    {
-                        unit: dv.getUint32(4, le),
-                        data: dv.getInt32(0, le)
-                    } as DdbDurationValue
-                ]
+                return [8, { unit: dv.getUint32(4, le), data: dv.getInt32(0, le) } as DdbDurationValue]
             }
             
             
             case DdbType.decimal32: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                
                 const data = dv.getInt32(4, le)
-                
-                return [
-                    8,
-                    {
-                        scale: dv.getInt32(0, le),
-                        data: data === nulls.int32 ? null : data,
-                    } as DdbDecimal32Value
-                ]
+                return [8, { scale: dv.getInt32(0, le), data: data === nulls.int32 ? null : data } as DdbDecimal32Value]
             }
             
             case DdbType.decimal64: {
@@ -811,13 +785,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 
                 const data = dv.getBigInt64(4, le)
                 
-                return [
-                    12,
-                    {
-                        scale: dv.getInt32(0, le),
-                        data: data === nulls.int64 ? null : data,
-                    } as DdbDecimal64Value
-                ]
+                return [12, { scale: dv.getInt32(0, le), data: data === nulls.int64 ? null : data } as DdbDecimal64Value]
             }
             
             
@@ -1206,10 +1174,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             // 01 00 00 00 data[0] = 1
             // 3a 01 00 00 data[1] = 0x013a = 314
             case DdbType.decimal32: {
-                const dv = new DataView(
-                    buf.buffer,
-                    buf.byteOffset
-                )
+                const dv = new DataView(buf.buffer, buf.byteOffset)
                 
                 return [
                     4 + 4 * length,
@@ -1389,12 +1354,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         
                         
                         case DdbType.blob:
-                            return [
-                                Uint32Array.of(
-                                    (this.value as Uint8Array).byteLength
-                                ),
-                                this.value as Uint8Array
-                            ]
+                            return [Uint32Array.of((this.value as Uint8Array).byteLength), this.value as Uint8Array]
                         
                         
                         case DdbType.complex:
@@ -1409,23 +1369,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         
                         case DdbType.decimal32: {
                             const { scale, data } = this.value as DdbDecimal32Value
-                            return [
-                                Int32Array.of(
-                                    scale,
-                                    data === null ?
-                                        nulls.int32
-                                    :
-                                        data
-                                )
-                            ]
+                            return [Int32Array.of(scale, data === null ? nulls.int32 : data)]
                         }
                         
                         case DdbType.decimal64: {
                             const { scale, data } = this.value as DdbDecimal64Value
-                            return [
-                                Int32Array.of(scale),
-                                BigInt64Array.of(data === null ? nulls.int64 : data)
-                            ]
+                            return [Int32Array.of(scale), BigInt64Array.of(data === null ? nulls.int64 : data)]
                         }
                         
                         default:
@@ -1454,12 +1403,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 
                 
                 case DdbForm.set:
-                    return [
-                        new DdbObj({
-                            ...this,
-                            form: DdbForm.vector,
-                        }).pack()
-                    ]
+                    return [new DdbObj({ ...this, form: DdbForm.vector }).pack()]
                 
                 
                 case DdbForm.table:
@@ -1485,23 +1429,14 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 
                 
                 case DdbForm.dict:
-                    return [
-                        (value as DdbDictValue)[0].pack(),
-                        (value as DdbDictValue)[1].pack(),
-                    ]
+                    return [(value as DdbDictValue)[0].pack(), (value as DdbDictValue)[1].pack()]
                 
                 case DdbForm.chart: {
                     const {
                         type,
                         stacking,
-                        bin_start,
-                        bin_end,
-                        bin_count,
-                        titles: {
-                            chart,
-                            x_axis,
-                            y_axis,
-                        },
+                        bin_start, bin_end, bin_count,
+                        titles: { chart, x_axis, y_axis },
                         extras,
                         data
                     } = this.value as DdbChartValue
@@ -1511,31 +1446,17 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     } = new DdbDict({
                         chartType: new DdbInt(type),
                         stacking,
-                        ... bin_start ? {
-                            binStart: bin_start,
-                            binEnd: bin_end
-                        } : { },
-                        ... bin_count ? {
-                            binCount: bin_count
-                        } : { },
+                        ... bin_start ? { binStart: bin_start, binEnd: bin_end } : { },
+                        ... bin_count ? { binCount: bin_count } : { },
                         title: new DdbVectorString([chart, x_axis, y_axis]),
                         ... extras ? (() => {
                             const { multi_y_axes, ...extras_other } = extras
-                            
-                            return {
-                                extras: new DdbDict({
-                                    multiYAxes: multi_y_axes,
-                                    ...extras_other
-                                })
-                            }
+                            return { extras: new DdbDict({ multiYAxes: multi_y_axes, ...extras_other }) }
                         })() : { },
                         data,
                     })
                     
-                    return [
-                        keys.pack(),
-                        values.pack(),
-                    ]
+                    return [keys.pack(), values.pack()]
                 }
                 
                 case DdbForm.matrix: {
@@ -1684,11 +1605,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.decimal32:
             case DdbType.decimal64: {
                 const { scale, data } = value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
-                
-                return [
-                    Int32Array.of(scale),
-                    data
-                ]
+                return [Int32Array.of(scale), data]
             }
             
             default:
@@ -1847,20 +1764,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             
                             const { data } = this.value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
                             
-                            let items = new Array(
-                                Math.min(
-                                    limit,
-                                    data.length
-                                )
-                            )
+                            let items = new Array(Math.min(limit, data.length))
                             
                             for (let i = 0;  i < items.length;  i++)
                                 items[i] = formati(this as DdbObj<DdbDecimal32VectorValue | DdbDecimal64VectorValue>, i, options)
                             
-                            return format_array(
-                                items,
-                                data.length > limit
-                            )
+                            return format_array(items, data.length > limit)
                         }
                         
                         default: {
@@ -2006,7 +1915,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         for (let i = 0;  i < this.rows;  i++) {
             let row: any = { }
             for (let j = 0;  j < this.cols;  j++) {
-                const { type, name, value: values }: DdbObj = this.value[j]  // column
+                const { type, name, value: values } = (this as DdbTableObj).value[j]  // column
                 
                 switch (type) {
                     case DdbType.bool: {
@@ -2107,8 +2016,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             return default_formatter
         
         if (decimals !== _decimals) {
-            _decimals = options.decimals
-            _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: options.decimals, minimumFractionDigits: options.decimals })
+            _decimals = decimals
+            _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals })
         }
         
         return _formatter
@@ -2283,12 +2192,9 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             )
                 return 'null'
             
-            const s = String(data)
+            const s = String(data < 0 ? -data : data).padStart(scale, '0')
             
-            return scale ?
-                    `${s.slice(0, -scale)}.${s.slice(-scale)}`
-                :
-                    s
+            return (data < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
         }
         
         default:
@@ -2368,9 +2274,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         case DdbType.blob: {
             const value = obj.value[index] as Uint8Array
             return value.length > 100 ?
-                    DdbObj.dec.decode(
-                        value.subarray(0, 98)
-                    ) + '…'
+                    DdbObj.dec.decode(value.subarray(0, 98)) + '…'
                 :
                     DdbObj.dec.decode(value)
         }
@@ -2396,12 +2300,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             )
                 return ''
             
-            const s = String(x)
+            const s = String(x < 0 ? -x : x).padStart(scale, '0')
             
-            return scale ?
-                    `${s.slice(0, -scale)}.${s.slice(-scale)}`
-                :
-                    s
+            return (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
         }
         
         default:
@@ -3266,31 +3167,28 @@ export class DDB {
             - python?: set python session flag, default `false`
             - streaming?: When this option is set, the WebSocket connection is only used for streaming data
     */
-    async connect (options: {
-        url?: string
-        autologin?: boolean
-        username?: string
-        password?: string
-        python?: boolean
-        streaming?: StreamingParams
-     } = { }) {
-        if (options.url !== undefined)
-            this.url = options.url
+    async connect ({ url, autologin, username, password, python, streaming }: 
+        { url?: string, autologin?: boolean, username?: string, password?: string, python?: boolean, streaming?: StreamingParams } = { }
+    ) {
+        if (url !== undefined)
+            this.url = url
         
-        if (options.autologin !== undefined)
-            this.autologin = options.autologin
+        if (autologin !== undefined)
+            this.autologin = autologin
         
-        if (options.username !== undefined)
-            this.username = options.username
+        if (username !== undefined)
+            this.username = username
         
-        if (options.password !== undefined)
-            this.password = options.password
+        if (password !== undefined)
+            this.password = password
         
-        if (options.python !== undefined)
-            this.python = options.python
+        if (python !== undefined)
+            this.python = python
         
-        if (options.streaming !== undefined)
-            this.streaming = options.streaming as StreamingData
+        if (streaming !== undefined)
+            this.streaming = streaming as StreamingData
+        
+        
         
         this.disconnect()
         

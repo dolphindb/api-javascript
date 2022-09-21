@@ -603,8 +603,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     offset += col_labels.length
                 }
                 
-                if (buf_data[offset] !== type)
-                    throw new Error('matrix.datatype !== matrix.type')
+                assert(buf_data[offset] === type, 'matrix.datatype === matrix.type')
                 
                 const rows = dv.getUint32(offset + 2, le)
                 const cols = dv.getUint32(offset + 6, le)
@@ -1874,7 +1873,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     to_cols () {
-        return (this.value as DdbObj[]).map(col => {
+        assert(this.form === DdbForm.table, 'form must be DdbForm.table, otherwise it cannot to_cols')
+        
+        return (this as DdbTableObj).value.map(col => {
             let col_: {
                 title: string
                 dataIndex: string
@@ -1885,19 +1886,24 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             switch (col.type) {
+                case DdbType.char:
+                    col_.render = (value: number) => 
+                        format(DdbType.char, value, this.le)
+                    break
+                
                 case DdbType.timestamp:
-                    col_.render = value => 
+                    col_.render = (value: bigint) => 
                         timestamp2str(value)
                     break
-                    
+                
                 case DdbType.date:
-                    col_.render = value => 
+                    col_.render = (value: number) => 
                         date2str(value)
                     break
                 
                 case DdbType.ipaddr:
-                    col_.render = value =>
-                        ipaddr2str(value as Uint8Array, this.le)
+                    col_.render = (value: Uint8Array) =>
+                        ipaddr2str(value, this.le)
                     break
             }
             
@@ -1907,8 +1913,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     to_rows <T extends Record<string, any> = Record<string, any>> () {
-        if (this.form !== DdbForm.table)
-            throw new Error('this.form is not DdbForm.table, cannot call to_rows')
+        assert(this.form === DdbForm.table, 'form must be DdbForm.table, otherwise it cannot to_rows')
         
         let rows = new Array<T>(this.rows)
         
@@ -1963,16 +1968,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         strip?: boolean
         deep?: boolean
     } = { }) {
-        if (this.form !== DdbForm.dict)
-            throw new Error('this.form is not DdbForm.dict and cannot be converted to js object')
+        assert(this.form === DdbForm.dict, 'this.form must be DdbForm.dict, otherwise to_dict cannot be called to convert to js object')
         
         const [{ value: keys, type: key_type }, { value: values, type: value_type }] = this.value as DdbDictValue
         
-        if (key_type !== DdbType.string || value_type !== DdbType.any)
-            throw new Error('Not dict<string, any>, automatic conversion to js object is not supported for the time being')
-        
-        if (deep && !strip)
-            throw new Error('strip = true must be set when deep = true')
+        assert(key_type === DdbType.string && value_type === DdbType.any, 'Currently only supports automatic conversion of dict<string, any> to js object')
+        assert(!(deep && !strip), 'strip = true must be set when deep = true')
         
         let obj = { }
         
@@ -2807,8 +2808,7 @@ export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') 
     if (!str || str === 'null')
         return nulls.int64
     
-    if (str.length !== format.length)
-        throw new Error('The length of the timestamp string is not equal to the length of the format string')
+    assert('The length of the timestamp string must be equal to the length of the format string')
     
     return BigInt(
         -timezone_offset +
@@ -2828,14 +2828,12 @@ export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSS
         return String(nanotime)
     
     const i_second_start = format.indexOf('ss')
-    if (i_second_start === -1)
-        throw new Error('格式串必须包含秒的格式 (ss)')
+    assert(i_second_start !== -1, 'The format string must contain the format for seconds (ss)')
     
     const i_second_end = i_second_start + 2
     
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    if (i_nanosecond_start === -1)
-        throw new Error('格式串必须包含纳秒的格式 (SSSSSSSSS)')
+    assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
     
     return (
         dayjs(
@@ -2874,14 +2872,12 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
         return 'null'
     
     const i_second_start = format.indexOf('ss')
-    if (i_second_start === -1)
-        throw new Error('The format string must contain the format for seconds (ss)')
+    assert(i_second_start !== -1, 'The format string must contain the format for seconds (ss)')
     
     const i_second_end = i_second_start + 2
     
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    if (i_nanosecond_start === -1)
-        throw new Error('The format string must contain the format for nanoseconds (SSSSSSSSS)')
+    assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
     
     const remainder = nanotimestamp % 1000000000n
     const borrow = remainder < 0n
@@ -2917,18 +2913,15 @@ export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SS
     if (!str || str === 'null')
         return nulls.int64
     
-    if (str.length !== format.length)
-        throw new Error('nanotimestamp string length is not equal to format string length')
+    assert(str.length === format.length, 'nanotimestamp string length must be equal to format string length')
     
     const i_second_start = format.indexOf('ss')
-    if (i_second_start === -1)
-        throw new Error('The format string must contain the format for seconds (ss)')
+    assert(i_second_start !== -1, 'The format string must contain the format for seconds (ss)')
     
     const i_second_end = i_second_start + 2
     
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    if (i_nanosecond_start === -1)
-        throw new Error('Format string must contain nanosecond format (SSSSSSSSS)')
+    assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
     
     return (
             BigInt(
@@ -3592,8 +3585,7 @@ export class DDB {
         } = { }
     ) {
         if (node) {
-            if (typeof func_type === 'undefined')
-                throw new Error('指定 node 时必须设置 func_type')
+            assert(func_type in DdbFunctionType, 'func_type must be set when specifying node')
             
             args = [
                 node,
@@ -3647,9 +3639,7 @@ export class DDB {
             parse_object?: boolean
         } = { }
     ) {
-        if (!args.length || args.length !== vars.length)
-            throw new Error('variable 指令参数为空或参数名为空，或数量不匹配')
-        
+        assert(args.length && args.length === vars.length, 'variable command parameter cannot be empty and parameter name cannot be empty, and the number should match')
         return this.rpc('variable', { vars, args, listener, parse_object })
     }
     

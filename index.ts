@@ -1616,7 +1616,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    [inspect.custom] (depth: number, options: InspectOptions, _inspect) {
+    [inspect.custom] (depth: number, _options: InspectOptions, _inspect) {
+        const options = { nullstr: true, quote: true, ..._options }
+        
         const type = this.inspect_type()
         
         const data = (() => {
@@ -1972,9 +1974,9 @@ let _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
 /** Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
+    const { decimals } = options
+    
     const formatter = (() => {
-        const { decimals } = options
-        
         if (decimals === undefined || decimals === null)
             return default_formatter
         
@@ -2042,7 +2044,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    date2str(value as number).green
+                    date2str(value as number).magenta
                 :
                     date2str(value as number)
         
@@ -2051,7 +2053,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    month2str(value as number).green
+                    month2str(value as number).magenta
                 :
                     month2str(value as number)
         
@@ -2060,7 +2062,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    time2str(value as number).green
+                    time2str(value as number).magenta
                 :
                     time2str(value as number)
         
@@ -2069,7 +2071,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    minute2str(value as number).green
+                    minute2str(value as number).magenta
                 :
                     minute2str(value as number)
         
@@ -2078,7 +2080,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    second2str(value as number).green
+                    second2str(value as number).magenta
                 :
                     second2str(value as number)
         
@@ -2087,7 +2089,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    datetime2str(value as number).green
+                    datetime2str(value as number).magenta
                 :
                     datetime2str(value as number)
         
@@ -2096,7 +2098,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    timestamp2str(value as bigint).green
+                    timestamp2str(value as bigint).magenta
                 :
                     timestamp2str(value as bigint)
         
@@ -2105,7 +2107,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    nanotime2str(value as bigint).green
+                    nanotime2str(value as bigint).magenta
                 :
                     nanotime2str(value as bigint)
         
@@ -2114,7 +2116,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    nanotimestamp2str(value as bigint).green
+                    nanotimestamp2str(value as bigint).magenta
                 :
                     nanotimestamp2str(value as bigint)
         
@@ -2142,7 +2144,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.uuid: 
             return options.colors ?
-                uuid2str(value as Uint8Array, le).green
+                uuid2str(value as Uint8Array, le).cyan
             :
                 uuid2str(value as Uint8Array, le)
         
@@ -2162,13 +2164,13 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 'null'
             :
                 options.colors ?
-                    datehour2str(value as number).green
+                    datehour2str(value as number).magenta
                 :
                     datehour2str(value as number)
         
         case DdbType.ipaddr:
             return options.colors ?
-                ipaddr2str(value as Uint8Array, le).green
+                ipaddr2str(value as Uint8Array, le).cyan
             :
                 ipaddr2str(value as Uint8Array, le)
         
@@ -2202,7 +2204,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         case DdbType.duration: {
             const { data, unit } = value as DdbDurationValue
             const str = `${data}${DdbDurationUnit[unit]}`
-            return options.colors ? str.green : str
+            return options.colors ? str.magenta : str
         }
         
         case DdbType.decimal32: 
@@ -2278,13 +2280,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
     }
     
     switch (obj.type) {
-        case DdbType.string:
-        case DdbType.symbol:
-            return obj.value[index]
-        
         case DdbType.symbol_extended: {
             const { base, data } = obj.value as DdbSymbolExtendedValue
-            return base[data[index]]
+            return format(DdbType.string, base[data[index]], obj.le, options)
         }
         
         case DdbType.uuid:
@@ -3048,6 +3046,16 @@ export interface StreamingData extends StreamingParams {
 export const winsize = 40 as const
 
 
+export class ConnectionError extends Error {
+    ddb: DDB
+    
+    constructor (ddb: DDB) {
+        super(`websocket is disconnected: ${ddb.url}`)
+        this.ddb = ddb
+    }
+}
+
+
 export class DDB {
     /** 当前的 session id (http 或 tcp) */
     sid = '0'
@@ -3171,65 +3179,49 @@ export class DDB {
     }
     
     
-    /** Establish the actual WebSocket connection to the DolphinDB corresponding to the URL
-        - options?:
-            - url?: DolphinDB WebSocket URL. By default, the WebSocket URL passed in when the instance is initialized is used
-            - autologin?: Whether to log in automatically after establishing a connection, default `true`
-            - username?: DolphinDB username, default `'admin'`
-            - password?: DolphinDB password, default `'123456'`
-            - python?: set python session flag, default `false`
-            - streaming?: When this option is set, the WebSocket connection is only used for streaming data
-    */
-    async connect ({ url, autologin, username, password, python, streaming }: 
-        { url?: string, autologin?: boolean, username?: string, password?: string, python?: boolean, streaming?: StreamingParams } = { }
-    ) {
-        if (url !== undefined)
-            this.url = url
+    /** Establish a actual websocket connection to the DolphindB corresponding to the URL  
+        It is a power, and after calling, it will ensure that it has been connected to the database (ensure that websocket.ReadyState is open), otherwise an error will be reported  
+        this.autologin automatically log in when it is true */
+    async connect () {
+        if (this.connected)
+            return
         
-        if (autologin !== undefined)
-            this.autologin = autologin
+        const ptail = this.pconnect
         
-        if (username !== undefined)
-            this.username = username
+        let resolve: () => void
+        this.pconnect = new Promise<void>((_resolve, _reject) => {
+            resolve = _resolve
+        })
         
-        if (password !== undefined)
-            this.password = password
+        await ptail
         
-        if (python !== undefined)
-            this.python = python
-        
-        if (streaming !== undefined)
-            this.streaming = streaming as StreamingData
-        
-        
-        
-        this.disconnect()
-        
-        await connect_websocket(this.url, {
-            protocols: (() => {
-                if (this.streaming)
-                    return 'streaming'
-                
-                if (this.python)
-                    return 'python'
-            })(),
-            
-            on_open: async (event, websocket) => {
-                this.websocket = websocket
+        try {
+            if (!this.connected) {
+                this.websocket = await connect_websocket(this.url, {
+                    protocols: (() => {
+                        if (this.streaming)
+                            return 'streaming'
+                        
+                        if (this.python)
+                            return 'python'
+                    })(),
+                    
+                    on_message: (event: { data: ArrayBuffer }) => {
+                        this.on_message(event)
+                    }
+                })
                 
                 if (this.streaming)
                     await this.subscribe()
-                else
+                else {
                     await this.rpc('connect', { })
-            },
-            
-            on_message: (event: { data: ArrayBuffer }) => {
-                this.on_message(event)
+                    if (this.autologin)
+                        await this.call('login', [this.username, this.password], { urgent: true })
+                }
             }
-        })
-        
-        if (!this.streaming && this.autologin)
-            await this.call('login', [this.username, this.password], { urgent: true })
+        } finally {
+            resolve()
+        }
     }
     
     
@@ -3337,6 +3329,7 @@ export class DDB {
     
     
     /** rpc through websocket (function/script/variable command)  
+        When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the Connectionerror  
         - type: API 类型: 'script' | 'function' | 'variable'
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
@@ -3364,29 +3357,14 @@ export class DDB {
             listener?: DdbMessageListener
             parse_object?: boolean
     }) {
-        if (!this.websocket) {
-            const ptail = this.pconnect
-            
-            let resolve: () => void
-            this.pconnect = new Promise<void>((_resolve, _reject) => {
-                resolve = _resolve
-            })
-            
-            await ptail
-            
-            try {
-                if (!this.websocket)
-                    await this.connect()
-            } finally {
-                resolve()
-            }
-        }
+        if (!this.websocket)
+            await this.connect()
         
         if (!this.connected)
-            throw new Error(`${this.url} is already disconnected`)
-        
+            throw new ConnectionError(this)
         
         if (func === 'pnode_run' && !this.pnode_run_defined) {
+            // 保证并发调用 rpc 时只定义一次 pnode_run
             const ptail = this.ppnoderun
             
             let resolve: () => void
@@ -3870,7 +3848,7 @@ export class DDB {
                             
                             let { window: win } = streaming
                             
-                            win.rows += data.rows
+                            win.rows += data.value[0].rows
                             
                             win.segments.push(data)
                             

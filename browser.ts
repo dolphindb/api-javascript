@@ -6,7 +6,7 @@ import ipaddrjs from 'ipaddr.js'
 const { fromByteArray: buf2ipaddr } = ipaddrjs
 
 import 'xshell/prototype.browser.js'
-import { blue } from 'xshell/chalk.browser.js'
+import { blue, cyan, green, grey, magenta } from 'xshell/chalk.browser.js'
 import { concat, assert } from 'xshell/utils.browser.js'
 import { connect_websocket } from 'xshell/net.browser.js'
 
@@ -1613,7 +1613,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    toString (options?: InspectOptions): string {
+    toString (options: InspectOptions = { nullstr: true, quote: true }): string {
         const type = this.inspect_type()
         
         const data = (() => {
@@ -1875,40 +1875,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     to_cols () {
         assert(this.form === DdbForm.table, 'form must be DdbForm.table, otherwise it cannot to_cols')
         
-        return (this as DdbTableObj).value.map(col => {
-            let col_: {
-                title: string
-                dataIndex: string
-                render?: any
-            } = {
-                title: col.name,
-                dataIndex: col.name,
-            }
-            
-            switch (col.type) {
-                case DdbType.char:
-                    col_.render = (value: number) => 
-                        format(DdbType.char, value, this.le)
-                    break
-                
-                case DdbType.timestamp:
-                    col_.render = (value: bigint) => 
-                        timestamp2str(value)
-                    break
-                
-                case DdbType.date:
-                    col_.render = (value: number) => 
-                        date2str(value)
-                    break
-                
-                case DdbType.ipaddr:
-                    col_.render = (value: Uint8Array) =>
-                        ipaddr2str(value, this.le)
-                    break
-            }
-            
-            return col_
-        })
+        return (this as DdbTableObj).value.map(col => ({
+            title: col.name,
+            dataIndex: col.name,
+            render: (value) => format(col.type, value, col.le, { nullstr: false, quote: false })
+        }))
     }
     
     
@@ -1995,6 +1966,12 @@ export interface InspectOptions {
     
     /** decimal places */
     decimals?: number
+    
+    /** `false` 决定 null 值如何返回. nullstr ? 'null' : '' */
+    nullstr?: boolean
+    
+    /** `false` 决定 string, symbol, char 类型是否加引号 */
+    quote?: boolean
 }
 
 
@@ -2010,9 +1987,9 @@ let _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
 /** Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
+    const { decimals, nullstr = false, colors = false, quote = false } = options
+    
     const formatter = (() => {
-        const { decimals } = options
-        
         if (decimals === undefined || decimals === null)
             return default_formatter
         
@@ -2024,148 +2001,205 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         return _formatter
     })()
     
+    function get_nullstr () {
+        return nullstr ?
+            colors ? grey('null') : 'null'
+        :
+            ''
+    }
+    
     switch (type) {
         case DdbType.bool:
-            return String(
-                (value === null || value === nulls.int8) ?
-                    null
-                :
-                    Boolean(value)
-            )
+            if (value === null || value === nulls.int8)
+                return get_nullstr()
+            else {
+                const str = String(Boolean(value))
+                return colors ? blue(str) : str
+            }
         
         case DdbType.char:
-            return String(
-                (value === null || value === nulls.int8) ?
-                    null
-                :
+            if (value === null || value === nulls.int8)
+                return get_nullstr()
+            else {
+                let str = 
                     // ascii printable
                     // http://facweb.cs.depaul.edu/sjost/it212/documents/ascii-pr.htm
                     (32 <= (value as number) && (value as number) <= 126) ?
-                        String.fromCharCode(value as number).quote()
-                    :
-                        value,
-            )
+                        String.fromCharCode(value as number)
+                :
+                    '\\' + String(value as number)
+                
+                if (quote)
+                    str = str.quote()
+                
+                return colors ? green(str) : str
+            }
         
         case DdbType.short:
-            return (value === null || value === nulls.int16) ?
-                'null'
-            :
-                default_formatter.format(value as number)
+            if (value === null || value === nulls.int16)
+                return get_nullstr()
+            else {
+                const str = default_formatter.format(value as number)
+                return colors ? green(str) : str
+            }
         
         case DdbType.int:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                default_formatter.format(value as number)
+            if (value === null || value === nulls.int32)
+                return get_nullstr()
+            else {
+                const str = default_formatter.format(value as number)
+                return colors ? green(str) : str
+            }
         
         case DdbType.long:
-            return (value === null || value === nulls.int64) ?
-                'null'
-            :
-                default_formatter.format(value as bigint)
+            if (value === null || value === nulls.int64)
+                return get_nullstr()
+            else {
+                const str = default_formatter.format(value as bigint)
+                return colors ? green(str) : str
+            }
         
         case DdbType.date:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                date2str(value as number)
+            if (value === null || value === nulls.int16)
+                return get_nullstr()
+            else {
+                const str = date2str(value as number)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.month:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                month2str(value as number)
+            if (value === null || value === nulls.int32)
+                return get_nullstr()
+            else {
+                const str = month2str(value as number)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.time:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                time2str(value as number)
+            if (value === null || value === nulls.int32)
+                return get_nullstr()
+            else {
+                const str = time2str(value as number)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.minute:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                minute2str(value as number)
+            if (value === null || value === nulls.int16)
+                return get_nullstr()
+            else {
+                const str = minute2str(value as number)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.second:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                second2str(value as number)
+            if (value === null || value === nulls.int32)
+                return get_nullstr()
+            else {
+                const str = second2str(value as number)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.datetime:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                datetime2str(value as number)
+            if (value === null || value === nulls.int32)
+                return get_nullstr()
+            else {
+                const str = datetime2str(value as number)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.timestamp:
-            return (value === null || value === nulls.int64) ?
-                'null'
-            :
-                timestamp2str(value as bigint)
+            if (value === null || value === nulls.int64)
+                return get_nullstr()
+            else {
+                const str = timestamp2str(value as bigint)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.nanotime:
-            return (value === null || value === nulls.int64) ?
-                'null'
-            :
-                nanotime2str(value as bigint)
+            if (value === null || value === nulls.int64)
+                return get_nullstr()
+            else {
+                const str = nanotime2str(value as bigint)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.nanotimestamp:
-            return (value === null || value === nulls.int64) ?
-                'null'
-            :
-                nanotimestamp2str(value as bigint)
+            if (value === null || value === nulls.int64)
+                return get_nullstr()
+            else {
+                const str = nanotimestamp2str(value as bigint)
+                return colors ? magenta(str) : str
+            }
         
         case DdbType.float:
-            return (value === null || value === nulls.float32) ?
-                'null'
-            :
-                formatter.format(value as number)
+            if (value === null || value === nulls.float32)
+                return get_nullstr()
+            else {
+                const str = formatter.format(value as number)
+                return colors ? green(str) : str
+            }
         
         case DdbType.double:
-            return (value === null || value === nulls.double) ?
-                'null'
-            :
-                formatter.format(value as number)
+            if (value === null || value === nulls.double)
+                return get_nullstr()
+            else {
+                const str = formatter.format(value as number)
+                return colors ? green(str) : str
+            }
         
         case DdbType.symbol:
-        case DdbType.string:
-            return (value as string).quote('single')
+        case DdbType.string: {
+            let str = value as string
+            if (quote)
+                str = str.quote('single')
+            return colors ? cyan(str) : str
+        }
         
-        case DdbType.uuid: 
-            return uuid2str(value as Uint8Array, le)
+        case DdbType.uuid: {
+            const str = uuid2str(value as Uint8Array, le)
+            return colors ? cyan(str) : str
+        }
         
-        case DdbType.functiondef:
-            return (value as DdbFunctionDefValue).name.quote('single')
+        case DdbType.functiondef: {
+            const str = (value as DdbFunctionDefValue).name.quote('single')
+            return colors ? cyan(str) : str
+        }
         
         case DdbType.handle:
         case DdbType.code:
-        case DdbType.resource:
-            return (value as string).quote('single')
+        case DdbType.resource: {
+            const str = (value as string).quote('single')
+            return colors ? cyan(str) : str
+        }
         
         case DdbType.datehour:
-            return (value === null || value === nulls.int32) ?
-                'null'
+            if (value === null || value === nulls.int32)
+                return get_nullstr()
+            else {
+                const str = datehour2str(value as number)
+                return colors ? magenta(str) : str
+            }
+        
+        case DdbType.ipaddr: {
+            const str = ipaddr2str(value as Uint8Array, le)
+            return colors ? cyan(str) : str
+        }
+        
+        case DdbType.int128: {
+            const str = int1282str(value as Uint8Array, le)
+            return colors ? cyan(str) : str
+            
+        }
+        
+        case DdbType.blob: {
+            const str = (value as Uint8Array).length > 100 ?
+                DdbObj.dec.decode(
+                    (value as Uint8Array).subarray(0, 98)
+                ) + '…'
             :
-                datehour2str(value as number)
-        
-        case DdbType.ipaddr:
-            return ipaddr2str(value as Uint8Array, le)
-        
-        case DdbType.int128:
-            return int1282str(value as Uint8Array, le)
-        
-        case DdbType.blob:
-            return (
-                (value as Uint8Array).length > 100 ?
-                    DdbObj.dec.decode(
-                        (value as Uint8Array).subarray(0, 98)
-                    ) + '…'
-                :
-                    DdbObj.dec.decode(value as Uint8Array)
-            ).quote('single')
+                DdbObj.dec.decode(value as Uint8Array)
+            return colors ? cyan(str) : str
+        }
         
         case DdbType.point: {
             const [x, y] = value as [number, number]
@@ -2179,7 +2213,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.duration: {
             const { data, unit } = value as DdbDurationValue
-            return `${data}${DdbDurationUnit[unit]}`
+            const str = `${data}${DdbDurationUnit[unit]}`
+            return colors ? magenta(str) : str
         }
         
         case DdbType.decimal32: 
@@ -2191,11 +2226,13 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 (data === nulls.int64 && type === DdbType.decimal64) ||
                 (data === nulls.int32 && type === DdbType.decimal32)
             )
-                return 'null'
+                return get_nullstr()
             
             const s = String(data < 0 ? -data : data).padStart(scale, '0')
             
-            return (data < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+            const str = (data < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+            
+            return colors ? green(str) : str
         }
         
         default:
@@ -2204,7 +2241,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
 }
 
 
-/** formatted vector, the index-th item in the collection is a string, a null value returns a 'null' string */
+/** formatted vector, the index-th item in the collection is a string */
 export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
     if (64 <= obj.type && obj.type < 128) {  // array vector
         // 因为 array vector 目前只支持：Logical, Integral（不包括 INT128, COMPRESS 类型）, Floating, Temporal
@@ -2253,13 +2290,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
     }
     
     switch (obj.type) {
-        case DdbType.string:
-        case DdbType.symbol:
-            return obj.value[index]
-        
         case DdbType.symbol_extended: {
             const { base, data } = obj.value as DdbSymbolExtendedValue
-            return base[data[index]]
+            return format(DdbType.string, base[data[index]], obj.le, options)
         }
         
         case DdbType.uuid:
@@ -2303,7 +2336,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             
             const s = String(x < 0 ? -x : x).padStart(scale, '0')
             
-            return (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+            
+            return options.colors ? green(str) : str
         }
         
         default:
@@ -3021,6 +3056,16 @@ export interface StreamingData extends StreamingParams {
 export const winsize = 40 as const
 
 
+export class ConnectionError extends Error {
+    ddb: DDB
+    
+    constructor (ddb: DDB) {
+        super(`websocket is disconnected: ${ddb.url}`)
+        this.ddb = ddb
+    }
+}
+
+
 export class DDB {
     /** 当前的 session id (http 或 tcp) */
     sid = '0'
@@ -3151,65 +3196,49 @@ export class DDB {
     }
     
     
-    /** Establish the actual WebSocket connection to the DolphinDB corresponding to the URL
-        - options?:
-            - url?: DolphinDB WebSocket URL. By default, the WebSocket URL passed in when the instance is initialized is used
-            - autologin?: Whether to log in automatically after establishing a connection, default `true`
-            - username?: DolphinDB username, default `'admin'`
-            - password?: DolphinDB password, default `'123456'`
-            - python?: set python session flag, default `false`
-            - streaming?: When this option is set, the WebSocket connection is only used for streaming data
-    */
-    async connect ({ url, autologin, username, password, python, streaming }: 
-        { url?: string, autologin?: boolean, username?: string, password?: string, python?: boolean, streaming?: StreamingParams } = { }
-    ) {
-        if (url !== undefined)
-            this.url = url
+    /** Establish a actual websocket connection to the DolphindB corresponding to the URL  
+        After calling, it will ensure that it has been connected to the database (ensure that websocket.ReadyState is open), otherwise an error will be reported  
+        this.autologin automatically log in when it is true */
+    async connect () {
+        if (this.connected)
+            return
         
-        if (autologin !== undefined)
-            this.autologin = autologin
+        const ptail = this.pconnect
         
-        if (username !== undefined)
-            this.username = username
+        let resolve: () => void
+        this.pconnect = new Promise<void>((_resolve, _reject) => {
+            resolve = _resolve
+        })
         
-        if (password !== undefined)
-            this.password = password
+        await ptail
         
-        if (python !== undefined)
-            this.python = python
-        
-        if (streaming !== undefined)
-            this.streaming = streaming as StreamingData
-        
-        
-        
-        this.disconnect()
-        
-        await connect_websocket(this.url, {
-            protocols: (() => {
-                if (this.streaming)
-                    return 'streaming'
-                
-                if (this.python)
-                    return 'python'
-            })(),
-            
-            on_open: async (event, websocket) => {
-                this.websocket = websocket
+        try {
+            if (!this.connected) {
+                this.websocket = await connect_websocket(this.url, {
+                    protocols: (() => {
+                        if (this.streaming)
+                            return 'streaming'
+                        
+                        if (this.python)
+                            return 'python'
+                    })(),
+                    
+                    on_message: (event: { data: ArrayBuffer }) => {
+                        this.on_message(event)
+                    }
+                })
                 
                 if (this.streaming)
                     await this.subscribe()
-                else
+                else {
                     await this.rpc('connect', { })
-            },
-            
-            on_message: (event: { data: ArrayBuffer }) => {
-                this.on_message(event)
+                    if (this.autologin)
+                        await this.call('login', [this.username, this.password], { urgent: true })
+                }
             }
-        })
-        
-        if (!this.streaming && this.autologin)
-            await this.call('login', [this.username, this.password], { urgent: true })
+        } finally {
+            resolve()
+        }
     }
     
     
@@ -3317,6 +3346,7 @@ export class DDB {
     
     
     /** rpc through websocket (function/script/variable command)  
+        When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the Connectionerror  
         - type: API 类型: 'script' | 'function' | 'variable'
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
@@ -3344,29 +3374,14 @@ export class DDB {
             listener?: DdbMessageListener
             parse_object?: boolean
     }) {
-        if (!this.websocket) {
-            const ptail = this.pconnect
-            
-            let resolve: () => void
-            this.pconnect = new Promise<void>((_resolve, _reject) => {
-                resolve = _resolve
-            })
-            
-            await ptail
-            
-            try {
-                if (!this.websocket)
-                    await this.connect()
-            } finally {
-                resolve()
-            }
-        }
+        if (!this.websocket)
+            await this.connect()
         
         if (!this.connected)
-            throw new Error(`${this.url} is already disconnected`)
-        
+            throw new ConnectionError(this)
         
         if (func === 'pnode_run' && !this.pnode_run_defined) {
+            // 保证并发调用 rpc 时只定义一次 pnode_run
             const ptail = this.ppnoderun
             
             let resolve: () => void
@@ -3803,7 +3818,7 @@ export class DDB {
                         if (status === StreamingStatusCode.ok)
                             console.log('Subscribed to streaming table:', { status: StreamingStatusCode[status], result: objs[0] })
                         else
-                            reject(new Error(`Failed to subscribe to streaming table: { status: ${StreamingStatusCode[status]}, error: ${(objs[0] as DdbObj<string>)?.value} }`))
+                            reject(new Error(`Failed to subscribe to streaming table: { status: ${StreamingStatusCode[status]}, error: '${(objs[0] as DdbObj<string>)?.value}' }`))
                     } catch (error) {
                         reject(error)
                     }
@@ -3850,7 +3865,7 @@ export class DDB {
                             
                             let { window: win } = streaming
                             
-                            win.rows += data.rows
+                            win.rows += data.value[0].rows
                             
                             win.segments.push(data)
                             

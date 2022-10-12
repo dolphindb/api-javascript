@@ -1,8 +1,13 @@
 import util from 'util'
 
+import { set_inspect_options } from 'xshell'
+
 import { DDB } from '../index.js'
 import { test_print } from './print.js'
 import { test_types } from './types.js'
+
+set_inspect_options()
+
 
 ;(async function test () {
     util.inspect.defaultOptions.colors = true

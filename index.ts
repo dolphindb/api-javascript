@@ -3174,8 +3174,7 @@ export class DDB {
     
     
     private on_message (event: { data: ArrayBuffer }) {
-        console.log('This is the default on_message before calling this.rpc, it should not be called unless the server pushes the message first after the connection is established')
-        console.log(event.data)
+        // 这里的实现一定会被 connect 中的实现覆盖
     }
     
     
@@ -3197,6 +3196,12 @@ export class DDB {
         
         try {
             if (!this.connected) {
+                this.on_message = (event: { data: ArrayBuffer }) => {
+                    assert(false, '这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message')
+                }
+                this.presult = Promise.resolve(null)
+                this.pnode_run_defined = false
+                
                 this.websocket = await connect_websocket(this.url, {
                     protocols: (() => {
                         if (this.streaming)
@@ -3321,10 +3326,6 @@ export class DDB {
     disconnect () {
         if (this.connected)
             this.websocket.close(1000)
-        this.on_message = () => { }
-        this.presult = Promise.resolve(null)
-        this.pconnect = Promise.resolve()
-        this.pnode_run_defined = false
     }
     
     

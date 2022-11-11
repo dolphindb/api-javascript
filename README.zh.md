@@ -21,7 +21,7 @@ DolphinDB JavaScript API 是一个 JavaScript 库，封装了操作 DolphinDB �
 https://www.npmjs.com/package/dolphindb
 
 ## 特性
-- 使用 WebSocket 与 DolphinDB 数据库通信，用二进制格式进行数据交换
+- 使用 WebSocket 与 DolphinDB 数据库通信，用二进制格式进行数据交换，支持流数据实时推送
 - 支持在浏览器环境和 Node.js 环境中运行
 - 使用了 JavaScript 中的 Int32Array 等 TypedArray 处理二进制数据，性能较高
 - 单次调用支持最大 2 GB 数据的序列化上传，下载数据量不受限制
@@ -48,19 +48,19 @@ import { DDB } from 'dolphindb'
 // 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = require('dolphindb')
 // 在浏览器中使用: import { DDB } form 'dolphindb/browser.js'
 
-// 创建数据库对象，初始化 WebSocket 连接地址
+// 使用 WebSocket URL 初始化连接到 DolphinDB 的实例（不建立实际的网络连接）
 let ddb = new DDB('ws://127.0.0.1:8848')
 
-// 建立到 DolphinDB 的 WebSocket 连接（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
+// 使用 HTTPS 加密
+// let ddb = new DDB('wss://dolphindb.com')
+
+// 建立到 DolphinDB 的连接（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
 await ddb.connect()
 ```
 
 #### DDB 选项
 ```ts
-let ddb = new DDB('ws://127.0.0.1:8848')
-
-// 使用 HTTPS 加密
-let ddbsecure = new DDB('wss://dolphindb.com', {
+let ddb = new DDB('ws://127.0.0.1:8848', {
     // 是否在建立连接后自动登录，默认 `true`
     autologin: true,
     
@@ -71,7 +71,10 @@ let ddbsecure = new DDB('wss://dolphindb.com', {
     password: '123456',
     
     // 设置 python session flag，默认 `false`
-    python: false
+    python: false,
+    
+    // 设置该选项后，该数据库连接只用于流数据，详细用法见后文 `5. 流数据`
+    streaming: undefined
 })
 ```
 
@@ -336,7 +339,7 @@ async upload (
 ```
 
 
-### 一些例子
+### 4. 一些例子
 ```ts
 import { nulls, DdbInt, timestamp2str, DdbVectorSymbol, DdbTable, DdbVectorDouble } from 'dolphindb'
 
@@ -369,4 +372,78 @@ new DdbTable(
     ],
     'mytable'
 )
+```
+
+
+### 5. 流数据
+```ts
+// 新建流数据连接配置
+let sddb = new DDB('ws://192.168.0.43:8800', {
+    autologin: true,
+    username: 'admin',
+    password: '123456',
+    streaming: {
+        table: '要订阅的流表名称',
+        
+        // 流数据处理回调, message 的类型是 StreamingData
+        handler (message) {
+            console.log(message)
+        }
+    }
+})
+
+// 建立连接
+await sddb.connect()
+```
+
+连接建立后接收到的流数据会作为 message 参数调用 handler, message 的类型是 StreamingData, 如下:
+
+```ts
+export interface StreamingParams {
+    table: string
+    action?: string
+    
+    handler (message: StreamingData): any
+}
+
+export interface StreamingData extends StreamingParams {
+    /**
+        server 发送消息的时间 (nano seconds since epoch)  
+        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
+    */
+    time: bigint
+    
+    /** message id */
+    id: bigint
+    
+    colnames: string[]
+    
+    /** 订阅主题，即一个订阅的名称。
+        它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔
+    */
+    topic: string
+    
+    /** 流表的 schema, 类型是 table, 列向量中没有数据 (rows === 0)，只有列名和类型 */
+    schema: DdbTableObj
+    
+    /** 流数据，类型是 any vector, 其中的每一个元素对应被订阅表的一个列 (没有 name)，列 (DdbObj<DdbVectorValue>) 中的内容是新增的数据值 */
+    data: DdbObj<DdbVectorObj[]>
+    
+    /** 新增的流数据行数 */
+    rows: number
+    
+    window: {
+        /** 建立连接开始 offset = 0, 随着 window 的移动逐渐增加 */
+        offset: number
+        
+        /** segments 中 segment.row 的总和 */
+        rows: number
+        
+        /** 每次接收到的 data 组成的数组 */
+        segments: DdbObj<DdbVectorObj[]>[]
+    }
+    
+    /** 成功订阅后，后续推送过来的 message 解析错误，则会设置 error 并调用 handler */
+    error?: Error
+}
 ```

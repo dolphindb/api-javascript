@@ -261,8 +261,6 @@ export const nulls = {
 } as const
 
 
-export const timezone_offset = 1000 * 60 * new Date().getTimezoneOffset()
-
 export enum StreamingStatusCode {
     ok,
     connection_existed,
@@ -2243,6 +2241,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
 
 /** formatted vector, the index-th item in the collection is a string */
 export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
+    assert(index < obj.rows, 'index < obj.rows')
+    
     if (64 <= obj.type && obj.type < 128) {  // array vector
         // 因为 array vector 目前只支持：Logical, Integral（不包括 INT128, COMPRESS 类型）, Floating, Temporal
         // 都对应 TypedArray 中的一格，所以 lengths.length 等于 block 中的 row 的个数
@@ -2692,10 +2692,16 @@ export class DdbTable extends DdbObj<DdbObj[]> {
 }
 
 export function date2ms (date: number | null) {
+    // 将 server 的本地时间 (以 ms 为单位，1970.01.01 00:00:00 作为零点) 当成是客户端这里的本地的时间，然后根据本地的时区信息转换为 utc 时间
+    // 本地的时区与实际的时间值相关，timezone offset 可能会受到夏令时 (DST) 的影响
+    // 得到的 utc 毫秒数交给 js date 或者 dayjs 去格式化
+    
+    const ms = 1000 * 3600 * 24 * date
+    
     return (date === null || date === nulls.int32) ? 
         null
     :
-        timezone_offset + 1000 * 3600 * 24 * date
+        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function date2str (date: number | null, format = 'YYYY.MM.DD') {
@@ -2733,7 +2739,7 @@ export function time2ms (time: number | null): number | null {
     return (time === null || time === nulls.int32) ?
         null
     :
-        timezone_offset + time
+        1000 * 60 * new Date(time).getTimezoneOffset() + time
 }
 
 export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
@@ -2746,10 +2752,12 @@ export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
 }
 
 export function minute2ms (minute: number | null): number | null {
+    const ms = 60 * 1000 * minute
+    
     return (minute === null || minute === nulls.int32) ?
         null
     :
-        timezone_offset + 60 * 1000 * minute
+        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function minute2str (minute: number | null, format = 'HH:mm[m]') {
@@ -2762,10 +2770,12 @@ export function minute2str (minute: number | null, format = 'HH:mm[m]') {
 }
 
 export function second2ms (second: number | null): number | null {
+    const ms = 1000 * second
+    
     return (second === null || second === nulls.int32) ?
         null
     :
-        timezone_offset + 1000 * second
+        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function second2str (second: number | null, format = 'HH:mm:ss') {
@@ -2778,10 +2788,12 @@ export function second2str (second: number | null, format = 'HH:mm:ss') {
 }
 
 export function datetime2ms (datetime: number | null): number | null {
+    const ms = 1000 * datetime
+    
     return (datetime === null || datetime === nulls.int32) ?
         null
     :
-        timezone_offset + 1000 * datetime
+        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:mm:ss') {
@@ -2794,10 +2806,12 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
 }
 
 export function timestamp2ms (timestamp: bigint | null): number | null {
+    const ms = Number(timestamp)
+    
     return (timestamp === null || timestamp === nulls.int64) ?
         null
     :
-        timezone_offset + Number(timestamp)
+        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 
@@ -2817,18 +2831,22 @@ export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH
 }
 
 export function datehour2ms (datehour: number | null): number | null {
+    const ms = 1000 * 3600 * datehour
+    
     return (datehour === null || datehour === nulls.int32) ?
         null
     :
-        timezone_offset + 1000 * 3600 * datehour
+        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH') {
+    const ms = 1000 * 3600 * datehour
+    
     return (datehour === null || datehour === nulls.int32) ?
         'null'
     :
         dayjs(
-            timezone_offset + 1000 * 3600 * datehour
+            1000 * 60 * new Date(ms).getTimezoneOffset() + ms
         ).format(format)
 }
 
@@ -2843,11 +2861,13 @@ export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') 
     if (!str || str === 'null')
         return nulls.int64
     
-    assert('The length of the timestamp string must be equal to the length of the format string')
+    assert(str.length === format.length, 'The length of the timestamp string must be equal to the length of the format string')
+    
+    const ms = dayjs(str, format).valueOf()
     
     return BigInt(
-        -timezone_offset +
-        dayjs(str, format).valueOf()
+        -(1000 * 60 * new Date(ms).getTimezoneOffset()) +
+        ms
     )
 }
 
@@ -2870,9 +2890,11 @@ export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSS
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
     assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
     
+    const ms = Number(nanotime) / 1000000
+    
     return (
         dayjs(
-            timezone_offset + (Number(nanotime) / 1000000)
+            1000 * 60 * new Date(ms).getTimezoneOffset() + ms
         ).format(
             format.slice(0, i_second_end)
         ) + 
@@ -2882,10 +2904,14 @@ export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSS
 }
 
 export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
+    const ms = Number(nanotimestamp / 1000000n)
+    
     return (nanotimestamp === null || nanotimestamp === nulls.int64) ?
         null
     :
-        BigInt(timezone_offset) * 1000000n + nanotimestamp
+        BigInt(
+            1000 * 60 * new Date(ms).getTimezoneOffset()
+        ) * 1000000n + nanotimestamp
 }
 
 /** format nanotimestamp value (bigint) to string 
@@ -2917,9 +2943,11 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
     const remainder = nanotimestamp % 1000000000n
     const borrow = remainder < 0n
     
+    const ms = Number(nanotimestamp / 1000000n)
+    
     return (
         dayjs(
-            timezone_offset +
+            1000 * 60 * new Date(ms).getTimezoneOffset() +
             // 去掉 9 位的纳秒部分，转化为毫秒
             Number(
                 (nanotimestamp - remainder + (borrow ? -1000000000n : 0n)) / 1000000n
@@ -2958,13 +2986,15 @@ export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SS
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
     assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
     
+    const ms = dayjs(
+        str.slice(0, i_second_end),
+        format.slice(0, i_second_end)
+    ).valueOf()
+    
     return (
             BigInt(
-                -timezone_offset +
-                dayjs(
-                    str.slice(0, i_second_end),
-                    format.slice(0, i_second_end)
-                ).valueOf()
+                -(1000 * 60 * new Date(ms).getTimezoneOffset()) +
+                ms
             ) * 1000000n
         +
             BigInt(
@@ -3040,6 +3070,8 @@ export interface StreamingData extends StreamingParams {
     /** Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
     data: DdbObj<DdbVectorObj[]>
     
+    /** Number of new streaming data rows */
+    rows: number
     
     window: {
         /** The establishment of the connection starts offset = 0, and gradually increases as the window moves */
@@ -3051,9 +3083,12 @@ export interface StreamingData extends StreamingParams {
         /** An array of data received each time */
         segments: DdbObj<DdbVectorObj[]>[]
     }
+    
+    /** After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */
+    error?: Error
 }
 
-export const winsize = 40 as const
+export const winsize = 10_0000 as const
 
 
 export class ConnectionError extends Error {
@@ -3665,9 +3700,10 @@ export class DDB {
         let ddb = new DDB(this.url, this)
         
         try {
+            // 因为是新建的连接，而且执行完脚本之后马上就关闭了，所以不用考虑变量泄漏的问题
             await ddb.eval(
                 `jobs = exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}\n` +
-                'if (size(jobs))\n' +
+                (this.python ? 'if size(jobs):\n' : 'if (size(jobs))\n') +
                 '    cancelConsoleJob(jobs)\n',
                 { urgent: true }
             )
@@ -3782,6 +3818,7 @@ export class DDB {
         return new Promise<DdbTableObj>((resolve, reject) => {
             let first = true
             let second = true
+            let resolved = false
             
             // 先准备好收到 websocket message 的 callback
             this.on_message = ({ data: buffer }) => {
@@ -3860,13 +3897,14 @@ export class DDB {
                             assert(streaming.schema.rows === 0, 'schema.rows === 0')
                             
                             resolve(streaming.schema)
+                            resolved = true
                         } else {
                             // 是 column 片段组成的 any vector
                             const data = streaming.data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                             
                             let { window: win } = streaming
                             
-                            win.rows += data.value[0].rows
+                            win.rows += streaming.rows = data.value[0].rows
                             
                             win.segments.push(data)
                             
@@ -3882,14 +3920,18 @@ export class DDB {
                                 win.offset += win.rows - winsize_
                                 
                                 win.rows = winsize_
-                                
-                                console.log('exceeds winsize, shrink window.segments', win)
                             }
                             
                             streaming.handler(streaming)
                         }
                     } catch (error) {
-                        reject(error)
+                        if (!resolved)
+                            reject(error)
+                        else {  // 将 error 交给 handler 处理
+                            let { streaming } = this
+                            streaming.error = error
+                            streaming.handler(streaming)
+                        }
                     }
                 }
             }
@@ -3909,7 +3951,6 @@ export class DDB {
                 ])
             )
         })
-        
     }
 }
 

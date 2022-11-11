@@ -5,6 +5,7 @@ import { set_inspect_options } from 'xshell'
 import { DDB } from '../index.js'
 import { test_print } from './print.js'
 import { test_types } from './types.js'
+import { test_time } from './time.js'
 
 set_inspect_options()
 
@@ -16,11 +17,25 @@ set_inspect_options()
     
     console.log('连接到 ws://127.0.0.1:8848')
     let ddb = new DDB('ws://127.0.0.1:8848')
-    await ddb.connect()
+    
+    // 测试流数据
+    
+    // let sddb = new DDB('ws://127.0.0.1:8848', {
+    //     streaming: {
+    //         table: 'prices',
+    //         handler (message) {
+    //             console.log(message)
+    //         }
+    //     }
+    // })
+
+    // await sddb.connect()
+    
     
     const tests = [
         test_types,
         test_print,
+        test_time,
     ]
     
     for (const fn_test of tests)

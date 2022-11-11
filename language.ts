@@ -88,6 +88,7 @@ export const keywords = [
     'as',
     'in',
     'on',
+    'values',
     
     'asc',
     'desc',
@@ -206,6 +207,7 @@ export const constants = [
     'AREA',
     'SCATTER',
     'HISTOGRAM',
+    'KLINE',
     
     
     // --- log level
@@ -290,7 +292,7 @@ export const tm_language = {
             // \b: word boundary
             // (?<![.$]): boundary 不是 . 或 $
             // ?!\s*: 不是 label
-            match: `\\b(?<![.$])(${keywords.join('|')})(?!\\s*:)\\b`,
+            match: `\\b(?<![.$])(${keywords.join('|')})(?!(\\s*:|\\())\\b`,
             name: 'keyword.control.dolphindb'
         },
         

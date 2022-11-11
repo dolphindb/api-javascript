@@ -21,7 +21,7 @@ DolphinDB JavaScript API is a JavaScript library that encapsulates the ability t
 https://www.npmjs.com/package/dolphindb
 
 ## Features
-- Communicate with DolphinDB database using WebSocket, exchange data in binary format
+- Use WebSocket to communicate with DolphinDB database, exchange data in binary format, and support real-time push of streaming data
 - Support running in browser environment and Node.js environment
 - Use TypedArray such as Int32Array in JavaScript to process binary data, with high performance
 - A single call supports serialized upload of up to 2GB of data, and the amount of downloaded data is not limited
@@ -48,10 +48,13 @@ import { DDB } from 'dolphindb'
 // The import method for existing projects using CommonJS modules is const { DDB } = require('dolphindb')
 // Use in browser: import { DDB } form 'dolphindb/browser.js'
 
-// Create a database object and initialize the WebSocket URL
+// Initially connect to an instance of DolphinDB using the WebSocket URL (without establishing an actual network connection)
 let ddb = new DDB('ws://127.0.0.1:8848')
 
-// Establish a WebSocket connection to DolphinDB (requires DolphinDB database version at least 1.30.16 or 2.00.4)
+// Encrypt with HTTPS
+// let ddb = new DDB('wss://dolphindb.com')
+
+// Establish a connection to DolphinDB (requires DolphinDB database version at least 1.30.16 or 2.00.4)
 await ddb.connect()
 ```
 
@@ -71,7 +74,10 @@ let ddbsecure = new DDB('wss://dolphindb.com', {
     password: '123456',
     
     // set python session flag, default `false`
-    python: false
+    python: false,
+    
+    // After setting this option, the database connection is only used for streaming data. For details, see `5. Streaming Data`
+    streaming: undefined
 })
 ```
 
@@ -336,7 +342,7 @@ async upload (
 ```
 
 
-### Some Examples
+### 4. Some Examples
 ```ts
 import { nulls, DdbInt, timestamp2str, DdbVectorSymbol, DdbTable, DdbVectorDouble } from 'dolphindb'
 
@@ -371,3 +377,75 @@ new DdbTable(
 )
 ```
 
+### 5. Streaming Data
+```ts
+// New Streaming Data Connection Configuration
+let sddb = new DDB('ws://192.168.0.43:8800', {
+    autologin: true,
+    username: 'admin',
+    password: '123456',
+    streaming: {
+        table: 'Streaming table name to subscribe to',
+        
+        // Streaming data processing callback, the type of message is StreamingData
+        handler (message) {
+            console.log(message)
+        }
+    }
+})
+
+// Establish connection
+await sddb.connect()
+```
+
+The streaming data received after the connection is established will be used as the message parameter of the handler. The type of the message is StreamingData, as follows:
+
+```ts
+export interface StreamingParams {
+    table: string
+    action?: string
+    
+    handler (message: StreamingData): any
+}
+
+export interface StreamingData extends StreamingParams {
+    /**
+        The time the server sent the message (nano seconds since epoch)  
+        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
+    */
+    time: bigint
+    
+    /** message id */
+    id: bigint
+    
+    colnames: string[]
+    
+    /** Subscription topic, which is the name of a subscription.
+        It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/`
+    */
+    topic: string
+    
+    /** The schema of the streaming table, the type is table, there is no data in the column vector (rows === 0), only the column name and type */
+    schema: DdbTableObj
+    
+    /** Streaming data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
+    data: DdbObj<DdbVectorObj[]>
+    
+    /** Number of new streaming data rows */
+    rows: number
+    
+    window: {
+        /** The establishment of the connection starts offset = 0, and gradually increases as the window moves */
+        offset: number
+        
+        /** sum of segment.row in segments */
+        rows: number
+        
+        /** An array of data received each time */
+        segments: DdbObj<DdbVectorObj[]>[]
+    }
+    
+    /** After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */
+    error?: Error
+}
+```

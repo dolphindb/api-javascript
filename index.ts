@@ -163,6 +163,8 @@ export interface DdbArrayVectorBlock {
     data: Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array
 }
 
+export type DdbArrayVectorValue = DdbArrayVectorBlock[] & /* decimal32, decimal64 会有这个属性 */ { scale?: number }
+
 export interface DdbMatrixValue {
     rows: DdbVectorObj
     cols: DdbVectorObj
@@ -228,7 +230,7 @@ export type DdbVectorValue =
     Uint8Array[] | // blob
     DdbObj[] | // any
     DdbSymbolExtendedValue | 
-    DdbArrayVectorBlock[] |
+    DdbArrayVectorValue |
     DdbDecimal32VectorValue | DdbDecimal64VectorValue
 
 export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
@@ -262,15 +264,6 @@ export const nulls = {
         new Array(16).fill(0)
     )
 } as const
-
-
-export enum StreamingStatusCode {
-    ok,
-    connection_existed,
-    not_leader,
-    other,
-    error,
-}
 
 
 /** Can represent data types in all DolphinDB databases */
@@ -849,9 +842,48 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         // 70 11 01 00 block.lengths = [70000 (0x00011170)]
         // 01 00 00 00 02 00 00 00 ... 279992 more bytes> block.data
         
+        
+        // decimal array vector
+        
+        // a = array(DECIMAL32(2)[], 0, 10)
+        // append!(a, [
+        //     [1, 2, 3], 
+        //     [4, 5], 
+        //     [6, 7, 8],
+        //     [9, 10]
+        // ])
+        // print(a)
+        // a
+        
+        // [[1.00,2.00,3.00],[4.00,5.00],[6.00,7.00,8.00],[9.00,10.00]]
+        
+        // <Buffer 65 01 type = 101 = 64 + 37 (decimal32) , form = vector
+        // 04 00 00 00 0a 00 00 00 rows = 4, cols = 10
+        
+        // scale (只有 decimal32 才有)
+        // 02 00 00 00 scale = 2
+        
+        // block 0
+        // 04 00 block.rows = 4
+        // 01 block.unit = 1
+        // 00 reserved
+        // 03 02 03 02 block.lengths = [3, 2, 3, 2]
+        // 64 00 00 00 c8 00 00 00 2c 01 00 00 90 01 00 00 f4 01 00 00 58 02 00 00 bc 02 00 00 ... 12 more bytes> [100, 200, 300, ...]
+        
+        // block 1
+        // ...
+        
+        const type_ = type - 64
+        
         const cols = dv.getUint32(4, le)
         
-        let blocks: DdbArrayVectorBlock[] = [ ]
+        let blocks: DdbArrayVectorValue = [ ]
+        
+        // decimal32/64 会在所有 blocks 之前多一个 scale
+        if (type_ === DdbType.decimal32 || type_ === DdbType.decimal64) {
+            blocks.scale = dv.getInt32(i_items_start, le)
+            i_items_start += 4
+        }
         
         let i_block_start = i_items_start
         
@@ -895,12 +927,21 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             for (const x of lengths)
                 total_length += x
             
-            const [len_items, data] = this.parse_vector_items(
-                buf.subarray(i_data_start),
-                le,
-                type - 64,
-                total_length
-            )
+            let len_items: number
+            let data: DdbVectorValue
+            
+            switch (type_) {
+                case DdbType.decimal32:
+                    len_items = total_length * 4
+                    data = new Int32Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
+                    break
+                case DdbType.decimal64:
+                    len_items = total_length * 8
+                    data = new BigInt64Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
+                    break
+                default:
+                    [len_items, data] = this.parse_vector_items(buf.subarray(i_data_start), le, type - 64, total_length)
+            }
             
             blocks.push({
                 unit,
@@ -1388,7 +1429,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     if (form === DdbForm.vector && 64 <= type && type < 128)
                         return [
                             Uint32Array.of(this.rows, this.cols),
-                            ... (this.value as DdbArrayVectorBlock[]).map(block => ([
+                            ... (type - 64 === DdbType.decimal32 || type - 64 === DdbType.decimal64) ? 
+                                [Int32Array.of((this.value as DdbArrayVectorValue).scale)]
+                            :
+                                [ ],
+                            ... (this.value as DdbArrayVectorValue).map(block => ([
                                 Uint16Array.of(block.rows),
                                 Uint8Array.of(block.unit, 0),
                                 block.lengths,
@@ -1483,10 +1528,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         if (!body)
             return new Uint8Array(0)
         
-        return concat([
-            header,
-            ...body
-        ])
+        return concat([header, ...body])
     }
     
     
@@ -1668,12 +1710,27 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                 )
                                 
                                 for (let i = 0;  i < _items.length;  i++)
-                                    _items[i] = format(_type, data[acc_len + i], this.le, options)
+                                    if (_type === DdbType.decimal32 || _type === DdbType.decimal64) {
+                                        const x = data[acc_len + i]
+                                        
+                                        if (
+                                            x === nulls.int64 && _type === DdbType.decimal64 ||
+                                            x === nulls.int32 && _type === DdbType.decimal32
+                                        )
+                                            return ''
+                                        
+                                        const { scale } = this.value as DdbArrayVectorValue
+                                        
+                                        const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                                        
+                                        const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                                        
+                                        _items[i] = options.colors ? str.green : str
+                                    } else
+                                        _items[i] = format(_type, data[acc_len + i], this.le, options)
                                 
-                                items[i_items++] = format_array(
-                                    _items,
-                                    length > limit
-                                )
+                                
+                                items[i_items++] = format_array(_items, length > limit)
                                 
                                 acc_len += length
                             }
@@ -2248,7 +2305,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         
         let offset = 0
         
-        for (const { lengths, data, rows } of obj.value as DdbArrayVectorBlock[]) {
+        for (const { lengths, data, rows } of obj.value as DdbArrayVectorValue) {
             let acc_len = 0
             
             if (offset + rows <= index) {
@@ -2265,12 +2322,27 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                 
                 const limit = 10
                 
-                let items = new Array(
-                    Math.min(limit, length)
-                )
+                let items = new Array(Math.min(limit, length))
                 
                 for (let i = 0;  i < items.length;  i++)
-                    items[i] = format(_type, data[acc_len + i], obj.le, options)
+                    if (_type === DdbType.decimal32 || _type === DdbType.decimal64) {
+                        const x = data[acc_len + i]
+                        
+                        if (
+                            x === nulls.int64 && _type === DdbType.decimal64 ||
+                            x === nulls.int32 && _type === DdbType.decimal32
+                        )
+                            return ''
+                        
+                        const { scale } = obj.value as DdbArrayVectorValue
+                        
+                        const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                        
+                        const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                        
+                        items[i] = options.colors ? str.green : str
+                    } else
+                        items[i] = format(_type, data[acc_len + i], obj.le, options)
                 
                 return (
                     items.join(', ') + (length > limit ? ', ...' : '')
@@ -3054,9 +3126,6 @@ export interface StreamingData extends StreamingParams {
     */
     topic: string
     
-    /** The schema of the flow table, the type is table, there is no data in the column vector (rows === 0), only the column name and type */
-    schema: DdbTableObj
-    
     /** Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
     data: DdbObj<DdbVectorObj[]>
     
@@ -3683,6 +3752,7 @@ export class DDB {
         let ddb = new DDB(this.url, this)
         
         try {
+            // 因为是新建的连接，而且执行完脚本之后马上就关闭了，所以不用考虑变量泄漏的问题
             await ddb.eval(
                 `jobs = exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}\n` +
                 (this.python ? 'if size(jobs):\n' : 'if (size(jobs))\n') +
@@ -3770,169 +3840,81 @@ export class DDB {
     
     /** Internal stream subscription method */
     async subscribe () {
-        const args = DdbObj.to_ddbobjs([
-            new DdbVectorString(
-                this.autologin ?
-                    [this.username, this.password]
-                :
-                    // 不自动登录也要传空的 string vector, 否则 server 无法解析
-                    [ ]
-            ),
-            
-            // todo: 还有用吗？需要获取客户端 IP 吗
-            'localhost',
-            
-            // todo: 端口还有用吗？
-            new DdbInt(0),
-            
-            this.streaming.table,
-            
-            (this.streaming.action ||= `api_js_${new Date().getTime()}`),
-            
-            // new DdbInt(-1),  // offset
-            
-            // filter
-            
-            // allow exists
-        ])
+        await this.rpc('connect', { })
         
+        if (this.autologin)
+            await this.call('login', [this.username, this.password])
         
-        return new Promise<DdbTableObj>((resolve, reject) => {
-            let first = true
-            let second = true
-            let resolved = false
+        console.log(
+            'Subscribed to streaming table, colnames:',
             
-            // 先准备好收到 websocket message 的 callback
-            this.on_message = ({ data: buffer }) => {
-                if (first) {
-                    first = false
+            // string[3](['time', 'stock', 'price'])
+            this.streaming.colnames = (await this.call<DdbVectorStringObj>('publishTable', [
+                'localhost',
+                new DdbInt(0),
+                this.streaming.table,
+                (this.streaming.action ||= `api_js_${new Date().getTime()}`),
+                // new DdbInt(-1),  // offset
+                // filter
+                // allow exists
+            ])).value
+        )
+        
+        this.streaming.window = {
+            offset: 0,
+            rows: 0,
+            segments: [ ],
+        }
+        
+        // 先准备好收到 websocket message 的 callback
+        this.on_message = ({ data: buffer }) => {
+            let { streaming } = this
+            
+            try {
+                const dv = new DataView(buffer)
+                const buf = new Uint8Array(buffer)
+                
+                streaming.time = dv.getBigInt64(1, this.le)
+                
+                streaming.id = dv.getBigInt64(9, this.le)
+                
+                const i_topic_end = buf.indexOf(0, 17)
+                
+                streaming.topic = this.dec.decode(
+                    buf.subarray(17, i_topic_end)
+                )
+                
+                // 是 column 片段组成的 any vector
+                const data = streaming.data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                
+                let { window: win } = streaming
+                
+                win.rows += streaming.rows = data.value[0].rows
+                
+                win.segments.push(data)
+                
+                if (win.rows >= winsize * 2 && win.segments.length >= 2) {
+                    let winsize_ = 0
+                    let i = win.segments.length - 1
+                    // 往前移动至首个累计 winsize_ 超过 winsize 的位置
+                    for (;  winsize_ < winsize;  i--)
+                        winsize_ += win.segments[i].value[0].rows
                     
-                    try {
-                        const dv = new DataView(buffer)
-                        
-                        const status = dv.getUint8(1) as StreamingStatusCode
-                        
-                        this.le = Boolean(
-                            dv.getUint8(2)
-                        )
-                        
-                        const nobjs = dv.getUint32(3, this.le)
-                        
-                        // 解析返回数据，从 server 实现看其实只有一个 DdbObj
-                        let offset = 7
-                        let objs = new Array<DdbObj>(nobjs)
-                        const buf = new Uint8Array(buffer)
-                        
-                        for (let i = 0;  i < nobjs;  i++) {
-                            const obj = DdbObj.parse(
-                                buf.subarray(offset),
-                                this.le
-                            )
-                            offset += obj.length
-                            objs[i] = obj
-                            console.log(`订阅流表的响应数据: objs[${i}]:`, obj)
-                        }
-                        
-                        this.streaming.colnames = objs[0].value as string[]
-                        
-                        if (status === StreamingStatusCode.ok)
-                            console.log('Subscribed to streaming table:', { status: StreamingStatusCode[status], result: objs[0] })
-                        else
-                            reject(new Error(`Failed to subscribe to streaming table: { status: ${StreamingStatusCode[status]}, error: '${(objs[0] as DdbObj<string>)?.value}' }`))
-                    } catch (error) {
-                        reject(error)
-                    }
-                } else {
-                    try {
-                        const dv = new DataView(buffer)
-                        const buf = new Uint8Array(buffer)
-                        
-                        let { streaming } = this
-                        
-                        streaming.time = dv.getBigInt64(1, this.le)
-                        
-                        streaming.id = dv.getBigInt64(9, this.le)
-                        
-                        const i_topic_end = buf.indexOf(0, 17)
-                        
-                        streaming.topic = this.dec.decode(
-                            buf.subarray(17, i_topic_end)
-                        )
-                        
-                        if (second) {
-                            second = false
-                            
-                            // 是 table
-                            streaming.schema = DdbObj.parse(
-                                buf.subarray(i_topic_end + 1),
-                                this.le
-                            ) as DdbTableObj
-                            
-                            console.log('Received streaming table schema:', streaming.schema)
-                            
-                            streaming.window = {
-                                offset: 0,
-                                rows: 0,
-                                segments: [ ],
-                            }
-                            
-                            assert(streaming.schema.rows === 0, 'schema.rows === 0')
-                            
-                            resolve(streaming.schema)
-                            resolved = true
-                        } else {
-                            // 是 column 片段组成的 any vector
-                            const data = streaming.data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
-                            
-                            let { window: win } = streaming
-                            
-                            win.rows += streaming.rows = data.value[0].rows
-                            
-                            win.segments.push(data)
-                            
-                            if (win.rows >= winsize * 2 && win.segments.length >= 2) {
-                                let winsize_ = 0
-                                let i = win.segments.length - 1
-                                // 往前移动至首个累计 winsize_ 超过 winsize 的位置
-                                for (;  winsize_ < winsize;  i--)
-                                    winsize_ += win.segments[i].rows
-                                
-                                win.segments = win.segments.slice(i)
-                                
-                                win.offset += win.rows - winsize_
-                                
-                                win.rows = winsize_
-                            }
-                            
-                            streaming.handler(streaming)
-                        }
-                    } catch (error) {
-                        if (!resolved)
-                            reject(error)
-                        else {  // 将 error 交给 handler 处理
-                            let { streaming } = this
-                            streaming.error = error
-                            streaming.handler(streaming)
-                        }
-                    }
+                    win.segments = win.segments.slice(i)
+                    
+                    win.offset += win.rows - winsize_
+                    
+                    win.rows = winsize_
                 }
+            } catch (error) {
+                // 将 error 交给 handler 处理
+                streaming.error = error
             }
             
-            
-            // 发送订阅 websocket message
-            this.websocket.send(
-                concat([
-                    Uint8Array.of(
-                        1, // from = SubscriberFromType::FROM_API
-                        1, // type = SubscriberRPCType::RPC_START
-                        Number(DDB.le_client), // little endian (目前 server 只支持小端)
-                    ),
-                    Uint32Array.of(args.length),
-                    ... args.map(obj => 
-                        obj.pack())
-                ])
-            )
-        })
+            this.streaming.handler(streaming)
+        }
+        
+        return this.streaming
     }
 }
 

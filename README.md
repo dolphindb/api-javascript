@@ -425,9 +425,6 @@ export interface StreamingData extends StreamingParams {
     */
     topic: string
     
-    /** The schema of the streaming table, the type is table, there is no data in the column vector (rows === 0), only the column name and type */
-    schema: DdbTableObj
-    
     /** Streaming data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
     data: DdbObj<DdbVectorObj[]>
     

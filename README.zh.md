@@ -423,9 +423,6 @@ export interface StreamingData extends StreamingParams {
     */
     topic: string
     
-    /** 流表的 schema, 类型是 table, 列向量中没有数据 (rows === 0)，只有列名和类型 */
-    schema: DdbTableObj
-    
     /** 流数据，类型是 any vector, 其中的每一个元素对应被订阅表的一个列 (没有 name)，列 (DdbObj<DdbVectorValue>) 中的内容是新增的数据值 */
     data: DdbObj<DdbVectorObj[]>
     

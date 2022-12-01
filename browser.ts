@@ -3266,9 +3266,12 @@ export class DDB {
     } = { }) {
         if (!url) {
             const _url = new URL(location.href)
-            const hostname = _url.searchParams.get('hostname') || location.hostname
-            const port = _url.searchParams.get('port') || location.port
-            url = `${ location.protocol === 'https:' ? 'wss' : 'ws' }://${hostname}:${port}/`
+            
+            const dev = _url.pathname.endsWith('/console/')
+            
+            const hostname = _url.searchParams.get('hostname') || (dev ? '127.0.0.1' : location.hostname)
+            const port = _url.searchParams.get('port') || (dev ? '8848' : location.port)
+            url = `${ dev ? (_url.searchParams.get('tls') === '1' ? 'wss' : 'ws') : (location.protocol === 'https:' ? 'wss' : 'ws') }://${hostname}:${port}/`
         }
         
         this.url = url

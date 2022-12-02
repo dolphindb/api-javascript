@@ -3271,7 +3271,7 @@ export class DDB {
             
             const hostname = _url.searchParams.get('hostname') || (dev ? '127.0.0.1' : location.hostname)
             const port = _url.searchParams.get('port') || (dev ? '8848' : location.port)
-            url = `${ dev ? (_url.searchParams.get('tls') === '1' ? 'wss' : 'ws') : (location.protocol === 'https:' ? 'wss' : 'ws') }://${hostname}:${port}/`
+            url = `${ dev ? (_url.searchParams.get('tls') === '1' ? 'wss' : 'ws') : (location.protocol === 'https:' ? 'wss' : 'ws') }://${hostname}${port ? `:${port}` : ''}/`
         }
         
         this.url = url

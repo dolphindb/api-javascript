@@ -6,3 +6,6 @@ node_modules
 
 /docs.zh.json
 /docs.en.json
+
+/i18n/stats.json
+/i18n/untranslateds.json

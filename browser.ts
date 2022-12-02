@@ -10,6 +10,8 @@ import { blue, cyan, green, grey, magenta } from 'xshell/chalk.browser.js'
 import { concat, assert } from 'xshell/utils.browser.js'
 import { connect_websocket } from 'xshell/net.browser.js'
 
+import { t } from './i18n/index.js'
+
 
 export enum DdbForm {
     scalar = 0,
@@ -21,7 +23,7 @@ export enum DdbForm {
     table = 6,
     chart = 7,
     
-    /** Node internal communication may be used, calling function execution script generally does not return this type */
+    /** 结点内部通信可能会使用，调用函数执行脚本一般不会返回这种类型  Node internal communication may be used, calling function execution script generally does not return this type */
     chunk = 8,
     
     /** sysobj */
@@ -29,9 +31,9 @@ export enum DdbForm {
 }
 
 
-/** DolphinDB DataType
-     The corresponding array vector type is 64 + base type
-     The corresponding extended type is 128 + base type
+/** DolphinDB DataType  
+     对应的 array vector 类型为 64 + 基本类型  The corresponding array vector type is 64 + base type
+     对应的 extended 类型为 128 + 基本类型  The corresponding extended type is 128 + base type
 */
 export enum DdbType {
     void = 0,
@@ -120,7 +122,7 @@ export interface DdbDurationValue {
 
 
 export interface DdbDecimal32Value {
-    /** int32, data needs to be divided by 10^scale to get the original value */
+    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
     scale: number
     
     /** int32, 空值为 null */
@@ -128,7 +130,7 @@ export interface DdbDecimal32Value {
 }
 
 export interface DdbDecimal64Value {
-    /** int32, data needs to be divided by 10^scale to get the original value */
+    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
     scale: number
     
     /** int64, 空值为 null */
@@ -780,7 +782,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             
             
             default:
-                throw new Error(`${DdbType[type] || type} 暂时不支持解析`)
+                throw new Error(String(DdbType[type] || type) + t(' 暂时不支持解析'))
         }
     }
     
@@ -917,7 +919,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     break
                     
                 default:
-                    throw new Error(`array vector 存在非法 unit = ${unit}`)
+                    throw new Error(t('array vector 存在非法 unit: {{unit}}', { unit }))
             }
             
             let total_length = 0
@@ -1416,7 +1418,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         }
                         
                         default:
-                            throw new Error(`${DdbType[type] || type} 暂时不支持序列化`)
+                            throw new Error(String(DdbType[type] || type) + t(' 暂时不支持序列化'))
                     }
                 
                 
@@ -1517,7 +1519,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 default:
-                    throw new Error(`${DdbForm[form]} serialization is not currently supported`)
+                    throw new Error(t('vector {{type}} 暂不支持序列化', { type: DdbType[type] || type }))
             }
         })()
         
@@ -1648,7 +1650,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             default:
-                throw new Error(`vector ${DdbType[type]} 暂不支持序列化`)
+                throw new Error(t('vector {{type}} 暂不支持序列化', { type: String(DdbType[type] || type) }))
         }
     }
     
@@ -1910,7 +1912,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 return new DdbBool(value as boolean)
             
             default: 
-                throw new Error(`Cannot automatically convert ${type} to DdbObj`)
+                throw new Error(t('不能自动转换 {{type}} 至 DdbObj', { type }))
         }
     }
     
@@ -1924,7 +1926,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     to_cols () {
-        assert(this.form === DdbForm.table, 'form must be DdbForm.table, otherwise it cannot to_cols')
+        assert(this.form === DdbForm.table, t('form 必须是 DdbForm.table, 否则不能 to_cols'))
         
         return (this as DdbTableObj).value.map(col => ({
             title: col.name,
@@ -1935,7 +1937,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     to_rows <T extends Record<string, any> = Record<string, any>> () {
-        assert(this.form === DdbForm.table, 'form must be DdbForm.table, otherwise it cannot to_rows')
+        assert(this.form === DdbForm.table, t('form 必须是 DdbForm.table, 否则不能 to_rows'))
         
         let rows = new Array<T>(this.rows)
         
@@ -1975,10 +1977,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    /** Automatically convert dict<string, any> to js object (Record<string, any>)
+    /** 将 dict<string, any> 自动转换为 js object (Record<string, any>)  Automatically convert dict<string, any> to js object (Record<string, any>)
          - options?:
-             - strip?: `false` Whether to directly extract and strip the value in DdbObj as the value of js object (discard the rest of the information in DdbObj, only keep the value)
-             - deep?: `false` whether to convert recursively
+             - strip?: `false` 是否将 DdbObj 中的 value 直接提取、剥离出来作为 js object 的 value (丢弃 DdbObj 中的其余信息，只保留 value)  
+                 Whether to directly extract and strip the value in DdbObj as the value of js object (discard the rest of the information in DdbObj, only keep the value)
+             - deep?: `false` 是否递归转换  whether to convert recursively
      */
     to_dict <T extends Record<string, DdbObj> = Record<string, DdbObj>> (): T
     to_dict <T extends Record<string, any> = Record<string, any>> (options: { strip: true }): T
@@ -1990,12 +1993,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         strip?: boolean
         deep?: boolean
     } = { }) {
-        assert(this.form === DdbForm.dict, 'this.form must be DdbForm.dict, otherwise to_dict cannot be called to convert to js object')
+        assert(this.form === DdbForm.dict, t('this.form 必须是 DdbForm.dict, 否则不能调用 to_dict 转换为 js object'))
         
         const [{ value: keys, type: key_type }, { value: values, type: value_type }] = this.value as DdbDictValue
         
-        assert(key_type === DdbType.string && value_type === DdbType.any, 'Currently only supports automatic conversion of dict<string, any> to js object')
-        assert(!(deep && !strip), 'strip = true must be set when deep = true')
+        assert(key_type === DdbType.string && value_type === DdbType.any, t('当前只支持自动转换 dict<string, any> 为 js object'))
+        assert(!(deep && !strip), t('deep = true 时必须设置 strip = true'))
         
         let obj = { }
         
@@ -2015,7 +2018,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
 export interface InspectOptions {
     colors?: boolean
     
-    /** decimal places */
+    /** `null` decimal places 小数位数 */
     decimals?: number
     
     /** `false` 决定 null 值如何返回. nullstr ? 'null' : '' */
@@ -2026,17 +2029,17 @@ export interface InspectOptions {
 }
 
 
-/** Integer must use this number formatter, InspectOptions.decimals also use this if not passed */
+/** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个  Integer must use this number formatter, InspectOptions.decimals also use this if not passed */
 let default_formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
 
 let _decimals = 20
 
-/** Cache, in order to optimize performance, usually options.decimals are unchanged */
+/** 缓存，为了优化性能，通常 options.decimals 都是不变的  Cache, in order to optimize performance, usually options.decimals are unchanged */
 let _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
 
-/** Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
+/** 根据 DdbType 格式化单个元素 (value) 为字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
     const { decimals, nullstr = false, colors = false, quote = false } = options
     
@@ -2239,7 +2242,6 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         case DdbType.int128: {
             const str = int1282str(value as Uint8Array, le)
             return colors ? cyan(str) : str
-            
         }
         
         case DdbType.blob: {
@@ -2292,7 +2294,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
 }
 
 
-/** formatted vector, the index-th item in the collection is a string */
+/** 格式化向量、集合中的第 index 项为字符串  formatted vector, the index-th item in the collection is a string */
 export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
     assert(index < obj.rows, 'index < obj.rows')
     
@@ -2711,10 +2713,11 @@ export class DdbSetString extends DdbObj<string[]> {
     }
 }
 
-/** Constructs a DdbDict object, which supports two usages:
-     - The incoming type is the keys of DdbObj<DdbVectorValue>, and the two parameters of values directly form the DdbDict of dict<keys.type, values.type>
-     - Pass in js object (type is Record<string, boolean | string | DdbObj>), automatically converted to DdbDict of dict<string, any>
-*/
+/** 构造 DdbDict 对象，支持两种用法:  Constructs a DdbDict object, which supports two usages:
+     - 传入类型是 DdbVectorObj 的 keys, values 两个参数直接组成 dict<keys.type, values.type> 的 DdbDict  
+         The incoming type is the keys of DdbObj<DdbVectorValue>, and the two parameters of values directly form the DdbDict of dict<keys.type, values.type>
+     - 传入 js object (类型是 Record<string, boolean | string | DdbObj>), 自动转换为 dict<string, any> 的 DdbDict  
+         Pass in js object (type is Record<string, boolean | string | DdbObj>), automatically converted to DdbDict of dict<string, any> */
 export class DdbDict extends DdbObj<DdbDictValue> {
     constructor (obj: Record<string, boolean | string | DdbObj>)
     constructor (keys: DdbVectorObj, values: DdbVectorObj)
@@ -2886,7 +2889,7 @@ export function timestamp2ms (timestamp: bigint | null): number | null {
 /** format timestamp (bigint) to string 
     - timestamp: bigint value
     - format?:  
-        format string, default to `YYYY.MM.DD HH:mm:ss.SSS`  
+        格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSS`  format string, default to `YYYY.MM.DD HH:mm:ss.SSS`  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
@@ -2920,16 +2923,17 @@ export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH')
 
 
 /** parse timestamp string to bigint value  
-    - str: timestamp string, If it is an empty string or 'null', it will return the corresponding empty value (nulls.int64)
+    - str: timestamp string, 如果为空字符串或 'null' 会返回对应的空值 (nulls.int64)  
+        timestamp string, If it is an empty string or 'null', it will return the corresponding empty value (nulls.int64)
     - format?:  
-        The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSS`  
+        对应传入字符串的格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSS`  The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSS`  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     if (!str || str === 'null')
         return nulls.int64
     
-    assert(str.length === format.length, 'The length of the timestamp string must be equal to the length of the format string')
+    assert(str.length === format.length, t('timestamp 字符串长度必须等于格式串长度'))
     
     const ms = dayjs(str, format).valueOf()
     
@@ -2951,12 +2955,12 @@ export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSS
         return String(nanotime)
     
     const i_second_start = format.indexOf('ss')
-    assert(i_second_start !== -1, 'The format string must contain the format for seconds (ss)')
+    assert(i_second_start !== -1, t('格式串必须包含秒的格式 (ss)'))
     
     const i_second_end = i_second_start + 2
     
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
+    assert(i_nanosecond_start !== -1, t('格式串必须包含纳秒的格式 (SSSSSSSSS)'))
     
     const ms = Number(nanotime) / 1000000
     
@@ -2985,8 +2989,8 @@ export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
 /** format nanotimestamp value (bigint) to string 
     - nanotimestamp: bigint value
     - format?:  
-        format string, default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
-        Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
+        格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  format string, default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
+        秒的格式为 ss (必须包含); 纳秒的格式为 SSSSSSSSS (必须包含)  Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
@@ -3001,12 +3005,12 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
         return 'null'
     
     const i_second_start = format.indexOf('ss')
-    assert(i_second_start !== -1, 'The format string must contain the format for seconds (ss)')
+    assert(i_second_start !== -1, t('格式串必须包含秒的格式 (ss)'))
     
     const i_second_end = i_second_start + 2
     
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
+    assert(i_nanosecond_start !== -1, t('格式串必须包含纳秒的格式 (SSSSSSSSS)'))
     
     const remainder = nanotimestamp % 1000000000n
     const borrow = remainder < 0n
@@ -3034,25 +3038,27 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
 }
 
 /** parse nano timestamp string to bigint value  
-    - str: nano timestamp string, If it is an empty string or 'null', it will return the corresponding empty value (nulls.int64)
+    - str: nano timestamp string, 如果为空字符串或 'null' 会返回对应的空值 (nulls.int64)  
+        nano timestamp string, If it is an empty string or 'null', it will return the corresponding empty value (nulls.int64)
     - format?:  
+        对应传入字符串的格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
+        秒的格式为 ss (必须包含); 纳秒的格式为 SSSSSSSSS (必须包含)  
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens  
         The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
-        Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
-        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
-*/
+        Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included) */
 export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
     if (!str || str === 'null')
         return nulls.int64
     
-    assert(str.length === format.length, 'nanotimestamp string length must be equal to format string length')
+    assert(str.length === format.length, t('nanotimestamp 字符串长度必须等于格式串长度'))
     
     const i_second_start = format.indexOf('ss')
-    assert(i_second_start !== -1, 'The format string must contain the format for seconds (ss)')
+    assert(i_second_start !== -1, t('格式串必须包含秒的格式 (ss)'))
     
     const i_second_end = i_second_start + 2
     
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    assert(i_nanosecond_start !== -1, 'Format string must contain nanosecond format (SSSSSSSSS)')
+    assert(i_nanosecond_start !== -1, t('格式串必须包含纳秒的格式 (SSSSSSSSS)'))
     
     const ms = dayjs(
         str.slice(0, i_second_end),
@@ -3116,10 +3122,8 @@ export interface StreamingParams {
 }
 
 export interface StreamingData extends StreamingParams {
-    /**
-        The time the server sent the message (nano seconds since epoch)  
-        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
-    */
+    /** server 发送消息的时间 (nano seconds since epoch)   The time the server sent the message (nano seconds since epoch)  
+        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint
     
     /** message id */
@@ -3127,29 +3131,30 @@ export interface StreamingData extends StreamingParams {
     
     colnames: string[]
     
-    /** Subscription topic, which is the name of a subscription.
-        It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/`
-    */
+    /** 订阅主题，即一个订阅的名称。  Subscription topic, which is the name of a subscription.
+        它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔  
+        It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/` */
     topic: string
     
-    /** Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
+    /** 流数据，类型是 any vector, 其中的每一个元素对应被订阅表的一个列 (没有 name)，列 (DdbObj<DdbVectorValue>) 中的内容是新增的数据值  
+        Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
     data: DdbObj<DdbVectorObj[]>
     
-    /** Number of new streaming data rows */
+    /** 新增的流数据行数  Number of new streaming data rows */
     rows: number
     
     window: {
-        /** The establishment of the connection starts offset = 0, and gradually increases as the window moves */
+        /** 建立连接开始 offset = 0, 随着 window 的移动逐渐增加  The establishment of the connection starts offset = 0, and gradually increases as the window moves */
         offset: number
         
-        /** sum of segment.row in segments */
+        /** segments 中 segment.row 的总和  sum of segment.row in segments */
         rows: number
         
-        /** An array of data received each time */
+        /** 每次接收到的 data 组成的数组  An array of data received each time */
         segments: DdbObj<DdbVectorObj[]>[]
     }
     
-    /** After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */
+    /** 成功订阅后，后续推送过来的 message 解析错误，则会设置 error 并调用 handler  After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */
     error?: Error
 }
 
@@ -3160,7 +3165,7 @@ export class ConnectionError extends Error {
     ddb: DDB
     
     constructor (ddb: DDB) {
-        super(`websocket is disconnected: ${ddb.url}`)
+        super(`${t('websocket 连接已断开')}: ${ddb.url}`)
         this.ddb = ddb
     }
 }
@@ -3193,19 +3198,19 @@ export class DDB {
         )[0]
     )
     
-    /** Whether to automatically log in after the connection is established, the default is true */
+    /** 是否在建立连接后自动登录，默认 true  Whether to automatically log in after the connection is established, the default is true */
     autologin = true
     
-    /** DolphinDB username */
+    /** DolphinDB 登录用户名  DolphinDB username */
     username = 'admin'
     
-    /** DolphinDB password */
+    /** DolphinDB 登录密码  DolphinDB password */
     password = '123456'
     
     /** python session flag (2048) */
     python = false
     
-    /** Whether it is a streaming data connection, this field is always null for non-streaming data */
+    /** 是否为流数据连接，非流数据这个字段恒为 null  Whether it is a streaming data connection, this field is always null for non-streaming data */
     streaming = null as StreamingData
     
     
@@ -3236,20 +3241,21 @@ export class DDB {
     
     
     /**
-        Initialize an instance of DolphinDB Client using the WebSocket URL  
-        (without establishing an actual network connection)
-        - url?: DolphinDB WebSocket URL. e.g.：`ws://127.0.0.1:8848`, Defaults to the current page URL
+        使用 WebSocket URL 初始化连接到 DolphinDB 的实例（不建立实际的网络连接）  
+        Initialize an instance of DolphinDB Client using the WebSocket URL (without establishing an actual network connection)
+        - url?: DolphinDB WebSocket URL，如：`ws://127.0.0.1:8848`, 默认为当前页面 URL  
+            DolphinDB WebSocket URL. e.g.：`ws://127.0.0.1:8848`, Defaults to the current page URL
         - options?:
-            - autologin?: Whether to log in automatically after establishing a connection, default `true`
-            - username?: DolphinDB username, default `'admin'`
-            - password?: DolphinDB password, default `'123456'`
-            - python?: set python session flag, default `false`
-            - streaming?: When this option is set, the WebSocket connection is only used for streaming data
+            - autologin?: 是否在建立连接后自动登录，默认 `true`  Whether to log in automatically after establishing a connection, default `true`
+            - username?: DolphinDB 登录用户名，默认 `'admin'`  DolphinDB username, default `'admin'`
+            - password?: DolphinDB 登录密码，默认 `'123456'`  DolphinDB password, default `'123456'`
+            - python?: 设置 python session flag，默认 `false`  set python session flag, default `false`
+            - streaming?: 设置该选项后，该 WebSocket 连接只用于流数据  When this option is set, the WebSocket connection is only used for streaming data
         
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
         
-        // Encrypt with HTTPS
+        // 使用 HTTPS 加密  Encrypt with HTTPS
         let ddbsecure = new DDB('wss://dolphindb.com', {
             autologin: true,
             username: 'admin',
@@ -3298,9 +3304,9 @@ export class DDB {
     }
     
     
-    /** Establish a actual websocket connection to the DolphindB corresponding to the URL  
-        After calling, it will ensure that it has been connected to the database (ensure that websocket.ReadyState is open), otherwise an error will be reported  
-        this.autologin automatically log in when it is true */
+    /** 建立实际的 WebSocket 连接到 URL 对应的 DolphinDB  Establish a actual websocket connection to the DolphindB corresponding to the URL  
+        是幂等的，调用后会确保已连接到数据库 (确保 websocket.readyState 为 open)，否则报错  After calling, it will ensure that it has been connected to the database (ensure that websocket.ReadyState is open), otherwise an error will be reported  
+        this.autologin 为 true 时自动登录  this.autologin automatically log in when it is true */
     async connect () {
         if (this.connected)
             return
@@ -3317,7 +3323,7 @@ export class DDB {
         try {
             if (!this.connected) {
                 this.on_message = (event: { data: ArrayBuffer }) => {
-                    assert(false, 'This is the default on_message before calling this.rpc, and it should not be called. Unless the server pushed message first after the connection is established')
+                    assert(false, t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
                 }
                 this.presult = Promise.resolve(null)
                 this.pnode_run_defined = false
@@ -3450,6 +3456,7 @@ export class DDB {
     
     
     /** rpc through websocket (function/script/variable command)  
+        未连接到 DDB 时调用会自动连接，连接断开时调用会抛出 ConnectionError  
         When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the Connectionerror  
         - type: API 类型: 'script' | 'function' | 'variable'
         - options:
@@ -3644,11 +3651,14 @@ export class DDB {
     
     
     /** eval script through websocket (script command)  
-        - script?: Script to execute
-        - options?: execution options
-            - urgent?: Urgent flag to ensure that submitted scripts are processed by urgent workers to prevent being blocked by other jobs
-            - listener?: Process messages during this rpc (DdbMessage)
-            - parse_object?: Set parse_object during this rpc, and restore the original after the end.
+        - script?: 执行的脚本  Script to execute
+        - options?: 执行选项  execution options
+            - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞  
+                Urgent flag to ensure that submitted scripts are processed by urgent workers to prevent being blocked by other jobs
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage)  Process messages during this rpc (DdbMessage)
+            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
+                不做解析，以便后续转发、序列化  
+                Set parse_object during this rpc, and restore the original after the end.
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
     */
@@ -3669,16 +3679,25 @@ export class DDB {
     
     
     /** call function through websocket (function command) 
-        - func: function name
-        - args?: `[ ]` Call parameters (the incoming native string and boolean will be automatically converted to DdbObj<string> and DdbObj<boolean>)
-        - options?: call options
-            - urgent?: Emergency flag. Use urgent worker execution to prevent being blocked by other jobs
-            - node?: When the node alias is set, it is sent to the corresponding node in the cluster for execution (using the rpc method in DolphinDB)
-            - nodes?: When setting multiple node aliases, send them to the corresponding multiple nodes in the cluster for execution (using the pnodeRun method in DolphinDB)
-            - func_type?: It must be passed when setting the node parameter, the function type needs to be specified, and it is not passed in other cases
-            - add_node_alias?: Select to pass when setting the nodes parameter, otherwise not pass
-            - listener?: Process messages during this rpc (DdbMessage)
-            - parse_object?: Set parse_object during this rpc, and restore the original after the end.
+        - func: 函数名  function name
+        - args?: `[ ]` 调用参数 (传入的原生 string 和 boolean 会被自动转换为 DdbObj<string> 和 DdbObj<boolean>)  
+            Call parameters (the incoming native string and boolean will be automatically converted to DdbObj<string> and DdbObj<boolean>)
+        - options?: 调用选项  call options
+            - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
+                Emergency flag. Use urgent worker execution to prevent being blocked by other jobs
+            - node?: 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法)  
+                When the node alias is set, it is sent to the corresponding node in the cluster for execution (using the rpc method in DolphinDB)
+            - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)  
+                When setting multiple node aliases, send them to the corresponding multiple nodes in the cluster for execution (using the pnodeRun method in DolphinDB)
+            - func_type?: 设置 node 参数时必传，需指定函数类型，其它情况下不传  
+                It must be passed when setting the node parameter, the function type needs to be specified, and it is not passed in other cases
+            - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
+                Select to pass when setting the nodes parameter, otherwise not pass
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage)  
+                Process messages during this rpc (DdbMessage)
+            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
+                不做解析，以便后续转发、序列化  
+                Set parse_object during this rpc, and restore the original after the end.  
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
     */
@@ -3704,7 +3723,7 @@ export class DDB {
         } = { }
     ) {
         if (node) {
-            assert(func_type in DdbFunctionType, 'func_type must be set when specifying node')
+            assert(func_type in DdbFunctionType, t('指定 node 时必须设置 func_type'))
             
             args = [
                 node,
@@ -3744,10 +3763,10 @@ export class DDB {
     
     /** upload variable through websocket (variable command) */
     async upload (
-        /** Uploaded variables' name */
+        /** 上传的变量名  Uploaded variables' name */
         vars: string[],
         
-        /** Uploaded variables' value */
+        /** 上传的变量值  Uploaded variables' value */
         args: (DdbObj | string | boolean)[],
         
         {
@@ -3758,12 +3777,12 @@ export class DDB {
             parse_object?: boolean
         } = { }
     ) {
-        assert(args.length && args.length === vars.length, 'variable command parameter cannot be empty and parameter name cannot be empty, and the number should match')
+        assert(args.length && args.length === vars.length, t('variable 指令参数不能为空且参数名不能为空，且数量应该匹配'))
         return this.rpc('variable', { vars, args, listener, parse_object })
     }
     
     
-    /** Cancel all console jobs corresponding to the current session id */
+    /** 取消当前 session id 对应的所有 console jobs  Cancel all console jobs corresponding to the current session id */
     async cancel () {
         let ddb = new DDB(this.url, this)
         
@@ -3810,7 +3829,7 @@ export class DDB {
         /** session id */
         const sid = parts[0]
         if (sid !== this.sid) {
-            console.log(`sid 从 ${this.sid} 变为 ${sid}`)
+            console.log(t('session id 从 {{sid}} 变为 {{sid_}}', { sid: this.sid, sid_: sid }))
             this.sid = sid
         }
         
@@ -3854,7 +3873,7 @@ export class DDB {
     }
     
     
-    /** Internal stream subscription method */
+    /** 内部的流订阅方法  Internal stream subscription method */
     async subscribe () {
         await this.rpc('connect', { })
         
@@ -3862,7 +3881,7 @@ export class DDB {
             await this.call('login', [this.username, this.password])
         
         console.log(
-            'Subscribed to streaming table, colnames:',
+            t('订阅流表成功') + ', colnames:',
             
             // string[3](['time', 'stock', 'price'])
             this.streaming.colnames = (await this.call<DdbVectorStringObj>('publishTable', [

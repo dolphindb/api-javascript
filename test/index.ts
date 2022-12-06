@@ -6,6 +6,7 @@ import { DDB } from '../index.js'
 import { test_print } from './print.js'
 import { test_types } from './types.js'
 import { test_time } from './time.js'
+import { test_streaming } from './streaming.js'
 
 set_inspect_options()
 
@@ -36,6 +37,7 @@ set_inspect_options()
         test_types,
         test_print,
         test_time,
+        test_streaming
     ]
     
     for (const fn_test of tests)

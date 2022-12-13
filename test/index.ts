@@ -11,6 +11,11 @@ import { test_streaming } from './streaming.js'
 set_inspect_options()
 
 export const url = 'ws://127.0.0.1:8848' as const
+
+// test win server
+// export const url = 'ws://192.168.0.32:9002' as const
+
+// test linux server
 // export const url = 'ws://192.168.0.16:9002' as const
 
 

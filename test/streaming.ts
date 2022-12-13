@@ -24,11 +24,18 @@ export async function test_streaming (ddb: DDB) {
         '}\n'
     )
     
+    let rows = 0
+    let resolve: Function
+    let promise = new Promise(_resolve => resolve = _resolve)
+    
     let sddb = new DDB('ws://127.0.0.1:8848', {
         streaming: {
             table: 'prices',
             handler (message) {
                  console.log(message)
+                 rows += message.rows
+                 if (rows === 50)
+                    resolve()
             },
         }
     })
@@ -48,6 +55,8 @@ export async function test_streaming (ddb: DDB) {
         '        ])\n' +
         '    )\n'
     )
+    
+    await promise
     
     sddb.disconnect()
 }

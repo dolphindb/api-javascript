@@ -1,5 +1,7 @@
 import { DDB } from '../index.js'
 
+import { url } from './index.js'
+
 
 export async function test_streaming (ddb: DDB) {
     console.log('测试流数据')
@@ -28,11 +30,11 @@ export async function test_streaming (ddb: DDB) {
     let resolve: Function
     let promise = new Promise(_resolve => resolve = _resolve)
     
-    let sddb = new DDB('ws://127.0.0.1:8848', {
+    let sddb = new DDB(url, {
         streaming: {
             table: 'prices',
             handler (message) {
-                 console.log(message)
+                //  console.log(message)
                  rows += message.rows
                  if (rows === 50)
                     resolve()
@@ -57,6 +59,7 @@ export async function test_streaming (ddb: DDB) {
     )
     
     await promise
+    console.log('流数据已全部收齐')
     
     sddb.disconnect()
 }

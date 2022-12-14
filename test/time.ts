@@ -1,8 +1,24 @@
+import { assert, inspect } from 'xshell'
+
 import { type DDB } from '../index.js'
 
 
 export async function test_time (ddb: DDB) {
     console.log('测试时间显示')
+    
+    await ddb.eval(
+        'print(\n' +
+        "    temporalParse('2022-09-01T14:30:01.095', 'yyyy-MM-ddTHH:mm:sss.SSS')\n" +
+        ')\n',
+        {
+            listener: (message) => {
+                if (message.type === 'print') {
+                    console.log(inspect(message.data))
+                    assert(message.data === '2022.09.01T14:30:01.095')
+                }
+            }
+        }
+    )
     
     console.log(
         await ddb.eval(

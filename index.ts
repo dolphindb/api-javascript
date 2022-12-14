@@ -3804,14 +3804,18 @@ export class DDB {
         // MSG\n
         // <message>\0
         // 'M'.codePointAt(0).to_hex_str()
-        if (buf[0] === 0x4d && buf[1] === 0x53 && buf[2] === 0x47 && buf[3] === 0x0a)
+        if (buf[0] === 0x4d && buf[1] === 0x53 && buf[2] === 0x47 && buf[3] === 0x0a) {
+            assert(buf.at(-1) === 0, t('print 消息的 buffer 应该以 \\0 结束'))
+            if (buf.indexOf(0) !== buf.length - 1)
+                console.warn(t('print 消息的 buffer 中间不应该有 \\0'))
             return {
                 type: 'print',
                 data: 
                     this.dec.decode(
-                        buf.subarray(4)
+                        buf.subarray(4, -1)
                     )
             }
+        }
         
         
         // '1166953221 1 1\n'

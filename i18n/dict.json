@@ -61,5 +61,11 @@
     },
     " 暂时不支持序列化": {
         "en": " serialization is currently not supported"
+    },
+    "print 消息的 buffer 应该以 \\0 结束": {
+        "en": "The buffer of the print message should end with \\0"
+    },
+    "print 消息的 buffer 中间不应该有 \\0": {
+        "en": "There should not be \\0 in the buffer of the print message"
     }
 }

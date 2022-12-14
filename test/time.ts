@@ -12,10 +12,8 @@ export async function test_time (ddb: DDB) {
         ')\n',
         {
             listener: (message) => {
-                if (message.type === 'print') {
-                    console.log(inspect(message.data))
+                if (message.type === 'print')
                     assert(message.data === '2022.09.01T14:30:01.095')
-                }
             }
         }
     )

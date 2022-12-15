@@ -9,7 +9,7 @@
         "test": "tsc && node ./test/index.js"
     },
     "engines": {
-        "node": ">=19.2.0"
+        "node": ">=19.3.0"
     },
     "author": {
         "name": "Hongfei Shen",
@@ -40,6 +40,6 @@
         "ipaddr.js": "^2.0.1",
         "tslib": "^2.4.1",
         "ws": "^8.11.0",
-        "xshell": "^0.0.71"
+        "xshell": "^0.0.72"
     }
 }

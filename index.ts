@@ -908,10 +908,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             const i_lengths_start = i_block_start + 4
             const i_data_start = i_lengths_start + rows * unit
             
-            const lengths_buf = buf.slice(
-                i_lengths_start,
-                i_data_start
-            )
+            const lengths_buf = buf.slice(i_lengths_start, i_data_start)
             
             switch (unit) {
                 case 1:
@@ -925,7 +922,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 case 4:
                     lengths = new Uint32Array(lengths_buf.buffer)
                     break
-                    
+                
                 default:
                     throw new Error(t('array vector 存在非法 unit: {{unit}}', { unit }))
             }
@@ -2310,7 +2307,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         // ...
         // av
         
-        const _type = obj.type - 64
+        const type_ = obj.type - 64
         
         let offset = 0
         
@@ -2334,24 +2331,42 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                 let items = new Array(Math.min(limit, length))
                 
                 for (let i = 0;  i < items.length;  i++)
-                    if (_type === DdbType.decimal32 || _type === DdbType.decimal64) {
-                        const x = data[acc_len + i]
+                    switch (type_) {
+                        case DdbType.decimal32:
+                        case DdbType.decimal64:
+                            const x = data[acc_len + i]
+                            
+                            if (
+                                x === nulls.int64 /* && _type === DdbType.decimal64 一定成立 */ ||
+                                x === nulls.int32 && type_ === DdbType.decimal32
+                            )
+                                return ''
+                            
+                            const { scale } = obj.value as DdbArrayVectorValue
+                            
+                            const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                            
+                            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                            
+                            items[i] = options.colors ? str.green : str
+                            break
                         
-                        if (
-                            x === nulls.int64 && _type === DdbType.decimal64 ||
-                            x === nulls.int32 && _type === DdbType.decimal32
-                        )
-                            return ''
+                        case DdbType.complex:
+                        case DdbType.point: {
+                            const index = acc_len + i
+                            items[i] = format(
+                                type_,
+                                (obj.value as Float64Array).subarray(2 * index, 2 * (index + 1)),
+                                obj.le,
+                                options
+                            )
+                            break
+                        }
                         
-                        const { scale } = obj.value as DdbArrayVectorValue
-                        
-                        const s = String(x < 0 ? -x : x).padStart(scale, '0')
-                        
-                        const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
-                        
-                        items[i] = options.colors ? str.green : str
-                    } else
-                        items[i] = format(_type, data[acc_len + i], obj.le, options)
+                        default:
+                            items[i] = format(type_, data[acc_len + i], obj.le, options)
+                            break
+                    }
                 
                 return (
                     items.join(', ') + (length > limit ? ', ...' : '')

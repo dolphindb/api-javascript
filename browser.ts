@@ -1685,7 +1685,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         // append!(av, [1..500])
                         // ...
                         // av
-                        const _type = this.type - 64
+                        const type_ = this.type - 64
                         
                         const limit = 10
                         
@@ -1700,25 +1700,42 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                 let _items = new Array(Math.min(limit, length))
                                 
                                 for (let i = 0;  i < _items.length;  i++)
-                                    if (_type === DdbType.decimal32 || _type === DdbType.decimal64) {
-                                        const x = data[acc_len + i]
+                                    switch (type_) {
+                                        case DdbType.decimal32:
+                                        case DdbType.decimal64:
+                                            const x = data[acc_len + i]
+                                            
+                                            if (
+                                                x === nulls.int64 /* && type_ === DdbType.decimal64 一定成立 */ ||
+                                                x === nulls.int32 && type_ === DdbType.decimal32
+                                            )
+                                                return ''
+                                            
+                                            const { scale } = this.value as DdbArrayVectorValue
+                                            
+                                            const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                                            
+                                            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                                            
+                                            _items[i] = options.colors ? green(str) : str
+                                            break
                                         
-                                        if (
-                                            x === nulls.int64 && _type === DdbType.decimal64 ||
-                                            x === nulls.int32 && _type === DdbType.decimal32
-                                        )
-                                            return ''
+                                        case DdbType.complex:
+                                        case DdbType.point: {
+                                            const index = acc_len + i
+                                            _items[i] = format(
+                                                type_,
+                                                (this.value as Float64Array).subarray(2 * index, 2 * (index + 1)),
+                                                this.le,
+                                                options
+                                            )
+                                            break
+                                        }
                                         
-                                        const { scale } = this.value as DdbArrayVectorValue
-                                        
-                                        const s = String(x < 0 ? -x : x).padStart(scale, '0')
-                                        
-                                        const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
-                                        
-                                        _items[i] = options.colors ? green(str) : str
-                                    } else
-                                        _items[i] = format(_type, data[acc_len + i], this.le, options)
-                                
+                                        default:
+                                            _items[i] = format(type_, data[acc_len + i], this.le, options)
+                                            break
+                                    }
                                 
                                 items[i_items++] = format_array(_items, length > limit)
                                 

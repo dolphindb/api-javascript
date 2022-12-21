@@ -2781,12 +2781,12 @@ export function date2ms (date: number | null) {
     // 本地的时区与实际的时间值相关，timezone offset 可能会受到夏令时 (DST) 的影响
     // 得到的 utc 毫秒数交给 js date 或者 dayjs 去格式化
     
+    if (date === null || date === nulls.int32)
+        return null
+    
     const ms = 1000 * 3600 * 24 * date
     
-    return (date === null || date === nulls.int32) ? 
-        null
-    :
-        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function date2str (date: number | null, format = 'YYYY.MM.DD') {
@@ -2837,12 +2837,12 @@ export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
 }
 
 export function minute2ms (minute: number | null): number | null {
+    if (minute === null || minute === nulls.int32)
+        return null
+    
     const ms = 60 * 1000 * minute
     
-    return (minute === null || minute === nulls.int32) ?
-        null
-    :
-        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function minute2str (minute: number | null, format = 'HH:mm[m]') {
@@ -2855,12 +2855,12 @@ export function minute2str (minute: number | null, format = 'HH:mm[m]') {
 }
 
 export function second2ms (second: number | null): number | null {
+    if (second === null || second === nulls.int32)
+        return null
+    
     const ms = 1000 * second
     
-    return (second === null || second === nulls.int32) ?
-        null
-    :
-        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function second2str (second: number | null, format = 'HH:mm:ss') {
@@ -2873,12 +2873,12 @@ export function second2str (second: number | null, format = 'HH:mm:ss') {
 }
 
 export function datetime2ms (datetime: number | null): number | null {
+    if (datetime === null || datetime === nulls.int32)
+        return null
+    
     const ms = 1000 * datetime
     
-    return (datetime === null || datetime === nulls.int32) ?
-        null
-    :
-        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:mm:ss') {
@@ -2891,12 +2891,12 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
 }
 
 export function timestamp2ms (timestamp: bigint | null): number | null {
+    if (timestamp === null || timestamp === nulls.int64)
+        return null
+        
     const ms = Number(timestamp)
     
-    return (timestamp === null || timestamp === nulls.int64) ?
-        null
-    :
-        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 
@@ -2916,18 +2916,18 @@ export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH
 }
 
 export function datehour2ms (datehour: number | null): number | null {
+    if (datehour === null || datehour === nulls.int32)
+        return null
+    
     const ms = 1000 * 3600 * datehour
     
-    return (datehour === null || datehour === nulls.int32) ?
-        null
-    :
-        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
 }
 
 export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH') {
     if (datehour === null || datehour === nulls.int32)
         return 'null'
-        
+    
     const ms = 1000 * 3600 * datehour
     
     return dayjs(
@@ -2991,12 +2991,12 @@ export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSS
 }
 
 export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
+    if (nanotimestamp === null || nanotimestamp === nulls.int64)
+        return null
+    
     const ms = Number(nanotimestamp / 1000000n)
     
-    return (nanotimestamp === null || nanotimestamp === nulls.int64) ?
-        null
-    :
-        BigInt(
+    return BigInt(
             1000 * 60 * new Date(ms).getTimezoneOffset()
         ) * 1000000n + nanotimestamp
 }
@@ -3056,10 +3056,11 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
     - str: nano timestamp string, 如果为空字符串或 'null' 会返回对应的空值 (nulls.int64)  
         nano timestamp string, If it is an empty string or 'null', it will return the corresponding empty value (nulls.int64)
     - format?:  
-        对应传入字符串的格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
-        秒的格式为 ss (必须包含); 纳秒的格式为 SSSSSSSSS (必须包含)  Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included)  
-        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
-*/
+        对应传入字符串的格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
+        秒的格式为 ss (必须包含); 纳秒的格式为 SSSSSSSSS (必须包含)  
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens  
+        The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSSSSSSSS`  
+        Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included) */
 export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
     if (!str || str === 'null')
         return nulls.int64
@@ -3136,10 +3137,8 @@ export interface StreamingParams {
 }
 
 export interface StreamingData extends StreamingParams {
-    /**
-        server 发送消息的时间 (nano seconds since epoch)  The time the server sent the message (nano seconds since epoch)  
-        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
-    */
+    /** server 发送消息的时间 (nano seconds since epoch)   The time the server sent the message (nano seconds since epoch)  
+        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint
     
     /** message id */
@@ -3224,13 +3223,13 @@ export class DDB {
         )[0]
     )
     
-    /** 是否在建立连接后自动登录，默认 true */
+    /** 是否在建立连接后自动登录，默认 true  Whether to automatically log in after the connection is established, the default is true */
     autologin = true
     
-    /** DolphinDB 登录用户名 */
+    /** DolphinDB 登录用户名  DolphinDB username */
     username = 'admin'
     
-    /** DolphinDB 登录密码 */
+    /** DolphinDB 登录密码  DolphinDB password */
     password = '123456'
     
     /** python session flag (2048) */
@@ -3320,7 +3319,7 @@ export class DDB {
     
     
     /** 建立实际的 WebSocket 连接到 URL 对应的 DolphinDB  Establish a actual websocket connection to the DolphindB corresponding to the URL  
-        是幂等的，调用后会确保已连接到数据库 (确保 websocket.readyState 为 open)，否则报错  It is a power, and after calling, it will ensure that it has been connected to the database (ensure that websocket.ReadyState is open), otherwise an error will be reported  
+        是幂等的，调用后会确保已连接到数据库 (确保 websocket.readyState 为 open)，否则报错  After calling, it will ensure that it has been connected to the database (ensure that websocket.ReadyState is open), otherwise an error will be reported  
         this.autologin 为 true 时自动登录  this.autologin automatically log in when it is true */
     async connect () {
         if (this.connected)

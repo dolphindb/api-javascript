@@ -2792,7 +2792,7 @@ export function date2ms (date: number | null) {
 
 export function date2str (date: number | null, format = 'YYYY.MM.DD') {
     return (date === null || date === nulls.int32) ? 
-        null
+        'null'
     :
         dayjs(
             date2ms(date)
@@ -2830,7 +2830,7 @@ export function time2ms (time: number | null): number | null {
 
 export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
     return (time === null || time === nulls.int32) ?
-        null
+        'null'
     :
         dayjs(
             time2ms(time)
@@ -2926,14 +2926,14 @@ export function datehour2ms (datehour: number | null): number | null {
 }
 
 export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH') {
+    if (datehour === null || datehour === nulls.int32)
+        return 'null'
+    
     const ms = 1000 * 3600 * datehour
     
-    return (datehour === null || datehour === nulls.int32) ?
-        'null'
-    :
-        dayjs(
-            1000 * 60 * new Date(ms).getTimezoneOffset() + ms
-        ).format(format)
+    return dayjs(
+        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    ).format(format)
 }
 
 

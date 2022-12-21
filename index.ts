@@ -1739,7 +1739,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                             const index = acc_len + i
                                             _items[i] = format(
                                                 type_,
-                                                (this.value as Float64Array).subarray(2 * index, 2 * (index + 1)),
+                                                data.subarray(2 * index, 2 * (index + 1)),
                                                 this.le,
                                                 options
                                             )
@@ -2373,7 +2373,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                             const index = acc_len + i
                             items[i] = format(
                                 type_,
-                                (obj.value as Float64Array).subarray(2 * index, 2 * (index + 1)),
+                                data.subarray(2 * index, 2 * (index + 1)),
                                 obj.le,
                                 options
                             )

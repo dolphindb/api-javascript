@@ -1689,7 +1689,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         
                         const limit = 10
                         
-                        let items = new Array(Math.min(limit, this.rows))
+                        let array_items = new Array(Math.min(limit, this.rows))
                         
                         let i_items = 0
                         
@@ -1697,9 +1697,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             let acc_len = 0
                             
                             for (const length of lengths) {
-                                let _items = new Array(Math.min(limit, length))
+                                let items = new Array(Math.min(limit, length))
                                 
-                                for (let i = 0;  i < _items.length;  i++)
+                                for (let i = 0;  i < items.length;  i++)
                                     switch (type_) {
                                         case DdbType.decimal32:
                                         case DdbType.decimal64:
@@ -1717,13 +1717,13 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                             
                                             const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
                                             
-                                            _items[i] = options.colors ? green(str) : str
+                                            items[i] = options.colors ? green(str) : str
                                             break
                                         
                                         case DdbType.complex:
                                         case DdbType.point: {
                                             const index = acc_len + i
-                                            _items[i] = format(
+                                            items[i] = format(
                                                 type_,
                                                 data.subarray(2 * index, 2 * (index + 1)),
                                                 this.le,
@@ -1732,12 +1732,25 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                             break
                                         }
                                         
+                                        case DdbType.uuid:
+                                        case DdbType.int128:
+                                        case DdbType.ipaddr: {
+                                            const index = acc_len + i
+                                            items[i] = format(
+                                                type_,
+                                                data.subarray(16 * index, 16 * (index + 1)),
+                                                this.le,
+                                                options
+                                            )
+                                            break
+                                        }
+                                        
                                         default:
-                                            _items[i] = format(type_, data[acc_len + i], this.le, options)
+                                            items[i] = format(type_, data[acc_len + i], this.le, options)
                                             break
                                     }
                                 
-                                items[i_items++] = format_array(_items, length > limit)
+                                array_items[i_items++] = format_array(items, length > limit)
                                 
                                 acc_len += length
                             }
@@ -1747,7 +1760,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         }
                         
                         return format_array(
-                            items,
+                            array_items,
                             this.rows > limit
                         )
                     }
@@ -2373,6 +2386,19 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                             items[i] = format(
                                 type_,
                                 data.subarray(2 * index, 2 * (index + 1)),
+                                obj.le,
+                                options
+                            )
+                            break
+                        }
+                        
+                        case DdbType.uuid:
+                        case DdbType.int128:
+                        case DdbType.ipaddr: {
+                            const index = acc_len + i
+                            items[i] = format(
+                                type_,
+                                data.subarray(16 * index, 16 * (index + 1)),
                                 obj.le,
                                 options
                             )

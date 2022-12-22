@@ -1,6 +1,10 @@
-import { assert, inspect } from 'xshell'
+import { assert } from 'xshell'
 
-import { type DDB } from '../index.js'
+import {
+    type DDB,
+    type DdbObj,
+    month2ms
+} from '../index.js'
 
 
 export async function test_time (ddb: DDB) {
@@ -72,5 +76,12 @@ export async function test_time (ddb: DDB) {
     
     await ddb.eval(
         'print(now())\n'
+    )
+    
+    console.log('测试 month2ms')
+    assert(
+        month2ms(
+            (await ddb.eval<DdbObj<number>>('2022.12M')).value
+        ) === new Date('2022.12.01').valueOf()
     )
 }

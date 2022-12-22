@@ -1,31 +1,13 @@
-import assert from 'assert/strict'
+import { assert } from 'xshell'
 
-import {
-    type DDB,
-    DdbForm,
-    DdbType,
-} from '../index.js'
+import { type DDB } from '../index.js'
 
+import { get_printed } from './index.js'
 
 export async function test_print (ddb: DDB) {
-    console.log('测试 array vector 和 print message')
+    console.log('测试 print message')
     
-    const av = await ddb.eval(
-        'print("test print message\n中文")\n' +
-        'av = array(INT[], 0, 3)\n' +
-        'append!(av, [1..4])\n' +
-        'append!(av, [1..70000])\n' +
-        'av\n',
-        {
-            listener ({ type, data }) {
-                if (type === 'print')
-                    assert(data === 'test print message\n中文')
-            }
-        }
-    )
+    const str = 'test print message\n中文'
     
-    console.log(av)
-    assert(av.form === DdbForm.vector)
-    assert(av.type === DdbType.int + 64)  // array vector 的 type 比较特殊，需要偏移 64
-    assert(av.rows === 2)
+    assert(await get_printed(ddb, str.quote()) === str)
 }

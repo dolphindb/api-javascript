@@ -11,9 +11,7 @@ import {
 
 export async function test_types (ddb: DDB) {
     console.log('测试通过 ddb.call 调用 getNodeAlias 函数')
-    console.log(
-        await ddb.call('getNodeAlias')
-    )
+    console.log(await ddb.call('getNodeAlias'))
     
     console.log('测试 ddb.call 上传不同类型的变量')
     const result0 = await ddb.call('typestr', [new DdbInt(1)])
@@ -28,4 +26,17 @@ export async function test_types (ddb: DDB) {
     assert(result1.form === DdbForm.scalar)
     assert(result1.type === DdbType.string)
     assert(result1.value === 'FAST DOUBLE VECTOR')
+    
+    console.log('测试 array vector')
+    const av = await ddb.eval(
+        'av = array(INT[], 0, 3)\n' +
+        'append!(av, [1..4])\n' +
+        'append!(av, [1..70000])\n' +
+        'av\n'
+    )
+    
+    console.log(av)
+    assert(av.form === DdbForm.vector)
+    assert(av.type === DdbType.int + 64)  // array vector 的 type 比较特殊，需要偏移 64
+    assert(av.rows === 2)
 }

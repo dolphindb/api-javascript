@@ -1,5 +1,3 @@
-import util from 'util'
-
 import { set_inspect_options } from 'xshell'
 
 import { DDB } from '../index.js'
@@ -8,23 +6,23 @@ import { test_types } from './types.js'
 import { test_time } from './time.js'
 import { test_streaming } from './streaming.js'
 
+
 set_inspect_options()
 
-// export const url = 'ws://127.0.0.1:8848' as const
 
-// test win server
+// linux
+export const url = 'ws://192.168.0.16:9002' as const
+
+// windows
 // export const url = 'ws://192.168.0.32:9002' as const
 
-// test linux server
-export const url = 'ws://192.168.0.16:9002' as const
+// local 8848
+// export const url = 'ws://127.0.0.1:8848' as const
 
 
 ;(async function test () {
-    util.inspect.defaultOptions.colors = true
+    console.log('--- 测试开始 ---'.green)
     
-    console.log('--- 测试开始 ---')
-    
-    console.log('连接到:', url)
     let ddb = new DDB(url)
     
     const tests = [
@@ -39,5 +37,5 @@ export const url = 'ws://192.168.0.16:9002' as const
     
     ddb.disconnect()
     
-    console.log('--- 测试通过 ---')
+    console.log('--- 测试通过 ---'.green)
 })()

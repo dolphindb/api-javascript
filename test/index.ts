@@ -39,3 +39,27 @@ export const url = 'ws://192.168.0.16:9002' as const
     
     console.log('--- 测试通过 ---'.green)
 })()
+
+
+export async function get_printed (ddb: DDB, code: string) {
+    return new Promise<string>(async (resolve, reject) => {
+        try {
+            let resolved = false
+            await ddb.eval(
+                `print(${code})`,
+                {
+                    listener ({ type, data }) {
+                        if (type === 'print' && !resolved) {
+                            resolved = true
+                            resolve(data)
+                        }
+                    }
+                }
+            )
+            if (!resolved)
+                reject(new Error('未输出 print 消息'))
+        } catch (error) {
+            reject(error)
+        }
+    })
+}

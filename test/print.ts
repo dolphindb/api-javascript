@@ -9,13 +9,21 @@ import {
 
 export async function test_print (ddb: DDB) {
     console.log('测试 array vector 和 print message')
+    
     const av = await ddb.eval(
-        'print("test print message 中文")\n' +
+        'print("test print message\n中文")\n' +
         'av = array(INT[], 0, 3)\n' +
         'append!(av, [1..4])\n' +
         'append!(av, [1..70000])\n' +
-        'av\n'
+        'av\n',
+        {
+            listener ({ type, data }) {
+                if (type === 'print')
+                    assert(data === 'test print message\n中文')
+            }
+        }
     )
+    
     console.log(av)
     assert(av.form === DdbForm.vector)
     assert(av.type === DdbType.int + 64)  // array vector 的 type 比较特殊，需要偏移 64

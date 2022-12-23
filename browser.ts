@@ -3225,7 +3225,7 @@ export class ConnectionError extends Error {
     ddb: DDB
     
     constructor (ddb: DDB) {
-        super(`${t('websocket 连接已断开')}: ${ddb.url}`)
+        super(`${ddb.url} ${t('已断开')}`)
         this.ddb = ddb
     }
 }

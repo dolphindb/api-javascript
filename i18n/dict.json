@@ -29,9 +29,6 @@
     "nanotimestamp 字符串长度必须等于格式串长度": {
         "en": "nanotimestamp string length must be equal to format string length"
     },
-    "websocket 连接已断开": {
-        "en": "websocket is disconnected"
-    },
     "指定 node 时必须设置 func_type": {
         "en": "func_type must be set when specifying node"
     },
@@ -67,5 +64,8 @@
     },
     "print 消息的 buffer 中间不应该有 \\0": {
         "en": "There should not be \\0 in the buffer of the print message"
+    },
+    "已断开": {
+        "en": "is already disconnected"
     }
 }

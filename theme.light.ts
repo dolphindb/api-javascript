@@ -2,8 +2,8 @@
 // https://github.com/microsoft/vscode/raw/a716714a88891cad69c0753fb95923870df295f5/extensions/theme-defaults/themes/dark_plus.json
 
 // This satisfies the contract of IRawTheme as defined in vscode-textmate.
-export const theme = {
-    name: 'dolphindb-theme',
+export const theme_light = {
+    name: 'dolphindb.light',
     settings: [
         {
             settings: {

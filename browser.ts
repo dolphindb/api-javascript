@@ -235,6 +235,8 @@ export type DdbVectorValue =
 export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
 
 
+export type DdbStringObj = DdbObj<string>
+
 export type DdbVectorObj = DdbObj<DdbVectorValue>
 
 export type DdbVectorAnyObj = DdbObj<DdbObj[]>

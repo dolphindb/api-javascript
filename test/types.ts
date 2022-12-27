@@ -6,6 +6,8 @@ import {
     DdbForm,
     DdbType,
     DdbVectorDouble,
+    DdbObj,
+    type DdbStringObj,
 } from '../index.js'
 
 
@@ -39,4 +41,35 @@ export async function test_types (ddb: DDB) {
     assert(av.form === DdbForm.vector)
     assert(av.type === DdbType.int + 64)  // array vector 的 type 比较特殊，需要偏移 64
     assert(av.rows === 2)
+    
+    
+    console.log('测试大数据')
+    let bigarr = new Float64Array(10)
+    bigarr.fill(0.5)
+    
+    await ddb.call<DdbStringObj>('typestr', [
+        new DdbObj({
+            form: DdbForm.vector,
+            type: DdbType.double,
+            length: 0,
+            rows: bigarr.length,
+            cols: 1,
+            value: bigarr
+        })
+    ])
+    
+    await ddb.upload(['a'], [
+        new DdbObj({
+            form: DdbForm.vector,
+            type: DdbType.double,
+            length: 0,
+            rows: bigarr.length,
+            cols: 1,
+            value: bigarr
+        })
+    ])
+    
+    assert((
+        await ddb.eval<DdbVectorDouble>('a')
+    ).rows === bigarr.length)
 }

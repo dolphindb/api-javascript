@@ -5,8 +5,6 @@ import type { InspectOptions as UtilInspectOptions } from 'util'
 
 // import { table, getBorderCharacters, type TableUserConfig } from 'table'
 
-import { WebSocket } from 'ws'
-
 import dayjs from 'dayjs'
 import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
@@ -14,8 +12,10 @@ dayjs.extend(DayjsCustomParseFormat)
 import ipaddrjs from 'ipaddr.js'
 const { fromByteArray: buf2ipaddr } = ipaddrjs
 
-import { concat, assert, inspect, typed_array_to_buffer } from 'xshell/utils.js'
-import { connect_websocket } from 'xshell/net.js'
+import {
+    concat, assert, inspect, typed_array_to_buffer, connect_websocket, 
+    type WebSocket
+} from 'xshell'
 
 import { t } from './i18n/index.js'
 

@@ -33,14 +33,13 @@
         "JavaScript"
     ],
     "devDependencies": {
-        "@types/node": "^18.11.17",
+        "@types/node": "^18.11.18",
         "typescript": "^4.9.4"
     },
     "dependencies": {
         "dayjs": "^1.11.7",
         "ipaddr.js": "^2.0.1",
         "tslib": "^2.4.1",
-        "ws": "^8.11.0",
-        "xshell": "^0.0.75"
+        "xshell": "^1.0.0"
     }
 }

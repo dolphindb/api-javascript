@@ -9,3 +9,5 @@ node_modules
 
 /i18n/stats.json
 /i18n/untranslateds.json
+
+.vscode

@@ -15,6 +15,7 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket } from 'xshell'
 
 import { t } from './i18n/index.js'
+import { DdbRPCType } from './types.js'
 
 
 export enum DdbForm {
@@ -3219,15 +3220,46 @@ export interface StreamingData extends StreamingParams {
 export const winsize = 10_0000 as const
 
 
-export class ConnectionError extends Error {
+interface DdbRpcOptions {
+    script?: string
+    func?: string
+    args?: (DdbObj | string | boolean)[]
+    vars?: string[]
+    urgent?: boolean
+    listener?: DdbMessageListener
+    parse_object?: boolean
+}
+
+export class DdbDatabaseError extends Error {
     ddb: DDB
     
-    constructor (ddb: DDB) {
-        super(`${ddb.url} ${t('已断开')}`)
+    constructor(message: string, ddb: DDB, raw_error_options?: ErrorOptions) {
+        super(message, raw_error_options)
         this.ddb = ddb
     }
 }
 
+export class DdbDatabaseRpcError extends DdbDatabaseError {
+    type: DdbRPCType
+    
+    options: DdbRpcOptions
+    
+    constructor(message: string, rpc_error_options: {
+        ddb: DDB
+        type: DdbRPCType
+        options: DdbRpcOptions
+    }, raw_error_options?: ErrorOptions) {
+        super(message, rpc_error_options.ddb, raw_error_options)
+        this.type = rpc_error_options.type
+        this.options = rpc_error_options.options
+    }
+}
+
+export class DdbDatabaseConnectionError extends DdbDatabaseError {
+    constructor (ddb: DDB) {
+        super(`${ddb.url} ${t('已断开')}`, ddb)
+    }
+}
 
 export class DDB {
     /** 当前的 session id (http 或 tcp) */
@@ -3522,7 +3554,7 @@ export class DDB {
                 为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化
     */
     async rpc <T extends DdbObj = DdbObj> (
-        type: 'script' | 'function' | 'variable' | 'connect',
+        type: DdbRPCType,
         {
             script,
             func,
@@ -3544,7 +3576,9 @@ export class DDB {
             await this.connect()
         
         if (!this.connected)
-            throw new ConnectionError(this)
+            throw new DdbDatabaseConnectionError(this)
+        
+        const caller_stack_error = new Error()
         
         if (func === 'pnode_run' && !this.pnode_run_defined) {
             // 保证并发调用 rpc 时只定义一次 pnode_run
@@ -3635,15 +3669,24 @@ export class DDB {
                 if (this.print_message_buffer)
                     console.log(typed_array_to_buffer(buf))
                 
-                const message = this.parse_message(buf, parse_object)
+                const message = this.parse_message(buf, {
+                    type,
+                    script,
+                    func,
+                    args,
+                    vars,
+                    urgent,
+                    listener,
+                    parse_object,
+                })
                 
                 listener?.(message, this)
                 for (const listener of _handlers)
                     listener(message, this)
                 
-                const { type, data } = message
+                const { type: msg_type, data } = message
                 
-                switch (type) {
+                switch (msg_type) {
                     case 'print':
                         if (this.print_message)
                             console.log(data)
@@ -3654,6 +3697,7 @@ export class DDB {
                         return
                     
                     case 'error':
+                        data.cause = caller_stack_error
                         reject(data)
                         return
                 }
@@ -3856,7 +3900,11 @@ export class DDB {
     
     
     /** 解析服务端响应报文，返回去掉 header 的 data buf */
-    parse_message (buf: Uint8Array, parse_object = this.parse_object): DdbMessage {
+    parse_message (buf: Uint8Array, options: DdbRpcOptions & {
+        type: DdbRPCType
+    }): DdbMessage {
+        const { type, ...rpc_options } = options
+        
         // MSG\n
         // <message>\0
         // 'M'.codePointAt(0).to_hex_str()
@@ -3908,7 +3956,11 @@ export class DDB {
         if (message !== 'OK')
             return {
                 type: 'error',
-                data: new Error(message)
+                data: new DdbDatabaseRpcError(message, {
+                    ddb: this,
+                    type: type,
+                    options: rpc_options,
+                })
             }
         
         const bufobj = buf.subarray(ilf1 + 1)
@@ -3916,6 +3968,7 @@ export class DDB {
         if (this.print_object_buffer)
             console.log(typed_array_to_buffer(bufobj))
         
+        const parse_object = options.parse_object ?? this.parse_object
         return {
             type: 'object',
             data: parse_object ?

@@ -3222,7 +3222,7 @@ export const winsize = 10_0000 as const
 
 type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 
-interface DdbRpcOptions {
+export interface DdbRpcOptions {
     script?: string
     func?: string
     args?: (DdbObj | string | boolean)[]

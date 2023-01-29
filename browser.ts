@@ -23,7 +23,8 @@ export enum DdbForm {
     table = 6,
     chart = 7,
     
-    /** 结点内部通信可能会使用，调用函数执行脚本一般不会返回这种类型  Node internal communication may be used, calling function execution script generally does not return this type */
+    /** 结点内部通信可能会使用，调用函数执行脚本一般不会返回这种类型  
+        Node internal communication may be used, calling function execution script generally does not return this type */
     chunk = 8,
     
     /** sysobj */
@@ -32,8 +33,8 @@ export enum DdbForm {
 
 
 /** DolphinDB DataType  
-     对应的 array vector 类型为 64 + 基本类型  The corresponding array vector type is 64 + base type
-     对应的 extended 类型为 128 + 基本类型  The corresponding extended type is 128 + base type
+    对应的 array vector 类型为 64 + 基本类型  The corresponding array vector type is 64 + base type
+    对应的 extended 类型为 128 + 基本类型  The corresponding extended type is 128 + base type
 */
 export enum DdbType {
     void = 0,
@@ -125,7 +126,7 @@ export interface DdbDecimal32Value {
     /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
     scale: number
     
-    /** int32, 空值为 null */
+    /** int32, 空值为 null  ddb null is js null */
     data: number | null
 }
 
@@ -133,7 +134,7 @@ export interface DdbDecimal64Value {
     /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
     scale: number
     
-    /** int64, 空值为 null */
+    /** int64, 空值为 null  empty value is null */
     data: bigint | null
 }
 
@@ -185,7 +186,7 @@ export enum DdbChartType {
 }
 
 export interface DdbChartValue {
-    /** 原属性 chartType */
+    /** 原属性 chartType  original: chartType */
     type: DdbChartType
     
     stacking: boolean
@@ -267,7 +268,7 @@ export const nulls = {
 } as const
 
 
-/** 可以表示所有 DolphinDB 数据库中的数据类型 */
+/** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
 export class DdbObj <TValue extends DdbValue = DdbValue> {
     static dec = new TextDecoder('utf-8')
     
@@ -314,7 +315,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     /** 第 2 维 */
     cols?: number
     
-    /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据 */
+    /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据  
+        The actual data. Different DdbForm, DdbType use different types in DdbValue to represent actual data */
     value: TValue
     
     /** 原始二进制数据，仅在 parse_object 为 false 时通过 parse_message 生成的顶层对象有这个属性 */
@@ -2007,11 +2009,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     /** 将 dict<string, any> 自动转换为 js object (Record<string, any>)  Automatically convert dict<string, any> to js object (Record<string, any>)
-         - options?:
-             - strip?: `false` 是否将 DdbObj 中的 value 直接提取、剥离出来作为 js object 的 value (丢弃 DdbObj 中的其余信息，只保留 value)  
-                 Whether to directly extract and strip the value in DdbObj as the value of js object (discard the rest of the information in DdbObj, only keep the value)
-             - deep?: `false` 是否递归转换  whether to convert recursively
-     */
+        - options?:
+            - strip?: `false` 是否将 DdbObj 中的 value 直接提取、剥离出来作为 js object 的 value (丢弃 DdbObj 中的其余信息，只保留 value)  
+                Whether to directly extract and strip the value in DdbObj as the value of js object (discard the rest of the information in DdbObj, only keep the value)
+            - deep?: `false` 是否递归转换  
+                Whether to convert recursively
+    */
     to_dict <T extends Record<string, DdbObj> = Record<string, DdbObj>> (): T
     to_dict <T extends Record<string, any> = Record<string, any>> (options: { strip: true }): T
     to_dict <T extends Record<string, any> = Record<string, any>> (options?: { strip?: boolean, deep?: boolean }): T
@@ -3223,12 +3226,41 @@ export interface StreamingData extends StreamingParams {
 export const winsize = 10_0000 as const
 
 
-export class ConnectionError extends Error {
+type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
+
+interface DdbRpcOptions {
+    script?: string
+    func?: string
+    args?: (DdbObj | string | boolean)[]
+    vars?: string[]
+    urgent?: boolean
+    listener?: DdbMessageListener
+    parse_object?: boolean
+}
+
+
+export class DdbConnectionError extends Error {
     ddb: DDB
     
-    constructor (ddb: DDB) {
-        super(`${ddb.url} ${t('已断开')}`)
+    constructor (ddb: DDB, error_options?: ErrorOptions) {
+        super(`${ddb.url} ${t('已断开')}`, error_options)
         this.ddb = ddb
+    }
+}
+
+
+export class DdbDatabaseError extends Error {
+    ddb: DDB
+    
+    type: DdbRpcType
+    
+    options: DdbRpcOptions
+    
+    constructor (message: string, ddb: DDB, type: DdbRpcType, options: DdbRpcOptions) {
+        super(message)
+        this.ddb = ddb
+        this.type = type
+        this.options = options
     }
 }
 
@@ -3518,8 +3550,8 @@ export class DDB {
     
     
     /** rpc through websocket (function/script/variable command)  
-        未连接到 DDB 时调用会自动连接，连接断开时调用会抛出 ConnectionError  
-        When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the Connectionerror  
+        未连接到 DDB 时调用会自动连接，连接断开时调用会抛出 DdbConnectionError  
+        When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the DdbConnectionError  
         - type: API 类型: 'script' | 'function' | 'variable'
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
@@ -3528,30 +3560,22 @@ export class DDB {
             - parse_object?: 在本次 rpc 期间设置 parse_object, 结束后恢复原有  
                 为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化
     */
-    async rpc <T extends DdbObj = DdbObj> (
-        type: 'script' | 'function' | 'variable' | 'connect',
-        {
-            script,
-            func,
-            args = [ ],
-            vars = [ ],
-            urgent,
-            listener,
-            parse_object,
-        }: {
-            script?: string
-            func?: string
-            args?: (DdbObj | string | boolean)[]
-            vars?: string[]
-            urgent?: boolean
-            listener?: DdbMessageListener
-            parse_object?: boolean
-    }) {
+    async rpc <T extends DdbObj = DdbObj> (type: DdbRpcType, options: DdbRpcOptions) {
         if (!this.websocket)
             await this.connect()
         
         if (!this.connected)
-            throw new ConnectionError(this)
+            throw new DdbConnectionError(this)
+            
+        const {
+            script,
+            func,
+            vars = [ ],
+            urgent,
+            listener,
+        } = options
+        
+        let { args = [ ] } = options
         
         if (func === 'pnode_run' && !this.pnode_run_defined) {
             // 保证并发调用 rpc 时只定义一次 pnode_run
@@ -3613,6 +3637,8 @@ export class DDB {
         // this 上的当前配置需要在 message 到达后使用，先保存起来
         const _handlers = [...this.listeners].reverse()
         
+        let error = new DdbDatabaseError('', this, type, options)
+        
         
         // 临界区：保证多个 rpc 并发时形成 promise 链
         // ddb 世界观：需要等待上一个 rpc 结果从 server 返回之后才能发起下一个调用  
@@ -3642,7 +3668,7 @@ export class DDB {
                 if (this.print_message_buffer)
                     console.log(buf)
                 
-                const message = this.parse_message(buf, parse_object)
+                const message = this.parse_message(buf, error)
                 
                 listener?.(message, this)
                 for (const listener of _handlers)
@@ -3718,11 +3744,11 @@ export class DDB {
             - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞  
                 Urgent flag to ensure that submitted scripts are processed by urgent workers to prevent being blocked by other jobs
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage)  Process messages during this rpc (DdbMessage)
-            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
+            - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，  
                 不做解析，以便后续转发、序列化  
-                Set parse_object during this rpc, and restore the original after the end.
-                When it is false, the returned DdbObj only contains buffer and le without parsing, 
-                so as to facilitate subsequent forwarding and serialization
+                Set parse_object during this rpc, and restore the original after the end.  
+                When it is false, the returned DdbObj only contains buffer and le without parsing,   
+                so as to facilitate subsequent forwarding and serialization  
     */
     async eval <T extends DdbObj> (
         script: string,
@@ -3863,7 +3889,7 @@ export class DDB {
     
     
     /** 解析服务端响应报文，返回去掉 header 的 data buf */
-    parse_message (buf: Uint8Array, parse_object = this.parse_object): DdbMessage {
+    parse_message (buf: Uint8Array, error: DdbDatabaseError): DdbMessage {
         // MSG\n
         // <message>\0
         // 'M'.codePointAt(0).to_hex_str()
@@ -3912,11 +3938,10 @@ export class DDB {
             buf.subarray(ils1, ilf1)
         )
         
-        if (message !== 'OK')
-            return {
-                type: 'error',
-                data: new Error(message)
-            }
+        if (message !== 'OK') {
+            error.message = message
+            return { type: 'error', data: error }
+        }
         
         const bufobj = buf.subarray(ilf1 + 1)
         
@@ -3925,7 +3950,7 @@ export class DDB {
         
         return {
             type: 'object',
-            data: parse_object ?
+            data: error.options.parse_object ?? this.parse_object ?
                     DdbObj.parse(bufobj, this.le)
                 :
                     new DdbObj({

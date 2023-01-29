@@ -5,6 +5,7 @@ import { test_print } from './print.js'
 import { test_types } from './types.js'
 import { test_time } from './time.js'
 import { test_streaming } from './streaming.js'
+import { test_error_cause } from './error.js'
 
 
 set_inspect_options()
@@ -30,6 +31,7 @@ export const url = 'ws://192.168.0.16:9002' as const
         test_print,
         test_time,
         test_streaming,
+        test_error_cause,
     ]
     
     for (const fn_test of tests)

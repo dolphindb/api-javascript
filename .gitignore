@@ -1,4 +1,6 @@
-node_modules
+node_modules/
+
+/.vscode/
 
 *.js
 *.map
@@ -9,5 +11,3 @@ node_modules
 
 /i18n/stats.json
 /i18n/untranslateds.json
-
-.vscode

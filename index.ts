@@ -15,7 +15,6 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket } from 'xshell'
 
 import { t } from './i18n/index.js'
-import { DdbRPCType } from './types.js'
 
 
 export enum DdbForm {
@@ -38,8 +37,8 @@ export enum DdbForm {
 
 
 /** DolphinDB DataType  
-    对应的 array vector 类型为 64 + 基本类型
-    对应的 extended 类型为 128 + 基本类型
+    对应的 array vector 类型为 64 + 基本类型  The corresponding array vector type is 64 + base type
+    对应的 extended 类型为 128 + 基本类型  The corresponding extended type is 128 + base type
 */
 export enum DdbType {
     void = 0,
@@ -320,7 +319,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     /** 第 2 维 */
     cols?: number
     
-    /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据  The actual data. Different DdbForm, DdbType use different types in DdbValue to represent actual data */
+    /** 实际数据。不同的 DdbForm, DdbType 使用 DdbValue 中不同的类型来表示实际数据  
+        The actual data. Different DdbForm, DdbType use different types in DdbValue to represent actual data */
     value: TValue
     
     /** 原始二进制数据，仅在 parse_object 为 false 时通过 parse_message 生成的顶层对象有这个属性 */
@@ -1524,7 +1524,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 default:
-                    throw new Error(`${DdbForm[form] || form} ${t('暂时不支持序列化')}`)
+                    throw new Error(t('vector {{type}} 暂不支持序列化', { type: DdbType[type] || type }))
             }
         })()
         
@@ -1655,7 +1655,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             default:
-                throw new Error(t('vector {{type}} 暂不支持序列化', { type: DdbType[type] || type }))
+                throw new Error(t('vector {{type}} 暂不支持序列化', { type: String(DdbType[type] || type) }))
         }
     }
     
@@ -2006,7 +2006,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    /** 将 dict<string, any> 自动转换为 js object (Record<string, any>)  convert dict<string, any> to js object (Record<string, any>)
+    /** 将 dict<string, any> 自动转换为 js object (Record<string, any>)  Automatically convert dict<string, any> to js object (Record<string, any>)
         - options?:
             - strip?: `false` 是否将 DdbObj 中的 value 直接提取、剥离出来作为 js object 的 value (丢弃 DdbObj 中的其余信息，只保留 value)  
                 Whether to directly extract and strip the value in DdbObj as the value of js object (discard the rest of the information in DdbObj, only keep the value)
@@ -3220,6 +3220,8 @@ export interface StreamingData extends StreamingParams {
 export const winsize = 10_0000 as const
 
 
+type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
+
 interface DdbRpcOptions {
     script?: string
     func?: string
@@ -3230,36 +3232,32 @@ interface DdbRpcOptions {
     parse_object?: boolean
 }
 
-export class DdbDatabaseError extends Error {
+
+export class DdbConnectionError extends Error {
     ddb: DDB
     
-    constructor(message: string, ddb: DDB, raw_error_options?: ErrorOptions) {
-        super(message, raw_error_options)
+    constructor (ddb: DDB, error_options?: ErrorOptions) {
+        super(`${ddb.url} ${t('已断开')}`, error_options)
         this.ddb = ddb
     }
 }
 
-export class DdbDatabaseRpcError extends DdbDatabaseError {
-    type: DdbRPCType
+
+export class DdbDatabaseError extends Error {
+    ddb: DDB
+    
+    type: DdbRpcType
     
     options: DdbRpcOptions
     
-    constructor(message: string, rpc_error_options: {
-        ddb: DDB
-        type: DdbRPCType
-        options: DdbRpcOptions
-    }, raw_error_options?: ErrorOptions) {
-        super(message, rpc_error_options.ddb, raw_error_options)
-        this.type = rpc_error_options.type
-        this.options = rpc_error_options.options
+    constructor (message: string, ddb: DDB, type: DdbRpcType, options: DdbRpcOptions) {
+        super(message)
+        this.ddb = ddb
+        this.type = type
+        this.options = options
     }
 }
 
-export class DdbDatabaseConnectionError extends DdbDatabaseError {
-    constructor (ddb: DDB) {
-        super(`${ddb.url} ${t('已断开')}`, ddb)
-    }
-}
 
 export class DDB {
     /** 当前的 session id (http 或 tcp) */
@@ -3544,7 +3542,8 @@ export class DDB {
     
     
     /** rpc through websocket (function/script/variable command)  
-        未连接到 DDB 时调用会自动连接，连接断开时调用会抛出 ConnectionError  When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the Connectionerror  
+        未连接到 DDB 时调用会自动连接，连接断开时调用会抛出 DdbConnectionError  
+        When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the DdbConnectionError  
         - type: API 类型: 'script' | 'function' | 'variable'
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
@@ -3553,32 +3552,22 @@ export class DDB {
             - parse_object?: 在本次 rpc 期间设置 parse_object, 结束后恢复原有  
                 为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化
     */
-    async rpc <T extends DdbObj = DdbObj> (
-        type: DdbRPCType,
-        {
-            script,
-            func,
-            args = [ ],
-            vars = [ ],
-            urgent,
-            listener,
-            parse_object,
-        }: {
-            script?: string
-            func?: string
-            args?: (DdbObj | string | boolean)[]
-            vars?: string[]
-            urgent?: boolean
-            listener?: DdbMessageListener
-            parse_object?: boolean
-    }) {
+    async rpc <T extends DdbObj = DdbObj> (type: DdbRpcType, options: DdbRpcOptions) {
         if (!this.websocket)
             await this.connect()
         
         if (!this.connected)
-            throw new DdbDatabaseConnectionError(this)
+            throw new DdbConnectionError(this)
+            
+        const {
+            script,
+            func,
+            vars = [ ],
+            urgent,
+            listener,
+        } = options
         
-        const caller_stack_error = new Error()
+        let { args = [ ] } = options
         
         if (func === 'pnode_run' && !this.pnode_run_defined) {
             // 保证并发调用 rpc 时只定义一次 pnode_run
@@ -3640,6 +3629,8 @@ export class DDB {
         // this 上的当前配置需要在 message 到达后使用，先保存起来
         const _handlers = [...this.listeners].reverse()
         
+        let error = new DdbDatabaseError('', this, type, options)
+        
         
         // 临界区：保证多个 rpc 并发时形成 promise 链
         // ddb 世界观：需要等待上一个 rpc 结果从 server 返回之后才能发起下一个调用  
@@ -3669,24 +3660,15 @@ export class DDB {
                 if (this.print_message_buffer)
                     console.log(typed_array_to_buffer(buf))
                 
-                const message = this.parse_message(buf, {
-                    type,
-                    script,
-                    func,
-                    args,
-                    vars,
-                    urgent,
-                    listener,
-                    parse_object,
-                })
+                const message = this.parse_message(buf, error)
                 
                 listener?.(message, this)
                 for (const listener of _handlers)
                     listener(message, this)
                 
-                const { type: msg_type, data } = message
+                const { type, data } = message
                 
-                switch (msg_type) {
+                switch (type) {
                     case 'print':
                         if (this.print_message)
                             console.log(data)
@@ -3697,7 +3679,6 @@ export class DDB {
                         return
                     
                     case 'error':
-                        data.cause = caller_stack_error
                         reject(data)
                         return
                 }
@@ -3754,12 +3735,11 @@ export class DDB {
         - options?: 执行选项  execution options
             - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞  
                 Urgent flag to ensure that submitted scripts are processed by urgent workers to prevent being blocked by other jobs
-            - listener?: 处理本次 rpc 期间的消息 (DdbMessage)  
-                Process messages during this rpc (DdbMessage)
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage)  Process messages during this rpc (DdbMessage)
             - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，  
                 不做解析，以便后续转发、序列化  
                 Set parse_object during this rpc, and restore the original after the end.  
-                When it is false, the returned DdbObj only contains buffer and le without parsing,  
+                When it is false, the returned DdbObj only contains buffer and le without parsing,   
                 so as to facilitate subsequent forwarding and serialization  
     */
     async eval <T extends DdbObj> (
@@ -3780,7 +3760,8 @@ export class DDB {
     
     /** call function through websocket (function command) 
         - func: 函数名  function name
-        - args?: `[ ]` 调用参数 (传入的原生 string 和 boolean 会被自动转换为 DdbObj<string> 和 DdbObj<boolean>)  Call parameters (the incoming native string and boolean will be automatically converted to DdbObj<string> and DdbObj<boolean>)
+        - args?: `[ ]` 调用参数 (传入的原生 string 和 boolean 会被自动转换为 DdbObj<string> 和 DdbObj<boolean>)  
+            Call parameters (the incoming native string and boolean will be automatically converted to DdbObj<string> and DdbObj<boolean>)
         - options?: 调用选项  call options
             - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
                 Emergency flag. Use urgent worker execution to prevent being blocked by other jobs
@@ -3796,7 +3777,7 @@ export class DDB {
                 Process messages during this rpc (DdbMessage)
             - parse_object?: 在该次 rpc 期间设置 parse_object, 结束后恢复原有，为 false 时返回的 DdbObj 仅含有 buffer 和 le，
                 不做解析，以便后续转发、序列化  
-                Set parse_object during this rpc, and restore the original after the end.
+                Set parse_object during this rpc, and restore the original after the end.  
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
     */
@@ -3900,11 +3881,7 @@ export class DDB {
     
     
     /** 解析服务端响应报文，返回去掉 header 的 data buf */
-    parse_message (buf: Uint8Array, options: DdbRpcOptions & {
-        type: DdbRPCType
-    }): DdbMessage {
-        const { type, ...rpc_options } = options
-        
+    parse_message (buf: Uint8Array, error: DdbDatabaseError): DdbMessage {
         // MSG\n
         // <message>\0
         // 'M'.codePointAt(0).to_hex_str()
@@ -3953,25 +3930,19 @@ export class DDB {
             buf.subarray(ils1, ilf1)
         )
         
-        if (message !== 'OK')
-            return {
-                type: 'error',
-                data: new DdbDatabaseRpcError(message, {
-                    ddb: this,
-                    type: type,
-                    options: rpc_options,
-                })
-            }
+        if (message !== 'OK') {
+            error.message = message
+            return { type: 'error', data: error }
+        }
         
         const bufobj = buf.subarray(ilf1 + 1)
         
         if (this.print_object_buffer)
             console.log(typed_array_to_buffer(bufobj))
         
-        const parse_object = options.parse_object ?? this.parse_object
         return {
             type: 'object',
-            data: parse_object ?
+            data: error.options.parse_object ?? this.parse_object ?
                     DdbObj.parse(bufobj, this.le)
                 :
                     new DdbObj({

@@ -8,11 +8,12 @@ export async function test_error_cause (ddb: DDB) {
     
     try {
         await ddb.eval('x')
-    } catch (err) {
-        assert(err instanceof DdbDatabaseError)
-        assert(err.ddb === ddb)
-        assert(err.type === 'script')
-        assert(err.options.script === 'x')
-        assert(err.stack.includes('test_error_cause'))
+    } catch (error) {
+        assert(error.name === 'DdbDatabaseError')
+        assert(error instanceof DdbDatabaseError)
+        assert(error.ddb === ddb)
+        assert(error.type === 'script')
+        assert(error.options.script === 'x')
+        assert(error.stack.includes('test_error_cause'))
     }
 }

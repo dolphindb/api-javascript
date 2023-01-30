@@ -3234,6 +3234,8 @@ export interface DdbRpcOptions {
 
 
 export class DdbConnectionError extends Error {
+    override name = 'DdbConnectionError'
+    
     ddb: DDB
     
     constructor (ddb: DDB, error_options?: ErrorOptions) {
@@ -3244,6 +3246,8 @@ export class DdbConnectionError extends Error {
 
 
 export class DdbDatabaseError extends Error {
+    override name = 'DdbDatabaseError'
+    
     ddb: DDB
     
     type: DdbRpcType

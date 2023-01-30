@@ -5,17 +5,17 @@ import { test_print } from './print.js'
 import { test_types } from './types.js'
 import { test_time } from './time.js'
 import { test_streaming } from './streaming.js'
-import { test_error_cause } from './error.js'
+import { test_error } from './error.js'
 
 
 set_inspect_options()
 
 
 // linux
-export const url = 'ws://192.168.0.16:9002' as const
+// export const url = 'ws://192.168.0.16:9002' as const
 
 // windows
-// export const url = 'ws://192.168.0.32:9002' as const
+export const url = 'ws://192.168.0.29:9002' as const
 
 // local 8848
 // export const url = 'ws://127.0.0.1:8848' as const
@@ -31,7 +31,7 @@ export const url = 'ws://192.168.0.16:9002' as const
         test_print,
         test_time,
         test_streaming,
-        test_error_cause,
+        test_error,
     ]
     
     for (const fn_test of tests)

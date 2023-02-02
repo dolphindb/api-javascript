@@ -54,6 +54,5 @@ export async function test_error (ddb: DDB) {
     
     assert(connection_error2)
     assert(connection_error2 instanceof DdbConnectionError)
-    console.log(connection_error2)
     assert(connection_error2.cause)
 }

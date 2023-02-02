@@ -12,7 +12,7 @@ dayjs.extend(DayjsCustomParseFormat)
 import ipaddrjs from 'ipaddr.js'
 const { fromByteArray: buf2ipaddr } = ipaddrjs
 
-import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket } from 'xshell'
+import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket, WebSocketConnectionError } from 'xshell'
 
 import { t } from './i18n/index.js'
 
@@ -3239,7 +3239,7 @@ export class DdbConnectionError extends Error {
     ddb: DDB
     
     constructor (ddb: DDB, error_options?: ErrorOptions) {
-        super(`${ddb.url} ${t('已断开')}`, error_options)
+        super(`${ddb.url} ${t('已断开')}${ error_options?.cause ? `. ${(error_options.cause as Error).message}` : '' }`, error_options)
         this.ddb = ddb
     }
 }
@@ -3389,7 +3389,7 @@ export class DDB {
     }
     
     
-    private on_message (event: { data: ArrayBuffer }) {
+    private on_message (buffer: ArrayBuffer) {
         // 这里的实现一定会被 connect 中的实现覆盖
     }
     
@@ -3412,25 +3412,32 @@ export class DDB {
         
         try {
             if (!this.connected) {
-                this.on_message = (event: { data: ArrayBuffer }) => {
+                this.on_message = buffer => {
                     assert(false, t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
                 }
                 this.presult = Promise.resolve(null)
                 this.pnode_run_defined = false
                 
-                this.websocket = await connect_websocket(this.url, {
-                    protocols: (() => {
-                        if (this.streaming)
-                            return 'streaming'
+                try {
+                    this.websocket = await connect_websocket(this.url, {
+                        protocols: (() => {
+                            if (this.streaming)
+                                return 'streaming'
+                            
+                            if (this.python)
+                                return 'python'
+                        })(),
                         
-                        if (this.python)
-                            return 'python'
-                    })(),
-                    
-                    on_message: (event: { data: ArrayBuffer }) => {
-                        this.on_message(event)
-                    }
-                })
+                        on_message: (buffer: ArrayBuffer) => {
+                            this.on_message(buffer)
+                        }
+                    })
+                } catch (error) {
+                    if (error instanceof WebSocketConnectionError)
+                        throw new DdbConnectionError(this, { cause: error })
+                    else
+                        throw error
+                }
                 
                 if (this.streaming)
                     await this.subscribe()
@@ -3657,7 +3664,7 @@ export class DDB {
         // 临界区结束，只有一个 rpc 函数调用运行到这里，可以独占 this.on_message 然后写 WebSocket
         
         
-        this.on_message = ({ data: buffer }) => {
+        this.on_message = buffer => {
             try {
                 const buf = new Uint8Array(buffer)
                 
@@ -3989,7 +3996,7 @@ export class DDB {
         }
         
         // 先准备好收到 websocket message 的 callback
-        this.on_message = ({ data: buffer }) => {
+        this.on_message = buffer => {
             let { streaming } = this
             
             try {

@@ -12,10 +12,10 @@ set_inspect_options()
 
 
 // linux
-// export const url = 'ws://192.168.0.16:9002' as const
+export const url = 'ws://192.168.0.16:9002' as const
 
 // windows
-export const url = 'ws://192.168.0.29:9002' as const
+// export const url = 'ws://192.168.0.29:9002' as const
 
 // local 8848
 // export const url = 'ws://127.0.0.1:8848' as const

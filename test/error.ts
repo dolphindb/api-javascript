@@ -41,4 +41,19 @@ export async function test_error (ddb: DDB) {
     assert(connection_error)
     assert(connection_error instanceof DdbConnectionError)
     assert(connection_error.ddb === ddbtest)
+    
+    
+    // --- 首次连接失败也会抛出 DdbConnectionError
+    let ddbtest2 = new DDB('ws://dolphindb.com/')
+    let connection_error2: DdbConnectionError
+    try {
+        await ddbtest2.connect()
+    } catch (error) {
+        connection_error2 = error
+    }
+    
+    assert(connection_error2)
+    assert(connection_error2 instanceof DdbConnectionError)
+    console.log(connection_error2)
+    assert(connection_error2.cause)
 }

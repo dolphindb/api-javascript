@@ -3245,7 +3245,13 @@ export class DdbConnectionError extends Error {
     ddb: DDB
     
     constructor (ddb: DDB, error_options?: ErrorOptions) {
-        super(`${ddb.url} ${t('已断开')}${ error_options?.cause ? `. ${(error_options.cause as Error).message}` : '' }`, error_options)
+        super(
+            error_options?.cause ? 
+                (error_options.cause as Error).message
+            :
+                `${ddb.url} ${t('连接出错了，可能由于网络原因连接已被关闭，或服务器断开连接')}`,
+            error_options
+        )
         this.ddb = ddb
     }
 }

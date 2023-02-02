@@ -67,5 +67,8 @@
     },
     "已断开": {
         "en": "is already disconnected"
+    },
+    "连接出错了，可能由于网络原因连接已被关闭，或服务器断开连接": {
+        "en": "connection errored. The connection may have been closed due to network reasons, or the server disconnected"
     }
 }

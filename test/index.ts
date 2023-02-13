@@ -1,6 +1,7 @@
-import { set_inspect_options } from 'xshell'
+import { assert, set_inspect_options } from 'xshell'
 
 import { DDB } from '../index.js'
+import { keywords } from '../language.js'
 import { test_print } from './print.js'
 import { test_types } from './types.js'
 import { test_time } from './time.js'
@@ -27,6 +28,7 @@ export const url = 'ws://192.168.0.16:9002' as const
     let ddb = new DDB(url)
     
     const tests = [
+        test_keywords,
         test_types,
         test_print,
         test_time,
@@ -41,6 +43,12 @@ export const url = 'ws://192.168.0.16:9002' as const
     
     console.log('--- 测试通过 ---'.green)
 })()
+
+
+
+function test_keywords () {
+    assert(new Set(keywords).size === keywords.length, 'keywords 中不能有重复的项')
+}
 
 
 export async function get_printed (ddb: DDB, code: string) {

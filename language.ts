@@ -106,7 +106,13 @@ export const keywords = [
     'nulls first', 'nulls last',
     
     'asc', 'desc',
-] as const
+].sort((l, r) => {  // 长的在前面，正则表达式先匹配全部，而不是部分单词，防止高亮显示不正确
+    const delta_len = l.length - r.length
+    if (delta_len !== 0)
+        return -delta_len
+    
+    return 0 // 否则保留原本顺序
+})
 
 
 export const constants = [

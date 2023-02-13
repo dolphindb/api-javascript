@@ -32,7 +32,6 @@ export const keywords = [
     
     
     // 仅 Python 有的
-    'and',
     'async',
     'await',
     'class',
@@ -49,12 +48,11 @@ export const keywords = [
     'or',
     'pass',
     'raise',
-    'with',
     'yield',
     
     
     
-    // SQL
+    // --- SQL
     'select',
     'exec',
     'update',
@@ -68,7 +66,9 @@ export const keywords = [
     'inner join',
     'full join',
     'left join',
+    'right join',
     'left semijoin',
+    'cross join',
     
     'context by',
     'partitioned by',
@@ -76,6 +76,7 @@ export const keywords = [
     'pivot by',
     'order by',
     'cgroup by',
+    
     'csort',
     'limit',
     'top',
@@ -84,14 +85,27 @@ export const keywords = [
     'from',
     'where',
     'having',
+    'with',
     'set',
     'as',
     'in',
     'on',
     'values',
+    'exists',
+    'distinct',
     
-    'asc',
-    'desc',
+    'between', 'and', // between ... and ...
+    
+    'is null', 'is not null',
+    
+    // case when ... then ... end
+    'case', 'when', 'then', 'end',
+    
+    'union', 'union all',
+    
+    'nulls first', 'nulls last',
+    
+    'asc', 'desc',
 ] as const
 
 
@@ -404,7 +418,7 @@ export const tm_language = {
                     ]
                 },
                 {
-                    match: '`[\\w@]+',
+                    match: '`[\\w\\.]+',
                     name: 'string.quoted.other.dolphindb'
                 },
                 {

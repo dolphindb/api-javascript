@@ -424,7 +424,7 @@ export const tm_language = {
                     ]
                 },
                 {
-                    match: '`[\\w@\\.]+',
+                    match: '`[\\w\\.]+',
                     name: 'string.quoted.other.dolphindb'
                 },
                 {

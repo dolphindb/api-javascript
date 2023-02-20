@@ -11,8 +11,8 @@ dependencies:
     specifier: ^2.5.0
     version: 2.5.0
   xshell:
-    specifier: ^1.0.9
-    version: 1.0.9
+    specifier: ^1.0.10
+    version: 1.0.10
 
 devDependencies:
   '@types/node':
@@ -2116,8 +2116,8 @@ packages:
         optional: true
     dev: false
 
-  /xshell@1.0.9:
-    resolution: {integrity: sha512-hslPhVA/6wySXoQEqSy1rH+YVAI5HTp6YQ4sKaVJy0UGn1mxh6a9yZN6NFjZuGR3yBFHuWlVcvg1UbJWkrEGww==}
+  /xshell@1.0.10:
+    resolution: {integrity: sha512-1v0UC7LUrO3Zr0Fry31DRc/tJEXtZoLmgdhAHHWCCU+SxzmV5pTVRt82J/lBKiLOuJTVRt21sMgp9zGm4H4itQ==}
     engines: {node: '>=19.5.0', vscode: '>=1.74.0'}
     hasBin: true
     dependencies:

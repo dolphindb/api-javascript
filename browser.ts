@@ -7,7 +7,7 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 
 import 'xshell/prototype.browser.js'
 import { blue, cyan, green, grey, magenta } from 'xshell/chalk.browser.js'
-import { concat, assert } from 'xshell/utils.browser.js'
+import { concat, assert, defer } from 'xshell/utils.browser.js'
 import { connect_websocket, WebSocketConnectionError } from 'xshell/net.browser.js'
 
 import { t } from './i18n/index.js'
@@ -3333,11 +3333,11 @@ export class DDB {
     /** DdbMessage listeners */
     listeners: DdbMessageListener[] = [ ]
     
-    pconnect = Promise.resolve()
+    pconnect = defer<void>(null)
     
-    ppnoderun = Promise.resolve()
+    ppnoderun = defer<void>(null)
     
-    presult = Promise.resolve(null)
+    presult = defer<DdbObj>(null)
     
     get connected () {
         return this.websocket?.readyState === WebSocket.OPEN
@@ -3417,10 +3417,7 @@ export class DDB {
         
         const ptail = this.pconnect
         
-        let resolve: () => void
-        this.pconnect = new Promise<void>((_resolve, _reject) => {
-            resolve = _resolve
-        })
+        const pconnect = this.pconnect = defer<void>()
         
         await ptail
         
@@ -3429,7 +3426,7 @@ export class DDB {
                 this.on_message = buffer => {
                     assert(false, t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
                 }
-                this.presult = Promise.resolve(null)
+                this.presult = defer(null)
                 this.pnode_run_defined = false
                 
                 try {
@@ -3462,7 +3459,7 @@ export class DDB {
                 }
             }
         } finally {
-            resolve()
+            pconnect.resolve()
         }
     }
     
@@ -3575,9 +3572,8 @@ export class DDB {
             - vars?: type === 'variable' 时必传，variable 指令中待上传的变量名
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage)
             - parse_object?: 在本次 rpc 期间设置 parse_object, 结束后恢复原有  
-                为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化
-    */
-    async rpc <T extends DdbObj = DdbObj> (type: DdbRpcType, options: DdbRpcOptions) {
+                为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化 */
+    async rpc <TResult extends DdbObj = DdbObj> (type: DdbRpcType, options: DdbRpcOptions) {
         if (!this.websocket)
             await this.connect()
         
@@ -3598,10 +3594,7 @@ export class DDB {
             // 保证并发调用 rpc 时只定义一次 pnode_run
             const ptail = this.ppnoderun
             
-            let resolve: () => void
-            this.ppnoderun = new Promise<void>((_resolve, _reject) => {
-                resolve = _resolve
-            })
+            const ppnoderun = this.ppnoderun = defer<void>()
             
             await ptail
             
@@ -3646,7 +3639,7 @@ export class DDB {
                         { urgent: true }
                     )
             } finally {
-                resolve()
+                ppnoderun.resolve()
             }
         }
         
@@ -3665,12 +3658,7 @@ export class DDB {
         
         const ptail = this.presult
         
-        let resolve: (ddbobj: T) => void
-        let reject: (error: Error) => void
-        const presult = this.presult = new Promise<T>((_resolve, _reject) => {
-            resolve = _resolve
-            reject = _reject
-        })
+        const presult = this.presult = defer<TResult>()
         
         try {
             await ptail
@@ -3678,7 +3666,7 @@ export class DDB {
         // 临界区结束，只有一个 rpc 函数调用运行到这里，可以独占 this.on_message 然后写 WebSocket
         
         
-        this.on_message = (buffer) => {
+        this.on_message = buffer => {
             try {
                 const buf = new Uint8Array(buffer)
                 
@@ -3700,15 +3688,15 @@ export class DDB {
                         return
                     
                     case 'object':
-                        resolve(data as T)
+                        presult.resolve(data as TResult)
                         return
                     
                     case 'error':
-                        reject(data)
+                        presult.reject(data)
                         return
                 }
             } catch (error) {
-                reject(error)
+                presult.reject(error)
             }
         }
         
@@ -3806,7 +3794,7 @@ export class DDB {
                 When it is false, the returned DdbObj only contains buffer and le without parsing, 
                 so as to facilitate subsequent forwarding and serialization
     */
-    async call <T extends DdbObj> (
+    async call <TResult extends DdbObj> (
         func: string,
         args: (DdbObj | string | boolean)[] = [ ],
         {
@@ -3856,7 +3844,7 @@ export class DDB {
             func = 'pnode_run'
         }
         
-        return this.rpc<T>('function', {
+        return this.rpc<TResult>('function', {
             func,
             args,
             urgent,

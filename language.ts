@@ -802,8 +802,12 @@ export const tm_language = {
                     name: 'keyword.operator.bitwise.shift.dolphindb'
                 },
                 {
-                    match: '!=|<=|>=|==',
+                    match: '!=|<=|>=|==|>|<',
                     name: 'keyword.operator.comparison.dolphindb'
+                },
+                {
+                    match: '<-|->',
+                    name: 'keyword.operator.join.dolphindb'
                 },
                 {
                     match: '&&|!|\\|\\|',

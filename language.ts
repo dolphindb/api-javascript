@@ -194,13 +194,23 @@ export const constants = [
     // https://www.dolphindb.cn/cn/help/200/FunctionsandCommands/CommandsReferences/d/deny.html
     'TABLE_READ',
     'TABLE_WRITE',
+    'TABLE_INSERT',
+    'TABLE_UPDATE',
+    'TABLE_DELETE',
     'DBOBJ_CREATE',
     'DBOBJ_DELETE',
+    'DB_DELETE',
+    'DB_INSERT',
     'DB_MANAGE',
     'DB_OWNER',
-    'VIEW_EXEC',
+    'DB_READ',
+    'DB_UPDATE',
+    'DB_WRITE',
     'SCRIPT_EXEC',
+    'TASK_GROUP_MEM_LIMIT',
     'TEST_EXEC',
+    'VIEW_EXEC',
+    'QUERY_RESULT_MEM_LIMIT',
     
     
     // hint

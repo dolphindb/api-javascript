@@ -315,15 +315,6 @@ export const theme_light = {
         },
         {
             scope: [
-                'keyword.operator.comparison.dolphindb',
-                'keyword.operator.join.dolphindb'
-            ],
-            settings: {
-                foreground: '#ff0000'
-            }
-        },
-        {
-            scope: [
                 'keyword.operator.new',
                 'keyword.operator.expression',
                 'keyword.operator.cast',

@@ -1885,7 +1885,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             return String(this.value)
         })()
         
-        return `${ options?.colors ? blue(type) : type }(${ this.name ? `'${this.name}', ` : '' }${data})\n`
+        return `${ options?.colors ? blue(type) : type }(${ this.name ? `'${this.name}', ` : '' }${data})`
     }
     
     

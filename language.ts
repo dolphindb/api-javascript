@@ -191,16 +191,30 @@ export const constants = [
     
     
     // 用户权限管理
+    // https://www.dolphindb.cn/cn/help/200/SystemManagement/UserAccessControl.html
     // https://www.dolphindb.cn/cn/help/200/FunctionsandCommands/CommandsReferences/d/deny.html
     'TABLE_READ',
     'TABLE_WRITE',
+    'TABLE_INSERT',
+    'TABLE_UPDATE',
+    'TABLE_DELETE',
+    
     'DBOBJ_CREATE',
     'DBOBJ_DELETE',
+    
+    'DB_DELETE',
+    'DB_INSERT',
     'DB_MANAGE',
     'DB_OWNER',
-    'VIEW_EXEC',
+    'DB_READ',
+    'DB_UPDATE',
+    'DB_WRITE',
+    
     'SCRIPT_EXEC',
+    'TASK_GROUP_MEM_LIMIT',
     'TEST_EXEC',
+    'VIEW_EXEC',
+    'QUERY_RESULT_MEM_LIMIT',
     
     
     // hint
@@ -802,8 +816,12 @@ export const tm_language = {
                     name: 'keyword.operator.bitwise.shift.dolphindb'
                 },
                 {
-                    match: '!=|<=|>=|==',
+                    match: '!=|<=|>=|==|>|<',
                     name: 'keyword.operator.comparison.dolphindb'
+                },
+                {
+                    match: '<-|->',
+                    name: 'keyword.operator.join.dolphindb'
                 },
                 {
                     match: '&&|!|\\|\\|',

@@ -2628,6 +2628,27 @@ export class DdbVectorInt extends DdbObj<Int32Array> {
     }
 }
 
+export class DdbVectorLong extends DdbObj<BigInt64Array> {
+    constructor (longs: (number | null)[] | BigInt64Array, name?: string) {
+        super({
+            form: DdbForm.vector,
+            type: DdbType.long,
+            rows: longs.length,
+            cols: 1,
+            value: longs instanceof BigInt64Array ?
+                    longs
+                :
+                    BigInt64Array.from(longs, v => 
+                        v === null ?
+                            nulls.int64
+                        :
+                            BigInt(v)
+                    ),
+            name,
+        })
+    }
+}
+
 export class DdbVectorDouble extends DdbObj<Float64Array> {
     constructor (doubles: (number | null)[] | Float64Array, name?: string) {
         super({

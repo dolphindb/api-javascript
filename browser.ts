@@ -243,7 +243,7 @@ export type DdbVectorObj = DdbObj<DdbVectorValue>
 export type DdbVectorAnyObj = DdbObj<DdbObj[]>
 export type DdbVectorStringObj = DdbObj<string[]>
 
-export type DdbTableObj = DdbObj<DdbVectorObj[]>
+export type DdbTableObj <TColumns extends DdbVectorObj[] = DdbVectorObj[]> = DdbObj<TColumns>
 
 export type DdbDictObj = DdbObj<[DdbVectorObj, DdbVectorObj]>
 

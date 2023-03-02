@@ -243,7 +243,7 @@ export type DdbVectorObj = DdbObj<DdbVectorValue>
 export type DdbVectorAnyObj = DdbObj<DdbObj[]>
 export type DdbVectorStringObj = DdbObj<string[]>
 
-export type DdbTableObj = DdbObj<DdbVectorObj[]>
+export type DdbTableObj <TColumns extends DdbVectorObj[] = DdbVectorObj[]> = DdbObj<TColumns>
 
 export type DdbDictObj = DdbObj<[DdbVectorObj, DdbVectorObj]>
 
@@ -1885,7 +1885,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             return String(this.value)
         })()
         
-        return `${ options?.colors ? blue(type) : type }(${ this.name ? `'${this.name}', ` : '' }${data})\n`
+        return `${ options?.colors ? blue(type) : type }(${ this.name ? `'${this.name}', ` : '' }${data})`
     }
     
     
@@ -2626,6 +2626,27 @@ export class DdbVectorInt extends DdbObj<Int32Array> {
                             nulls.int32
                         :
                             v
+                    ),
+            name,
+        })
+    }
+}
+
+export class DdbVectorLong extends DdbObj<BigInt64Array> {
+    constructor (longs: (number | null)[] | BigInt64Array, name?: string) {
+        super({
+            form: DdbForm.vector,
+            type: DdbType.long,
+            rows: longs.length,
+            cols: 1,
+            value: longs instanceof BigInt64Array ?
+                    longs
+                :
+                    BigInt64Array.from(longs, v => 
+                        v === null ?
+                            nulls.int64
+                        :
+                            BigInt(v)
                     ),
             name,
         })

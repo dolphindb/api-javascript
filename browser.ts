@@ -2555,16 +2555,6 @@ export class DdbDouble extends DdbObj<number> {
     }
 }
 
-export class DdbBlob extends DdbObj<Uint8Array> {
-    constructor (value: Uint8Array | null) {
-        super({
-            form: DdbForm.scalar,
-            type: DdbType.blob,
-            value
-        })
-    }
-}
-
 export class DdbDateTime extends DdbObj<number> {
     constructor (value: number | null) {
         super({
@@ -2590,6 +2580,16 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.nanotimestamp,
+            value
+        })
+    }
+}
+
+export class DdbBlob extends DdbObj<Uint8Array> {
+    constructor (value: Uint8Array) {
+        super({
+            form: DdbForm.scalar,
+            type: DdbType.blob,
             value
         })
     }

@@ -2586,11 +2586,11 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
 }
 
 export class DdbBlob extends DdbObj<Uint8Array> {
-    constructor (value: Uint8Array) {
+    constructor (value: Uint8Array | ArrayBuffer) {
         super({
             form: DdbForm.scalar,
             type: DdbType.blob,
-            value
+            value: value instanceof Uint8Array ? value : new Uint8Array(value)
         })
     }
 }

@@ -2694,7 +2694,7 @@ export class DdbVectorString extends DdbObj<string[]> {
 }
 
 export class DdbVectorAny extends DdbObj {
-    constructor (objs: (DdbObj | string | boolean)[], name?: string) {
+    constructor (objs: (DdbObj | string | boolean | ArrayBuffer)[], name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.any,
@@ -3256,7 +3256,7 @@ type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 export interface DdbRpcOptions {
     script?: string
     func?: string
-    args?: (DdbObj | string | boolean)[]
+    args?: (DdbObj | string | boolean | ArrayBuffer)[]
     vars?: string[]
     urgent?: boolean
     listener?: DdbMessageListener
@@ -3819,7 +3819,7 @@ export class DDB {
     */
     async call <TResult extends DdbObj> (
         func: string,
-        args: (DdbObj | string | boolean)[] = [ ],
+        args: (DdbObj | string | boolean | ArrayBuffer)[] = [ ],
         {
             urgent,
             node,

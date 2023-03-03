@@ -242,16 +242,16 @@ export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDic
 
 export type DdbStringObj = DdbObj<string>
 
-export type DdbVectorObj = DdbObj<DdbVectorValue>
+export type DdbVectorObj <TValue extends DdbVectorValue = DdbVectorValue> = DdbObj<TValue>
 
 export type DdbVectorAnyObj = DdbObj<DdbObj[]>
 export type DdbVectorStringObj = DdbObj<string[]>
 
 export type DdbTableObj <TColumns extends DdbVectorObj[] = DdbVectorObj[]> = DdbObj<TColumns>
 
-export type DdbDictObj = DdbObj<[DdbVectorObj, DdbVectorObj]>
+export type DdbDictObj <TKeys extends DdbVectorObj = DdbVectorObj, TValues extends DdbVectorObj = DdbVectorObj> = DdbObj<[TKeys, TValues]>
 
-export type DdbMatrixObj = DdbObj<DdbMatrixValue>
+export type DdbMatrixObj <TValue extends DdbMatrixValue = DdbMatrixValue> = DdbObj<TValue>
 
 export type DdbChartObj = DdbObj<DdbChartValue>
 

@@ -4030,7 +4030,8 @@ export class DDB {
         
         // 先准备好收到 websocket message 的 callback
         this.on_message = buffer => {
-            let { streaming } = this
+            // 复制一份，避免 handler 中异步直接使用传入的 streaming 这个对象时属性发生变化
+            let streaming = { ...this.streaming, error: null }
             
             try {
                 const dv = new DataView(buffer)

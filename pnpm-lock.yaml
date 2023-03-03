@@ -11,13 +11,13 @@ dependencies:
     specifier: ^2.5.0
     version: 2.5.0
   xshell:
-    specifier: ^1.0.13
-    version: 1.0.13
+    specifier: ^1.0.14
+    version: 1.0.14
 
 devDependencies:
   '@types/node':
-    specifier: ^18.14.4
-    version: 18.14.4
+    specifier: ^18.14.5
+    version: 18.14.5
   typescript:
     specifier: ^4.9.5
     version: 4.9.5
@@ -57,7 +57,7 @@ packages:
       '@babel/parser': 7.21.2
       '@babel/template': 7.20.7
       '@babel/traverse': 7.21.2
-      '@babel/types': 7.21.0
+      '@babel/types': 7.21.2
       convert-source-map: 1.9.0
       debug: 4.3.4
       gensync: 1.0.0-beta.2
@@ -188,7 +188,7 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
     dependencies:
-      '@babel/types': 7.21.0
+      '@babel/types': 7.21.2
     dev: false
 
   /@babel/runtime@7.20.13:
@@ -223,15 +223,6 @@ packages:
       globals: 11.12.0
     transitivePeerDependencies:
       - supports-color
-    dev: false
-
-  /@babel/types@7.21.0:
-    resolution: {integrity: sha512-uR7NWq2VNFnDi7EYqiRz2Jv/VQIu38tu64Zy8TX2nQFQ6etJ9V/Rr2msW8BS132mum2rL645qpDrLtAJtVpuow==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/helper-string-parser': 7.19.4
-      '@babel/helper-validator-identifier': 7.19.1
-      to-fast-properties: 2.0.0
     dev: false
 
   /@babel/types@7.21.2:
@@ -295,8 +286,8 @@ packages:
       vary: 1.1.2
     dev: false
 
-  /@types/node@18.14.4:
-    resolution: {integrity: sha512-VhCw7I7qO2X49+jaKcAUwi3rR+hbxT5VcYF493+Z5kMLI0DL568b7JI4IDJaxWFH0D/xwmGJNoXisyX+w7GH/g==}
+  /@types/node@18.14.5:
+    resolution: {integrity: sha512-CRT4tMK/DHYhw1fcCEBwME9CSaZNclxfzVMe7GsO6ULSwsttbj70wSiX6rZdIjGblu93sTJxLdhNIT85KKI7Qw==}
     dev: true
 
   /accepts@1.3.8:
@@ -2243,8 +2234,8 @@ packages:
         optional: true
     dev: false
 
-  /xshell@1.0.13:
-    resolution: {integrity: sha512-UygueTCXFpCuzRQdmvjcCsU2fGofv+YXmimbS49EKX1p01GwEuXFNFzn9BP+WZ3b7vUeMRa4c7wWUDvaaG/6CA==}
+  /xshell@1.0.14:
+    resolution: {integrity: sha512-nOJekOMcBxQmkS/EjDN538OnKO8X1S/cl2nqzS0QdheqiadJLTnpvAeSSzZxh7w/qUpLEM8GjHa7qSnfJOxtvg==}
     engines: {node: '>=19.7.0', vscode: '>=1.75.1'}
     hasBin: true
     dependencies:

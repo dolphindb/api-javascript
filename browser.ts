@@ -240,8 +240,8 @@ export type DdbStringObj = DdbObj<string>
 
 export type DdbVectorObj <TValue extends DdbVectorValue = DdbVectorValue> = DdbObj<TValue>
 
-export type DdbVectorAnyObj = DdbObj<DdbObj[]>
-export type DdbVectorStringObj = DdbObj<string[]>
+export type DdbVectorAnyObj = DdbVectorObj<DdbObj[]>
+export type DdbVectorStringObj = DdbVectorObj<string[]>
 
 export type DdbTableObj <TColumns extends DdbVectorObj[] = DdbVectorObj[]> = DdbObj<TColumns>
 

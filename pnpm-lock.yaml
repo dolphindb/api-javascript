@@ -11,13 +11,13 @@ dependencies:
     specifier: ^2.5.0
     version: 2.5.0
   xshell:
-    specifier: ^1.0.14
-    version: 1.0.14
+    specifier: ^1.0.16
+    version: 1.0.16
 
 devDependencies:
   '@types/node':
-    specifier: ^18.14.5
-    version: 18.14.5
+    specifier: ^18.14.6
+    version: 18.14.6
   typescript:
     specifier: ^4.9.5
     version: 4.9.5
@@ -286,8 +286,8 @@ packages:
       vary: 1.1.2
     dev: false
 
-  /@types/node@18.14.5:
-    resolution: {integrity: sha512-CRT4tMK/DHYhw1fcCEBwME9CSaZNclxfzVMe7GsO6ULSwsttbj70wSiX6rZdIjGblu93sTJxLdhNIT85KKI7Qw==}
+  /@types/node@18.14.6:
+    resolution: {integrity: sha512-93+VvleD3mXwlLI/xASjw0FzKcwzl3OdTCzm1LaRfqgS21gfFtK3zDXM5Op9TeeMsJVOaJ2VRDpT9q4Y3d0AvA==}
     dev: true
 
   /accepts@1.3.8:
@@ -1181,7 +1181,7 @@ packages:
       eol: 0.9.1
       esprima-next: 5.8.4
       gulp-sort: 2.0.0
-      i18next: 22.4.10
+      i18next: 22.4.11
       lodash: 4.17.21
       parse5: 6.0.1
       sortobject: 4.16.0
@@ -1190,17 +1190,10 @@ packages:
       vinyl-fs: 3.0.3
     dev: false
 
-  /i18next@22.4.10:
-    resolution: {integrity: sha512-3EqgGK6fAJRjnGgfkNSStl4mYLCjUoJID338yVyLMj5APT67HUtWoqSayZewiiC5elzMUB1VEUwcmSCoeQcNEA==}
+  /i18next@22.4.11:
+    resolution: {integrity: sha512-ShfTzXVMjXdF2iPiT/wbizOrssLh9Ab6VpuVROihLCAu+u25KbZiEYVgsA0W6g0SgjPa/JmGWcUEV/g6cKzEjQ==}
     dependencies:
       '@babel/runtime': 7.20.13
-    dev: false
-
-  /iconv-lite@0.6.3:
-    resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      safer-buffer: 2.1.2
     dev: false
 
   /ieee754@1.2.1:
@@ -1707,8 +1700,8 @@ packages:
     engines: {node: '>=6'}
     dev: false
 
-  /qs@6.11.0:
-    resolution: {integrity: sha512-MvjoMCJwEarSbUYk5O+nmoSzSutSsTwF85zcHPQ9OrlFoZOYIjaqBAJIqIXjptyD5vThxGq52Xu/MaJzRkIk4Q==}
+  /qs@6.11.1:
+    resolution: {integrity: sha512-0wsrzgTz/kAVIeuxSjnpGC56rzYtr6JT/2BwEvMaPhFIoYa1aGO8LbzuU1R0uUYQkLpWBTOj0l/CLAJB64J6nQ==}
     engines: {node: '>=0.6'}
     dependencies:
       side-channel: 1.0.4
@@ -1722,7 +1715,7 @@ packages:
     resolution: {integrity: sha512-kJt5qhMxoszgU/62PLP1CJytzd2NKetjSRnyuj31fDd3Rlcz3fzlFdFLD1SItunPwyqEOkca6GbV612BWfaBag==}
     dev: false
 
-  /react-i18next@12.2.0(i18next@22.4.10)(react@18.2.0):
+  /react-i18next@12.2.0(i18next@22.4.11)(react@18.2.0):
     resolution: {integrity: sha512-5XeVgSygaGfyFmDd2WcXvINRw2WEC1XviW1LXY/xLOEMzsCFRwKqfnHN+hUjla8ZipbVJR27GCMSuTr0BhBBBQ==}
     peerDependencies:
       i18next: '>= 19.0.0'
@@ -1737,7 +1730,7 @@ packages:
     dependencies:
       '@babel/runtime': 7.20.13
       html-parse-stringify: 3.0.1
-      i18next: 22.4.10
+      i18next: 22.4.11
       react: 18.2.0
     dev: false
 
@@ -1843,10 +1836,6 @@ packages:
 
   /safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
-    dev: false
-
-  /safer-buffer@2.1.2:
-    resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
     dev: false
 
   /semver@6.3.0:
@@ -2234,8 +2223,8 @@ packages:
         optional: true
     dev: false
 
-  /xshell@1.0.14:
-    resolution: {integrity: sha512-nOJekOMcBxQmkS/EjDN538OnKO8X1S/cl2nqzS0QdheqiadJLTnpvAeSSzZxh7w/qUpLEM8GjHa7qSnfJOxtvg==}
+  /xshell@1.0.16:
+    resolution: {integrity: sha512-OqTpClYnrjSN0aJeNdwpQL+ML1nEsTRfP6eynyQvHfEwkO2zrUAoY3leQSgD+ljYoJYdFMfBM9CYciG80ndVuA==}
     engines: {node: '>=19.7.0', vscode: '>=1.75.1'}
     hasBin: true
     dependencies:
@@ -2258,9 +2247,8 @@ packages:
       fs-monkey: 1.0.3
       gulp-sort: 2.0.0
       hash-string: 1.0.0
-      i18next: 22.4.10
+      i18next: 22.4.11
       i18next-scanner: 4.1.1
-      iconv-lite: 0.6.3
       js-cookie: 3.0.1
       koa: 2.14.1
       koa-compress: 5.1.0
@@ -2269,9 +2257,9 @@ packages:
       map-stream: 0.0.7
       memfs: 3.4.13
       ora: 6.1.2
-      qs: 6.11.0
+      qs: 6.11.1
       react: 18.2.0
-      react-i18next: 12.2.0(i18next@22.4.10)(react@18.2.0)
+      react-i18next: 12.2.0(i18next@22.4.11)(react@18.2.0)
       resolve-path: 1.4.0
       stream-buffers: 3.0.2
       strip-ansi: 7.0.1

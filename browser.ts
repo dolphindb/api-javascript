@@ -8,7 +8,7 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 import 'xshell/prototype.browser.js'
 import { blue, cyan, green, grey, magenta } from 'xshell/chalk.browser.js'
 import { concat, assert, defer } from 'xshell/utils.browser.js'
-import { connect_websocket, WebSocketConnectionError } from 'xshell/net.browser.js'
+import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.browser.js'
 
 import { t } from './i18n/index.js'
 
@@ -3434,8 +3434,12 @@ export class DDB {
     }
     
     
-    private on_message (buffer: ArrayBuffer) {
-        // 这里的实现一定会被 connect 中的实现覆盖
+    private on_message (buffer: ArrayBuffer, websocket: WebSocket) {
+        // 这里的实现一定会被 connect, rpc 中的实现覆盖
+    }
+    
+    private on_error (error: WebSocketConnectionError, websocket: WebSocket) {
+        // 这里的实现一定会被 connect, rpc 中的实现覆盖
     }
     
     
@@ -3454,9 +3458,14 @@ export class DDB {
         
         try {
             if (!this.connected) {
-                this.on_message = buffer => {
+                this.on_error = (error, websocket) => {
+                    pconnect.reject(new DdbConnectionError(this, { cause: error }))
+                }
+                
+                this.on_message = (buffer, websocket) => {
                     assert(false, t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
                 }
+                
                 this.presult = defer(null)
                 this.pnode_run_defined = false
                 
@@ -3470,15 +3479,16 @@ export class DDB {
                                 return 'python'
                         })(),
                         
-                        on_message: (buffer: ArrayBuffer) => {
-                            this.on_message(buffer)
+                        on_message: (buffer: ArrayBuffer, websocket) => {
+                            this.on_message(buffer, websocket)
+                        },
+                        
+                        on_error: (error, websocket) => {
+                            this.on_error(error, websocket)
                         }
                     })
                 } catch (error) {
-                    if (error instanceof WebSocketConnectionError)
-                        throw new DdbConnectionError(this, { cause: error })
-                    else
-                        throw error
+                    throw new DdbConnectionError(this, { cause: error as WebSocketConnectionError })
                 }
                 
                 if (this.streaming)
@@ -3610,7 +3620,7 @@ export class DDB {
         
         if (!this.connected)
             throw new DdbConnectionError(this)
-            
+        
         const {
             script,
             func,
@@ -3696,6 +3706,14 @@ export class DDB {
         } catch { }
         // 临界区结束，只有一个 rpc 函数调用运行到这里，可以独占 this.on_message 然后写 WebSocket
         
+        if (!this.connected) {
+            presult.reject(new DdbConnectionError(this))
+            return presult
+        }
+        
+        this.on_error = (error, websocket) => {
+            presult.reject(new DdbConnectionError(this, error))
+        }
         
         this.on_message = buffer => {
             try {

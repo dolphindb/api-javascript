@@ -3267,16 +3267,13 @@ export interface DdbRpcOptions {
 export class DdbConnectionError extends Error {
     override name = 'DdbConnectionError'
     
+    override cause?: WebSocketConnectionError
+    
     ddb: DDB
     
-    constructor (ddb: DDB, error_options?: ErrorOptions) {
-        super(
-            error_options?.cause ? 
-                (error_options.cause as Error).message
-            :
-                `${ddb.url} ${t('连接出错了，可能由于网络原因连接已被关闭，或服务器断开连接')}`,
-            error_options
-        )
+    
+    constructor (ddb: DDB, error?: WebSocketConnectionError) {
+        super(error?.message || `${ddb.url} ${t('连接出错了，可能由于网络原因连接已被关闭，或服务器断开连接')}`, { cause: error })
         this.ddb = ddb
     }
 }
@@ -3451,7 +3448,7 @@ export class DDB {
         try {
             if (!this.connected) {
                 this.on_error = (error, websocket) => {
-                    pconnect.reject(new DdbConnectionError(this, { cause: error }))
+                    pconnect.reject(new DdbConnectionError(this, error))
                 }
                 
                 this.on_message = (buffer, websocket) => {
@@ -3480,7 +3477,7 @@ export class DDB {
                         }
                     })
                 } catch (error) {
-                    throw new DdbConnectionError(this, { cause: error as WebSocketConnectionError })
+                    throw new DdbConnectionError(this, error)
                 }
                 
                 if (this.streaming)

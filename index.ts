@@ -1958,10 +1958,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     /** 转换 js 数组为 DdbObj[] */
-    static to_ddbobjs (values: any[]) {
-        return values.map(value => 
-            this.to_ddbobj(value)
-        )
+    static to_ddbobjs (values: (DdbObj | string | boolean)[]) {
+        return values.map(value => this.to_ddbobj(value))
     }
     
     
@@ -2583,6 +2581,7 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
 
 export class DdbBlob extends DdbObj<Uint8Array> {
     constructor (value: Uint8Array | ArrayBuffer) {
+        assert(value, t('new DdbBlob 不能传空的 value'))
         super({
             form: DdbForm.scalar,
             type: DdbType.blob,
@@ -2694,7 +2693,7 @@ export class DdbVectorString extends DdbObj<string[]> {
 }
 
 export class DdbVectorAny extends DdbObj {
-    constructor (objs: (DdbObj | string | boolean | ArrayBuffer)[], name?: string) {
+    constructor (objs: (DdbObj | string | boolean)[], name?: string) {
         super({
             form: DdbForm.vector,
             type: DdbType.any,
@@ -2804,8 +2803,10 @@ export class DdbSetString extends DdbObj<string[]> {
 }
 
 /** 构造 DdbDict 对象，支持两种用法:  Constructs a DdbDict object, which supports two usages:
-     - 传入类型是 DdbVectorObj 的 keys, values 两个参数直接组成 dict<keys.type, values.type> 的 DdbDict  The incoming type is the keys of DdbObj<DdbVectorValue>, and the two parameters of values directly form the DdbDict of dict<keys.type, values.type>
-     - 传入 js object (类型是 Record<string, boolean | string | DdbObj>), 自动转换为 dict<string, any> 的 DdbDict  Pass in js object (type is Record<string, boolean | string | DdbObj>), automatically converted to DdbDict of dict<string, any> */
+     - 传入类型是 DdbVectorObj 的 keys, values 两个参数直接组成 dict<keys.type, values.type> 的 DdbDict  
+         The incoming type is the keys of DdbObj<DdbVectorValue>, and the two parameters of values directly form the DdbDict of dict<keys.type, values.type>
+     - 传入 js object (类型是 Record<string, boolean | string | DdbObj>), 自动转换为 dict<string, any> 的 DdbDict  
+         Pass in js object (type is Record<string, boolean | string | DdbObj>), automatically converted to DdbDict of dict<string, any> */
 export class DdbDict extends DdbObj<DdbDictValue> {
     constructor (obj: Record<string, boolean | string | DdbObj>)
     constructor (keys: DdbVectorObj, values: DdbVectorObj)
@@ -3256,7 +3257,7 @@ type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 export interface DdbRpcOptions {
     script?: string
     func?: string
-    args?: (DdbObj | string | boolean | ArrayBuffer)[]
+    args?: (DdbObj | string | boolean)[]
     vars?: string[]
     urgent?: boolean
     listener?: DdbMessageListener
@@ -3366,17 +3367,28 @@ export class DDB {
     pnode_run_defined = false
     
     
+    /** 在 websocket 收到的第一个 error 时，  
+        在 connect_websocket 的 on_error 回调中构造 DdbConnectionError 并保存到 DDB 对象上，  
+        这个 error 的错误信息最准确  
+        this.errored 为 true 时建议 throw this.error || new DdbConnectionError(this) */
+    error: DdbConnectionError
+    
     /** DdbMessage listeners */
     listeners: DdbMessageListener[] = [ ]
     
-    pconnect = defer<void>(null)
+    /** 为所有 websocket 操作加锁，包括设置 this.on_message, this.on_error, websocket.send */
+    pwebsocket = defer<void>(null)
     
-    ppnoderun = defer<void>(null)
+    /** 为定义 pnode_run 函数加锁，避免重复定义 */
+    ppnode_run = defer<void>(null)
     
-    presult = defer<DdbObj>(null)
     
     get connected () {
-        return this.websocket?.readyState === WebSocket.OPEN
+        return !this.error && this.websocket?.readyState === WebSocket.OPEN
+    }
+    
+    get errored () {
+        return this.error || (this.websocket && this.websocket.readyState !== WebSocket.OPEN)
     }
     
     
@@ -3391,7 +3403,7 @@ export class DDB {
             - python?: 设置 python session flag，默认 `false`  set python session flag, default `false`
             - streaming?: 设置该选项后，该 WebSocket 连接只用于流数据  When this option is set, the WebSocket connection is only used for streaming data
             - verbose?: 是否打印每个 rpc 的信息用于调试
-            
+        
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
         
@@ -3434,73 +3446,106 @@ export class DDB {
     
     
     private on_message (buffer: ArrayBuffer, websocket: WebSocket) {
+        throw t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message')
+    }
+    
+    private on_error () {
         // 这里的实现一定会被 connect, rpc 中的实现覆盖
     }
     
-    private on_error (error: WebSocketConnectionError, websocket: WebSocket) {
-        // 这里的实现一定会被 connect, rpc 中的实现覆盖
-    }
     
-    
-    /** 建立实际的 WebSocket 连接到 URL 对应的 DolphinDB  Establish a actual websocket connection to the DolphindB corresponding to the URL  
-        是幂等的，调用后会确保已连接到数据库 (确保 websocket.readyState 为 open)，否则报错  After calling, it will ensure that it has been connected to the database (ensure that websocket.ReadyState is open), otherwise an error will be reported  
-        this.autologin 为 true 时自动登录  this.autologin automatically log in when it is true */
+    /** 调用后会确保和数据库的连接是正常的 (this.connected === true && this.errored === false)，否则抛出错误  
+        这个方法是幂等的，首次调用建立实际的 WebSocket 连接到 URL 对应的 DolphinDB，后续调用检查上面的条件  
+        连接断开后禁止再次调用 connect 重连原有 ddb 对象，应该通过 new DDB() 的方式新建连接对象，原因是：  
+        1. on_error 回调和某个 websocket 绑定了，不方便解绑后重新绑定
+        2. session 是有状态的，重连也无法恢复之前的状态
+        3. 断线后所有之前的 ddb.call, ddb.eval 都应该抛出连接错误
+        
+        After calling, it will ensure that the connection with the database is normal (this.connected === true && this.errored === false), otherwise an error will be thrown  
+        This method is idempotent, the first call establishes an actual WebSocket connection to the DolphinDB corresponding to the URL, and subsequent calls check the above conditions  
+        After the connection is disconnected, it is forbidden to call connect again to reconnect the original ddb object. You should use new DDB() to create a new connection object because:  
+        1. The on_error callback is bound to a certain websocket, and it is inconvenient to unbind and rebind
+        2. The session is stateful, and the previous state cannot be restored even after reconnection
+        3. After disconnection, all previous ddb.call, ddb.eval should throw a connection error */
     async connect () {
+        if (this.errored)
+            throw this.error || new DdbConnectionError(this)
+        
         if (this.connected)
             return
         
-        const ptail = this.pconnect
+        // 准备进入 websocket 临界区
+        const ptail = this.pwebsocket
         
-        const pconnect = this.pconnect = defer<void>()
+        let pwebsocket = this.pwebsocket = defer<void>()
         
-        await ptail
+        // 避免 pwebsocket.reject 后出现 triggerUncaughtException
+        pwebsocket.catch(() => { })
+        
+        // 上一个请求出现了 websocket 错误，那么直接抛出异常，且通过 reject 当前锁 (pwebsocket)，安全退出临界区
+        try {
+            await ptail
+            // 已进入 websocket 临界区
+        } catch (error) {
+            pwebsocket.reject(error)
+            throw error
+        }
+        
+        
+        if (this.errored) {
+            const error = this.error || new DdbConnectionError(this)
+            pwebsocket.reject(error)
+            throw error
+        }
+        
+        if (this.connected) {
+            pwebsocket.resolve()
+            return
+        }
+        
+        this.on_error = () => {
+            pwebsocket.reject(this.error /* 一定有，不需要再 || new DdbConnectionError(this)  */)
+        }
+        
         
         try {
-            if (!this.connected) {
-                this.on_error = (error, websocket) => {
-                    pconnect.reject(new DdbConnectionError(this, error))
-                }
+            this.websocket = await connect_websocket(this.url, {
+                protocols: (() => {
+                    if (this.streaming)
+                        return 'streaming'
+                    
+                    if (this.python)
+                        return 'python'
+                })(),
                 
-                this.on_message = (buffer, websocket) => {
-                    assert(false, t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
-                }
+                on_message: (buffer: ArrayBuffer, websocket) => {
+                    this.on_message(buffer, websocket)
+                },
                 
-                this.presult = defer(null)
-                this.pnode_run_defined = false
-                
-                try {
-                    this.websocket = await connect_websocket(this.url, {
-                        protocols: (() => {
-                            if (this.streaming)
-                                return 'streaming'
-                            
-                            if (this.python)
-                                return 'python'
-                        })(),
-                        
-                        on_message: (buffer: ArrayBuffer, websocket) => {
-                            this.on_message(buffer, websocket)
-                        },
-                        
-                        on_error: (error, websocket) => {
-                            this.on_error(error, websocket)
-                        }
-                    })
-                } catch (error) {
-                    throw new DdbConnectionError(this, error)
+                on_error: error => {
+                    this.error ??= new DdbConnectionError(this, error)
+                    this.on_error()
                 }
-                
-                if (this.streaming)
-                    await this.subscribe()
-                else {
-                    await this.rpc('connect', { })
-                    if (this.autologin)
-                        await this.call('login', [this.username, this.password], { urgent: true })
-                }
-            }
-        } finally {
-            pconnect.resolve()
+            })
+        } catch (error) {
+            this.error ??= new DdbConnectionError(this, error)
+            pwebsocket.reject(error)
+            throw this.error
         }
+        
+        assert(this.connected)
+        
+        pwebsocket.resolve()
+        
+        // websocket 临界区结束
+        
+        await this.rpc('connect', { })
+        
+        if (this.autologin)
+            await this.call('login', [this.username, this.password], { urgent: true })
+        
+        if (this.streaming)
+            await this.subscribe()
     }
     
     
@@ -3603,10 +3648,10 @@ export class DDB {
     }
     
     
-    /** rpc through websocket (function/script/variable command)  
+    /** (内部使用的方法) rpc through websocket (function/script/variable command)  
         未连接到 DDB 时调用会自动连接，连接断开时调用会抛出 DdbConnectionError  
         When the DDB is not connected, the call will be automatically connected. When the connection is disconnected, the call will throw the DdbConnectionError  
-        - type: API 类型: 'script' | 'function' | 'variable'
+        - type: API 类型: 'script' | 'function' | 'variable' | 'connect'
         - options:
             - urgent?: 决定 `行为标识` 那一行字符串的取值（只适用于 script 和 function）
             - vars?: type === 'variable' 时必传，variable 指令中待上传的变量名
@@ -3614,32 +3659,42 @@ export class DDB {
             - parse_object?: 在本次 rpc 期间设置 parse_object, 结束后恢复原有  
                 为 false 时返回的 DdbObj 仅含有 buffer 和 le，不做解析，以便后续转发、序列化 */
     async rpc <TResult extends DdbObj = DdbObj> (type: DdbRpcType, options: DdbRpcOptions) {
-        if (!this.websocket)
-            await this.connect()
+        // 保留调用栈信息
+        let error = new DdbDatabaseError('', this, type, options)
         
-        if (!this.connected)
-            throw new DdbConnectionError(this)
+        await this.connect()
         
         const {
             script,
             func,
+            args: _args = [ ],
             vars = [ ],
             urgent,
             listener,
         } = options
         
-        let { args = [ ] } = options
         
         if (func === 'pnode_run' && !this.pnode_run_defined) {
-            // 保证并发调用 rpc 时只定义一次 pnode_run
-            const ptail = this.ppnoderun
+            // 准备进入 pnode_run 临界区，保证并发调用 rpc 时只定义一次 pnode_run
+            const ptail = this.ppnode_run
             
-            const ppnoderun = this.ppnoderun = defer<void>()
+            let ppnode_run = this.ppnode_run = defer<void>()
             
-            await ptail
+            // 避免 ppnode_run.reject 后出现 triggerUncaughtException
+            ppnode_run.catch(() => { })
             
+            // 如果之前的定义失败了，再定义一次也会失败，直接抛出之前的错误，且安全地退出临界区
             try {
-                if (!this.pnode_run_defined)
+                await ptail
+                // 已进入 pnode_run 临界区
+            } catch (error) {
+                ppnode_run.reject(error)
+                throw error
+            }
+            
+            
+            if (!this.pnode_run_defined)
+                try {
                     await this.eval(
                         this.python ?
                             'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
@@ -3678,129 +3733,139 @@ export class DDB {
                             '}\n',
                         { urgent: true }
                     )
-            } finally {
-                ppnoderun.resolve()
-            }
+                    
+                    this.pnode_run_defined = true
+                    
+                    ppnode_run.resolve()
+                } catch (error) {
+                    // 这次失败了，之后的执行肯定也会失败
+                    ppnode_run.reject(error)
+                    throw error
+                }
         }
         
         
         // this 上的当前配置需要在 message 到达后使用，先保存起来
-        const _handlers = [...this.listeners].reverse()
-        
-        let error = new DdbDatabaseError('', this, type, options)
+        const _listeners = [...this.listeners].reverse()
         
         
-        // 临界区：保证多个 rpc 并发时形成 promise 链
+        // websocket 临界区：保证多个 rpc 并发时形成 promise 链
         // ddb 世界观：需要等待上一个 rpc 结果从 server 返回之后才能发起下一个调用  
         // 违反世界观可能造成:  
         // 1. 并发多个请求只返回第一个结果（阻塞，需后续请求疏通）
         // 2. windows 下 ddb server 返回多个相同的结果
         
-        const ptail = this.presult
+        const ptail = this.pwebsocket
         
-        const presult = this.presult = defer<TResult>()
+        let pwebsocket = this.pwebsocket = defer<void>()
         
+        // 避免 pwebsocket.reject 后出现 triggerUncaughtException
+        pwebsocket.catch(() => { })
+        
+        // 上一个请求出现了 websocket 错误，那么直接抛出异常，且通过 reject 当前锁 (pwebsocket)，安全退出临界区
         try {
             await ptail
-        } catch { }
-        // 临界区结束，只有一个 rpc 函数调用运行到这里，可以独占 this.on_message 然后写 WebSocket
-        
-        if (!this.connected) {
-            presult.reject(new DdbConnectionError(this))
-            return presult
+            // 已进入临界区，只有一个 rpc 函数调用运行到这里，可以独占 this.on_message 然后写 WebSocket
+        } catch (error) {
+            pwebsocket.reject(error)
+            throw error
         }
         
-        this.on_error = (error, websocket) => {
-            presult.reject(new DdbConnectionError(this, error))
-        }
+        // 既然上一个请求没有出现 websocket error，且函数开头已经调用了 await this.connect() 检查过，
+        // 这里也乐观的认为 this.connected && !this.errored 为 true
         
-        this.on_message = buffer => {
-            try {
-                const buf = new Uint8Array(buffer)
-                
-                if (this.print_message_buffer)
-                    console.log(typed_array_to_buffer(buf))
-                
-                const message = this.parse_message(buf, error)
-                
-                listener?.(message, this)
-                for (const listener of _handlers)
-                    listener(message, this)
-                
-                const { type, data } = message
-                
-                switch (type) {
-                    case 'print':
-                        if (this.print_message)
-                            console.log(data)
-                        return
-                    
-                    case 'object':
-                        presult.resolve(data as TResult)
-                        return
-                    
-                    case 'error':
-                        presult.reject(data)
-                        return
-                }
-            } catch (error) {
-                presult.reject(error)
+        return new Promise<TResult>((resolve, reject) => {
+            this.on_error = () => {
+                pwebsocket.reject(this.error /* 这里一定有了 this.error, 不需要再 || new DdbConnectionError(this) */)
+                reject(this.error)
             }
-        }
-        
-        args = DdbObj.to_ddbobjs(args)
-        
-        const command = this.enc.encode(
-            (() => {
-                switch (type) {
-                    case 'function':
-                        if (this.verbose)
-                            console.log(func + (args as DdbObj[]).map(arg => inspect(arg as DdbObj, { colors: false })).join(', ').bracket())
-                        
-                        return 'function\n' +
-                            `${func}\n` +
-                            `${args.length}\n` +
-                            `${Number(DDB.le_client)}\n`
+            
+            this.on_message = buffer => {
+                try {
+                    const buf = new Uint8Array(buffer)
                     
-                    case 'script':
-                        if (this.verbose)
-                            console.log(script)
-                        
-                        return 'script\n' +
-                            script
+                    if (this.print_message_buffer)
+                        console.log(typed_array_to_buffer(buf))
                     
-                    case 'variable':
-                        if (this.verbose)
-                            for (let i = 0;  i < vars.length;  i++)
-                                console.log(`${vars[i]} = ${inspect(args[i] as DdbObj, { colors: false })}`)
-                        
-                        return 'variable\n' +
-                            `${vars.join(',')}\n` +
-                            `${vars.length}\n` +
-                            `${Number(DDB.le_client)}\n`
+                    const message = this.parse_message(buf, error)
                     
-                    case 'connect':
-                        if (this.verbose)
-                            console.log('connect()')
+                    listener?.(message, this)
+                    for (const listener of _listeners)
+                        listener(message, this)
+                    
+                    const { type, data } = message
+                    
+                    switch (type) {
+                        case 'print':
+                            if (this.print_message)
+                                console.log(data)
+                            break
                         
-                        return 'connect\n'
+                        case 'object':
+                            pwebsocket.resolve()
+                            resolve(data as TResult)
+                            break
+                        
+                        case 'error':
+                            pwebsocket.resolve()
+                            reject(data)
+                            break
+                    }
+                } catch (error) {
+                    pwebsocket.resolve()
+                    // 这里的错误并非 websocket 错误，而是 rpc 错误
+                    reject(error)
                 }
-            })()
-        )
-        
-        this.websocket.send(
-            concat([
-                this.enc.encode(
-                    `API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent })}\n`
-                ),
-                command,
-                ... args.map((arg: DdbObj) =>
-                    arg.pack()
-                )
-            ])
-        )
-        
-        return presult
+            }
+            
+            const args = DdbObj.to_ddbobjs(_args)
+            
+            const command = this.enc.encode(
+                (() => {
+                    switch (type) {
+                        case 'function':
+                            if (this.verbose)
+                                console.log(func + inspect(args, { colors: false }))
+                            
+                            return 'function\n' +
+                                `${func}\n` +
+                                `${args.length}\n` +
+                                `${Number(DDB.le_client)}\n`
+                        
+                        case 'script':
+                            if (this.verbose)
+                                console.log(script)
+                            
+                            return 'script\n' +
+                                script
+                        
+                        case 'variable':
+                            if (this.verbose)
+                                for (let i = 0;  i < vars.length;  i++)
+                                    console.log(`${vars[i]} = ${inspect(args[i], { colors: false })}`)
+                            
+                            return 'variable\n' +
+                                `${vars.join(',')}\n` +
+                                `${vars.length}\n` +
+                                `${Number(DDB.le_client)}\n`
+                        
+                        case 'connect':
+                            if (this.verbose)
+                                console.log('connect()')
+                            
+                            return 'connect\n'
+                    }
+                })()
+            )
+            
+            this.websocket.send(
+                concat([
+                    this.enc.encode(`API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent })}\n`),
+                    command,
+                    ... args.map(arg => arg.pack())
+                ])
+            )
+        })
     }
     
     
@@ -3857,7 +3922,7 @@ export class DDB {
     */
     async call <TResult extends DdbObj> (
         func: string,
-        args: (DdbObj | string | boolean | ArrayBuffer)[] = [ ],
+        args: (DdbObj | string | boolean)[] = [ ],
         {
             urgent,
             node,
@@ -4032,11 +4097,6 @@ export class DDB {
     
     /** 内部的流订阅方法  Internal stream subscription method */
     async subscribe () {
-        await this.rpc('connect', { })
-        
-        if (this.autologin)
-            await this.call('login', [this.username, this.password])
-        
         console.log(
             t('订阅流表成功') + ', colnames:',
             
@@ -4296,7 +4356,7 @@ export interface DdbObjectMessage {
 
 export interface DdbErrorMessage {
     type: 'error',
-    data: Error
+    data: DdbDatabaseError
 }
 
 export type DdbMessage = DdbPrintMessage | DdbObjectMessage | DdbErrorMessage

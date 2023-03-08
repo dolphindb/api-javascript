@@ -23,13 +23,13 @@ export const url = 'ws://192.168.0.16:20002' as const
     let ddb = new DDB(url)
     
     const tests = [
-        // test_keywords,
-        // test_types,
-        test_connection,
-        // test_print,
-        // test_time,
-        // test_streaming,
-        // test_error,
+        test_keywords,
+        test_types,
+        test_reconnection,
+        test_print,
+        test_time,
+        test_streaming,
+        test_error,
     ]
     
     for (const fn_test of tests)
@@ -71,12 +71,21 @@ async function get_printed (ddb: DDB, code: string) {
 }
 
 
-async function test_connection (ddb: DDB) {
+async function test_reconnection (ddb: DDB) {
     let _ddb = new DDB(url)
     
     await _ddb.connect()
     _ddb.disconnect()
-    await _ddb.eval('1')
+    
+    let error: DdbConnectionError
+    
+    try {
+        await _ddb.connect()
+    } catch (_error) {
+        error = _error
+    }
+    
+    assert(error && error instanceof DdbConnectionError)
 }
 
 

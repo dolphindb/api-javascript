@@ -3274,6 +3274,8 @@ export class DdbConnectionError extends Error {
     
     constructor (ddb: DDB, error?: WebSocketConnectionError) {
         super(error?.message || `${ddb.url} ${t('连接出错了，可能由于网络原因连接已被关闭，或服务器断开连接')}`, { cause: error })
+        if (error)
+            this.cause = error
         this.ddb = ddb
     }
 }
@@ -3348,6 +3350,9 @@ export class DDB {
     /** 是否为流数据连接，非流数据这个字段恒为 null  Whether it is a streaming data connection, this field is always null for non-streaming data */
     streaming = null as StreamingData
     
+    /** 是否打印每个 rpc 的信息用于调试 */
+    verbose = false
+    
     
     // --- 内部选项, 状态
     print_message_buffer = false
@@ -3385,7 +3390,8 @@ export class DDB {
             - password?: DolphinDB 登录密码，默认 `'123456'`  DolphinDB password, default `'123456'`
             - python?: 设置 python session flag，默认 `false`  set python session flag, default `false`
             - streaming?: 设置该选项后，该 WebSocket 连接只用于流数据  When this option is set, the WebSocket connection is only used for streaming data
-        
+            - verbose?: 是否打印每个 rpc 的信息用于调试
+            
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
         
@@ -3403,8 +3409,12 @@ export class DDB {
         password?: string
         python?: boolean
         streaming?: StreamingParams
+        verbose?: boolean
     } = { }) {
         this.url = url
+        
+        if (options.verbose !== undefined)
+            this.verbose = options.verbose
         
         if (options.autologin !== undefined)
             this.autologin = options.autologin
@@ -3744,22 +3754,35 @@ export class DDB {
             (() => {
                 switch (type) {
                     case 'function':
+                        if (this.verbose)
+                            console.log(func + (args as DdbObj[]).map(arg => inspect(arg as DdbObj, { colors: false })).join(', ').bracket())
+                        
                         return 'function\n' +
                             `${func}\n` +
                             `${args.length}\n` +
                             `${Number(DDB.le_client)}\n`
-                        
+                    
                     case 'script':
+                        if (this.verbose)
+                            console.log(script)
+                        
                         return 'script\n' +
                             script
-                            
+                    
                     case 'variable':
+                        if (this.verbose)
+                            for (let i = 0;  i < vars.length;  i++)
+                                console.log(`${vars[i]} = ${inspect(args[i] as DdbObj, { colors: false })}`)
+                        
                         return 'variable\n' +
                             `${vars.join(',')}\n` +
                             `${vars.length}\n` +
                             `${Number(DDB.le_client)}\n`
-                            
+                    
                     case 'connect':
+                        if (this.verbose)
+                            console.log('connect()')
+                        
                         return 'connect\n'
                 }
             })()

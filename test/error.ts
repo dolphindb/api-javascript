@@ -1,4 +1,4 @@
-import { assert } from 'xshell'
+import { assert, WebSocketConnectionError } from 'xshell'
 
 import { DdbDatabaseError, DdbConnectionError, DDB } from '../index.js'
 import { url } from './index.js'
@@ -54,5 +54,5 @@ export async function test_error (ddb: DDB) {
     
     assert(connection_error2)
     assert(connection_error2 instanceof DdbConnectionError)
-    assert(connection_error2.cause)
+    assert(connection_error2.cause && connection_error2.cause instanceof WebSocketConnectionError)
 }

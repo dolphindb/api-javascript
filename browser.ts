@@ -3409,18 +3409,17 @@ export class DDB {
         streaming?: StreamingParams
         verbose?: boolean
     } = { }) {
-        const _url = new URL(location.href)
-        const { searchParams, pathname } = _url
+        const { searchParams, pathname } = new URL(location.href)
         
-        if (url)
-            this.url = url
-        else {
+        if (!url) {
             const dev = pathname.endsWith('/console/')
             
             const hostname = searchParams.get('hostname') || (dev ? '127.0.0.1' : location.hostname)
             const port = searchParams.get('port') || (dev ? '8848' : location.port)
             url = `${ dev ? (searchParams.get('tls') === '1' ? 'wss' : 'ws') : (location.protocol === 'https:' ? 'wss' : 'ws') }://${hostname}${port ? `:${port}` : ''}/`
         }
+        
+        this.url = url
         
         this.verbose = options.verbose === undefined ? 
                 searchParams.get('verbose') === '1'

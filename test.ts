@@ -23,6 +23,8 @@ export const url = 'ws://192.168.0.16:20002' as const
     let ddb = new DDB(url)
     
     const tests = [
+        test_repl,
+        
         test_keywords,
         test_types,
         test_reconnection,
@@ -68,6 +70,11 @@ async function get_printed (ddb: DDB, code: string) {
             reject(error)
         }
     })
+}
+
+
+async function test_repl (ddb: DDB) {
+    
 }
 
 

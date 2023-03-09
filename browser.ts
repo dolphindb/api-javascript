@@ -3419,22 +3419,10 @@ export class DDB {
         streaming?: StreamingParams
         verbose?: boolean
     } = { }) {
-        const { searchParams, pathname } = new URL(location.href)
-        
-        if (!url) {
-            const dev = pathname.endsWith('/console/')
-            
-            const hostname = searchParams.get('hostname') || (dev ? '127.0.0.1' : location.hostname)
-            const port = searchParams.get('port') || (dev ? '8848' : location.port)
-            url = `${ dev ? (searchParams.get('tls') === '1' ? 'wss' : 'ws') : (location.protocol === 'https:' ? 'wss' : 'ws') }://${hostname}${port ? `:${port}` : ''}/`
-        }
-        
         this.url = url
         
-        this.verbose = options.verbose === undefined ? 
-                searchParams.get('verbose') === '1'
-            :
-                options.verbose
+        if (options.verbose !== undefined)
+            this.verbose = options.verbose
         
         if (options.autologin !== undefined)
             this.autologin = options.autologin
@@ -3463,7 +3451,9 @@ export class DDB {
     
     
     /** 调用后会确保和数据库的连接是正常的 (this.connected === true && this.errored === false)，否则抛出错误  
-        这个方法是幂等的，首次调用建立实际的 WebSocket 连接到 URL 对应的 DolphinDB，后续调用检查上面的条件  
+        这个方法是幂等的，首次调用建立实际的 WebSocket 连接到 URL 对应的 DolphinDB，然后执行自动登录，  
+        如果是流数据连接，还会调用 publishTable 订阅流表  
+        后续调用检查上面的条件  
         连接断开后禁止再次调用 connect 重连原有 ddb 对象，应该通过 new DDB() 的方式新建连接对象，原因是：  
         1. on_error 回调和某个 websocket 绑定了，不方便解绑后重新绑定
         2. session 是有状态的，重连也无法恢复之前的状态
@@ -4202,5 +4192,3 @@ export interface DdbErrorMessage {
 
 export type DdbMessage = DdbPrintMessage | DdbObjectMessage | DdbErrorMessage
 
-
-export let ddb = (window as any).ddb = new DDB()

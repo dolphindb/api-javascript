@@ -100,6 +100,10 @@ console.log(result.value === 2)  // true
 - result.type 是 `DdbType.int`
 - result.value 是 JavaScript 中原生的 `number` (int 的取值范围及精度可以用 JavaScript 的 number 准确表示)
 
+建议先了解一下 JavaScript 中的 TypedArray 相关的概念，可以参考:  
+https://stackoverflow.com/questions/42416783/where-to-use-arraybuffer-vs-typed-array-in-javascript  
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray  
+
 ```ts
 /** 可以表示所有 DolphinDB 数据库中的数据类型 */
 class DdbObj <T extends DdbValue = DdbValue> {

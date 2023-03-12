@@ -103,6 +103,11 @@ In the above example, two parameters 1 (corresponding to the int type in Dolphin
 - result.type is a `DdbType.int`
 - result.value is native `number` in JavaScript (the value range and precision of int can be accurately represented by JavaScript number)
 
+It is recommended to first understand the concepts related to TypedArray in JavaScript, you can refer to:  
+https://stackoverflow.com/questions/42416783/where-to-use-arraybuffer-vs-typed-array-in-javascript  
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray  
+
+
 ```ts
 /** Can represent all data types in DolphinDB databases */
 class DdbObj <T extends DdbValue = DdbValue> {

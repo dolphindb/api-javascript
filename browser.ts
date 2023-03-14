@@ -3502,7 +3502,7 @@ export class DDB {
                 })
             } catch (error) {
                 this.error ??= new DdbConnectionError(this, error)
-                reject(error)
+                reject(this.error)
                 return
             }
             

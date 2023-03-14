@@ -3485,27 +3485,25 @@ export class DDB {
             }
             
             try {
-                // 事实上连接建立之前应该不会有别的调用占用 this.lwebsocket
-                await this.lwebsocket.request(async () => {
-                    this.lwebsocket.resource = await connect_websocket(this.url, {
-                        protocols: (() => {
-                            if (this.streaming)
-                                return 'streaming'
-                            
-                            if (this.python)
-                                return 'python'
-                        })(),
+                // 连接建立之前应该不会有别的调用占用 this.lwebsocket
+                this.lwebsocket.resource = await connect_websocket(this.url, {
+                    protocols: (() => {
+                        if (this.streaming)
+                            return 'streaming'
                         
-                        on_message: (buffer: ArrayBuffer, websocket) => {
-                            this.on_message(buffer, websocket)
-                        },
-                        
-                        on_error: error => {
-                            this.error ??= new DdbConnectionError(this, error)
-                            this.on_error()
-                        }
-                    })
-                }, AbortSignal.timeout(3000))
+                        if (this.python)
+                            return 'python'
+                    })(),
+                    
+                    on_message: (buffer: ArrayBuffer, websocket) => {
+                        this.on_message(buffer, websocket)
+                    },
+                    
+                    on_error: error => {
+                        this.error ??= new DdbConnectionError(this, error)
+                        this.on_error()
+                    }
+                })
             } catch (error) {
                 this.error ??= new DdbConnectionError(this, error)
                 reject(error)

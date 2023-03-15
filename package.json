@@ -10,7 +10,7 @@
         "test": "tsc && node ./test/index.js"
     },
     "engines": {
-        "node": ">=19.7.0"
+        "node": ">=19.8.1"
     },
     "author": "Hongfei Shen <hongfei.shen@dolphindb.com> (https://dolphindb.net/hongfeishen)",
     "publisher": "Hongfei Shen",

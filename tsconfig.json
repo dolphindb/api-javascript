@@ -33,8 +33,6 @@
         "inlineSources": true,
         
         // --- features
-        "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
         "preserveSymlinks": false,
         "jsx": "react",
         "removeComments": false,

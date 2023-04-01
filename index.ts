@@ -3174,8 +3174,7 @@ export function ipaddr2str (buffer: Uint8Array, le = true, ipv6?: boolean) {
     if (le)
         buf = buffer.slice().reverse()
     
-    const i_non_zero = buf.findIndex(x => 
-        x as any)
+    const i_non_zero = buf.findIndex(x => x !== 0)
     
     if (
         ipv6 || 

@@ -3305,6 +3305,16 @@ export class DdbDatabaseError extends Error {
 }
 
 
+export interface DdbOptions {
+    autologin?: boolean
+    username?: string
+    password?: string
+    python?: boolean
+    streaming?: StreamingParams
+    verbose?: boolean
+}
+
+
 export class DDB {
     /** 当前的 session id (http 或 tcp) */
     sid = '0'
@@ -3395,7 +3405,7 @@ export class DDB {
         Initialize an instance of DolphinDB Client using the WebSocket URL (without establishing an actual network connection)  
         - url?: DolphinDB WebSocket URL，如：`ws://127.0.0.1:8848`, 默认为当前页面 URL  
             DolphinDB WebSocket URL. e.g.：`ws://127.0.0.1:8848`, Defaults to the current page URL
-        - options?:
+        - options?: DdbOptions
             - autologin?: 是否在建立连接后自动登录，默认 `true`  Whether to log in automatically after establishing a connection, default `true`
             - username?: DolphinDB 登录用户名，默认 `'admin'`  DolphinDB username, default `'admin'`
             - password?: DolphinDB 登录密码，默认 `'123456'`  DolphinDB password, default `'123456'`
@@ -3412,16 +3422,8 @@ export class DDB {
             username: 'admin',
             password: '123456',
             python: false
-        })
-    */
-    constructor (url?: string, options: {
-        autologin?: boolean
-        username?: string
-        password?: string
-        python?: boolean
-        streaming?: StreamingParams
-        verbose?: boolean
-    } = { }) {
+        }) */
+    constructor (url: string, options: DdbOptions = { }) {
         this.url = url
         
         if (options.verbose !== undefined)

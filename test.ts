@@ -31,6 +31,7 @@ export const url = 'ws://115.239.209.123:8892' as const
         test_reconnection,
         test_print,
         test_time,
+        test_datasource,
         test_streaming,
         test_error,
     ]
@@ -332,5 +333,24 @@ export async function test_types (ddb: DDB) {
     assert((
         await ddb.eval<DdbVectorDouble>('a')
     ).rows === bigarr.length)
+}
+
+
+export async function test_datasource(ddb: DDB) {
+    console.log('测试 Datasource 类型的支持')
+    
+    const result = await ddb.eval('sqlDS(<select * from loadTable("dfs://SH_TSDB_tick", "tick") where date(TradeTime)=2021.12.01>)')
+    assert(result.value[0].type === DdbType.datasource, '返回类型是 DdbType.datasource')
+    
+    assert(typeof result.value[0].value === 'string', 'Datasource 对应的 DdbObj 的 value 是字符串')
+    console.log('一个样例 Datasource 的 value: ', result.value[0].value)
+    
+    // 以下断言失效，如果直接构造 DdbObj Datasource，将其送入 ddb.call, ddb将仍然认为送入的是一个 STRING 
+    assert(
+        (await ddb.call('typestr', [
+            new DdbObj({value: 'DataSource< select [15] * from tick [partition = /SH_TSDB_tick/20211201/Key2/8pl] >', form: DdbForm.scalar, type: DdbType.datasource})
+        ])).value === 'DATASOURCE', 
+        '从 js 构建的 Datasource DdbObj 可以被正确识别'
+    )
 }
 

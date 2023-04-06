@@ -337,13 +337,14 @@ export async function test_types (ddb: DDB) {
 
 
 export async function test_datasource(ddb: DDB) {
-    console.log('测试 Datasource 类型的支持')
+    console.log('测试 DataSource 类型的支持')
     
-    const result = await ddb.eval('sqlDS(<select * from loadTable("dfs://SH_TSDB_tick", "tick") where date(TradeTime)=2021.12.01>)')
-    assert(result.value[0].type === DdbType.datasource, '返回类型是 DdbType.datasource')
+    const {type, form, value} = (await ddb.eval('sqlDS(<select * from loadTable("dfs://SH_TSDB_tick", "tick") where date(TradeTime)=2021.12.01>)')).value[0]
     
-    assert(typeof result.value[0].value === 'string', 'Datasource 对应的 DdbObj 的 value 是字符串')
-    console.log('一个样例 Datasource 的 value: ', result.value[0].value)
+    assert(type === DdbType.datasource && form === DdbForm.scalar, '返回的 DdbObj 具有正确的 type 和 form')
+    
+    assert(typeof value === 'string', '返回的 DdbObj 的 value 是字符串')
+    console.log('DataSource 的 value: ', value)
     
     // 以下断言失效，如果直接构造 DdbObj Datasource，将其送入 ddb.call, ddb将仍然认为送入的是一个 STRING 
     assert(

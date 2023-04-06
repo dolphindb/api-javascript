@@ -31,9 +31,9 @@ export const url = 'ws://115.239.209.123:8892' as const
         test_reconnection,
         test_print,
         test_time,
-        test_datasource,
         test_streaming,
         test_error,
+        test_datasource,
     ]
     
     for (const fn_test of tests)

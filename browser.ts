@@ -713,7 +713,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.symbol:
             case DdbType.code:
             case DdbType.handle:
+                
+            // sqlDS 函数会返回包含 datasource 的 any vector
             case DdbType.datasource:
+            
             case DdbType.functiondef: 
             
             // mysql 插件 connect 方法会返回 resource 类型的对象

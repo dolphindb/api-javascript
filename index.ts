@@ -717,6 +717,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.symbol:
             case DdbType.code:
             case DdbType.handle:
+                
+            // sqlDS 函数会返回包含 datasource 的 any vector
+            case DdbType.datasource:
+            
             case DdbType.functiondef: 
             
             // mysql 插件 connect 方法会返回 resource 类型的对象
@@ -1070,6 +1074,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.string:
             case DdbType.symbol:
             case DdbType.handle:
+            case DdbType.datasource:
             case DdbType.code: {
                 let value = new Array<string>(length)
                 let i_head = 0, i_tail = i_head
@@ -1379,6 +1384,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         case DdbType.symbol:
                         case DdbType.code:
                         case DdbType.handle:
+                        case DdbType.datasource:
                         case DdbType.resource:
                             return [
                                 DdbObj.enc.encode(value as string),
@@ -1584,6 +1590,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.string:
             case DdbType.symbol:
             case DdbType.handle:
+            case DdbType.datasource:
             case DdbType.code: {
                 let bufs = new Array<Uint8Array>(length * 2)
                 for (let i = 0;  i < length;  i++) {
@@ -2244,6 +2251,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             )
         
         case DdbType.handle:
+        case DdbType.datasource:
         case DdbType.code:
         case DdbType.resource:
             return inspect(value as string, options)

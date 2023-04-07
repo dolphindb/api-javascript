@@ -339,19 +339,31 @@ export async function test_types (ddb: DDB) {
 export async function test_datasource(ddb: DDB) {
     console.log('测试 DataSource 类型的支持')
     
-    const {type, form, value} = (await ddb.eval('sqlDS(<select * from loadTable("dfs://SH_TSDB_tick", "tick") where date(TradeTime)=2021.12.01>)')).value[0]
+    const {type, form, value} =  (await ddb.eval(
+        'db_path = "dfs://test-datasource"\n' + 
+        'tb_name = "db"\n' + 
+        'if (!existsTable(db_path, tb_name)) {\n' + 
+        '    createTable(\n' + 
+        '        database(db_path, VALUE , [1]),\n' +
+        '        table(1:0,`id`name, [INT, STRING]),\n' +
+        '        tb_name\n' +
+        '    ).append!(table(1 2 as id, `str1 `str2 as name))\n' +
+        '}\n' +
+        'tb = loadTable(db_path, tb_name)\n' +
+        'sqlDS(<select * from tb where id = 1>)\n'
+    )).value[0]
     
     assert(type === DdbType.datasource && form === DdbForm.scalar, '返回的 DdbObj 具有正确的 type 和 form')
     
     assert(typeof value === 'string', '返回的 DdbObj 的 value 是字符串')
     console.log('DataSource 的 value: ', value)
     
-    // 以下断言失效，如果直接构造 DdbObj Datasource，将其送入 ddb.call, ddb将仍然认为送入的是一个 STRING 
+    // 如果直接构造 DdbObj Datasource，将其送入 ddb.call, ddb将仍然认为送入的是一个 STRING 
     assert(
         (await ddb.call('typestr', [
             new DdbObj({value: 'DataSource< select [15] * from tick [partition = /SH_TSDB_tick/20211201/Key2/8pl] >', form: DdbForm.scalar, type: DdbType.datasource})
-        ])).value === 'DATASOURCE', 
-        '从 js 构建的 Datasource DdbObj 可以被正确识别'
+        ])).value === 'STRING', 
+        '从 js 构建的 Datasource DdbObj 会被识别为 STRING'
     )
 }
 

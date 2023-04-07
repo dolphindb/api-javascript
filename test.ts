@@ -1,7 +1,7 @@
 import { assert, inspect, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.js'
-import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj } from './index.js'
+import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj } from './index.js'
 
 
 set_inspect_options()
@@ -332,5 +332,34 @@ export async function test_types (ddb: DDB) {
     assert((
         await ddb.eval<DdbVectorDouble>('a')
     ).rows === bigarr.length)
+    
+    
+    console.log('测试 datasource')
+    
+    const ds = (await ddb.eval<DdbVectorAnyObj>(
+        'db_path = "dfs://test-datasource"\n' + 
+        'tb_name = "db"\n' + 
+        'if (!existsTable(db_path, tb_name))\n' + 
+        '    createTable(\n' + 
+        '        database(db_path, VALUE , [1]),\n' +
+        '        table(1:0,`id`name, [INT, STRING]),\n' +
+        '        tb_name\n' +
+        '    ).append!(table(1 2 as id, `str1`str2 as name))\n' +
+        '\n' +
+        'tb = loadTable(db_path, tb_name)\n' +
+        'sqlDS(<select * from tb where id = 1>)\n'
+    )).value[0] as DdbStringObj
+    
+    const { type, form, value } = ds
+    
+    assert(type === DdbType.datasource && form === DdbForm.scalar, '返回的 DdbObj 具有正确的 type 和 form')
+    
+    assert(value === 'DataSource< select [7] * from tb where id == 1 >')
+    
+    // 如果直接构造 DdbObj Datasource，将其送入 ddb.call, ddb将仍然认为送入的是一个 STRING 
+    assert(
+        (await ddb.call<DdbStringObj>('typestr', [ds])).value === 'STRING', 
+        '从 js 构建的 Datasource DdbObj 会被识别为 STRING'
+    )
 }
 

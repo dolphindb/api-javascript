@@ -7,7 +7,9 @@
     "browser": "./browser.js",
     "scripts": {
         "build": "tsc",
-        "test": "tsc && node ./test/index.js"
+        "test": "tsc && node ./test/index.js",
+        "lint": "eslint \"**/*.{ts,tsx}\"",
+        "fix": "eslint --fix \"**/*.{ts,tsx}\""
     },
     "engines": {
         "node": ">=19.8.1"

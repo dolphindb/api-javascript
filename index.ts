@@ -345,7 +345,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         const type = buf[0]
         const form = buf[1]
         
-        if (buf.length <= 2) {
+        if (buf.length <= 2) 
             return new this({
                 le,
                 form,
@@ -353,7 +353,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 length: 2,
                 value: null,
             })
-        }
+        
         
         // set 里面 data 嵌套了一个 vector, 跳过 vector 的 type 和 form
         const i_data = form === DdbForm.set ? 4 : 2

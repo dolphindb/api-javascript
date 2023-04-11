@@ -272,7 +272,7 @@ export const constants = [
 
 
 export const tm_language = {
-    '$schema': 'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
+    $schema: 'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
     
     name: 'DolphinDB',
     

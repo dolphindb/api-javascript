@@ -1967,7 +1967,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         return (this as DdbTableObj).value.map(col => ({
             title: col.name,
             dataIndex: col.name,
-            render: (value) => format(col.type, value, col.le, { nullstr: false, quote: false })
+            render: value => format(col.type, value, col.le, { nullstr: false, quote: false })
         }))
     }
     

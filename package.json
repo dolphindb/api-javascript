@@ -1,7 +1,7 @@
 {
     "name": "dolphindb",
     "description": "DolphinDB JavaScript API",
-    "version": "2.0.954",
+    "version": "2.0.955",
     "type": "module",
     "main": "./index.js",
     "browser": "./browser.js",
@@ -35,12 +35,12 @@
         "@typescript-eslint/eslint-plugin": "^5.58.0",
         "@typescript-eslint/parser": "^5.58.0",
         "eslint": "^8.38.0",
-        "typescript": "^5.0.3"
+        "typescript": "^5.0.4"
     },
     "dependencies": {
         "dayjs": "^1.11.7",
         "ipaddr.js": "^2.0.1",
         "tslib": "^2.5.0",
-        "xshell": "^1.0.23"
+        "xshell": "^1.0.25"
     }
 }

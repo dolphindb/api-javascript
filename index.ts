@@ -3633,9 +3633,15 @@ export class DDB {
     
     
     disconnect () {
-        if (this.connected)
-            // 这里不获取 lock，直接关闭连接
-            this.lwebsocket.resource.close(1000)
+        const { resource } = this.lwebsocket
+        
+        if (resource) {
+            const { readyState } = resource
+            
+            if (readyState !== WebSocket.CLOSED && readyState !== WebSocket.CLOSING)
+                // 这里不获取 lock，直接关闭连接
+                resource.close(1000)
+        }
     }
     
     

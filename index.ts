@@ -3532,6 +3532,7 @@ export class DDB {
                 
                 resolve()
             } catch (error) {
+                this.error ??= error
                 reject(error)
             }
         })

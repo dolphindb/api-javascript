@@ -3521,9 +3521,6 @@ export class DDB {
                 
                 await this.rpc('connect', { skip_connection_check: true })
                 
-                if (this.autologin)
-                    await this.call('login', [this.username, this.password], { urgent: true, skip_connection_check: true })
-                
                 if (this.streaming)
                     await this.subscribe()
                 
@@ -3810,9 +3807,24 @@ export class DDB {
                             
                             case 'connect':
                                 if (this.verbose)
-                                    console.log('connect()')
+                                    console.log(
+                                        'connect()' + 
+                                        (this.autologin ? 
+                                            '\n' + 
+                                            `login(${this.username.quote()}, ${this.password.quote()})`
+                                        :
+                                            '')
+                                    )
                                 
-                                return 'connect\n'
+                                return 'connect\n' +
+                                    // 详见 InterProcessIO.cpp#APISocketConsole::parseScript 中的
+                                    // Util::startWith "connect"
+                                    (this.autologin ? 
+                                        'login\n' +
+                                        this.username + '\n' +
+                                        this.password /* encrypted (可选参数) + '\n' + 'false' */
+                                    :
+                                        '')
                         }
                     })()
                 )

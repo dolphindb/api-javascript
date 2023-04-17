@@ -3458,7 +3458,7 @@ export class DDB {
     
     
     private on_message (buffer: ArrayBuffer, websocket: WebSocket) {
-        throw t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message')
+        throw new Error(t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
     }
     
     private on_error () {
@@ -4337,7 +4337,7 @@ export interface DdbObjectMessage {
 }
 
 export interface DdbErrorMessage {
-    type: 'error',
+    type: 'error'
     data: DdbDatabaseError
 }
 

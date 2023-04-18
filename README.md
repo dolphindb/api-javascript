@@ -451,3 +451,38 @@ export interface StreamingData extends StreamingParams {
     error?: Error
 }
 ```
+
+
+### Development
+```shell
+# Install the latest version of nodejs
+# https://nodejs.org/en/download/current/
+
+# Install the pnpm package manager
+corepack enable
+corepack prepare pnpm@latest --activate
+
+git clone https://github.com/dolphindb/api-javascript.git
+
+cd api-javascript
+
+# Install project dependencies
+pnpm install
+
+# Refer to scripts in package.json
+
+# Construct
+pnpm run build
+
+#lint
+pnpm run lint
+
+# test
+pnpm run test
+
+# scan entries
+pnpm run scan
+# Manually complete untranslated entries
+# Run the scan again to update the dictionary file dict.json
+pnpm run scan
+```

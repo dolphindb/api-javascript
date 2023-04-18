@@ -9,7 +9,8 @@
         "build": "tsc",
         "test": "tsc && node ./test/index.js",
         "lint": "eslint \"**/*.{ts,tsx}\"",
-        "fix": "eslint --fix \"**/*.{ts,tsx}\""
+        "fix": "eslint --fix \"**/*.{ts,tsx}\"",
+        "scan": "i18n-scan --input \"**/*.{ts,tsx}\""
     },
     "engines": {
         "node": ">=19.8.1"

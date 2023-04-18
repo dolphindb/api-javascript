@@ -448,3 +448,38 @@ export interface StreamingData extends StreamingParams {
     error?: Error
 }
 ```
+
+
+### 开发
+```shell
+# 安装最新版的 nodejs
+# https://nodejs.org/en/download/current/
+
+# 安装 pnpm 包管理器
+corepack enable
+corepack prepare pnpm@latest --activate
+
+git clone https://github.com/dolphindb/api-javascript.git
+
+cd api-javascript
+
+# 安装项目依赖
+pnpm install
+
+# 参考 package.json 中的 scripts
+
+# 构建
+pnpm run build
+
+# lint
+pnpm run lint
+
+# 测试
+pnpm run test
+
+# 扫描词条
+pnpm run scan
+# 手动补全未翻译词条
+# 再次运行扫描以更新词典文件 dict.json
+pnpm run scan
+```

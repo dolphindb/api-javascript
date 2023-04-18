@@ -469,6 +469,9 @@ cd api-javascript
 # Install project dependencies
 pnpm install
 
+# Copy .vscode/settings.template.json to .vscode/settings.json
+cp .vscode/settings.template.json .vscode/settings.json
+
 # Refer to scripts in package.json
 
 # Construct

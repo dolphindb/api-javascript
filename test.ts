@@ -1,7 +1,7 @@
 import { assert, inspect, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.js'
-import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj } from './index.js'
+import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, DdbDurationUnit } from './index.js'
 
 
 set_inspect_options()
@@ -363,12 +363,13 @@ export async function test_types (ddb: DDB) {
     )
     
     console.log('测试 Pair 内含 Duration 类型')
-    const dp = await ddb.eval(
+    const dp = await ddb.eval<DdbObj<DdbDurationVectorValue>>(
         'pair(duration("20d"), duration("2H"))'
     ) 
     
-    
-    assert(dp.type === DdbType.duration, 'Duration 的 Pair 测试通过')
+    console.log(dp)
+    assert(dp.type === DdbType.duration, 'dp 的返回值应该为 Duration')
+    assert(dp.value[0].data === 20 && dp.value[0].unit === DdbDurationUnit.d, 'dp 的 value 应该已解析')
     
 }
 

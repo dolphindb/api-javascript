@@ -361,5 +361,14 @@ export async function test_types (ddb: DDB) {
         (await ddb.call<DdbStringObj>('typestr', [ds])).value === 'STRING', 
         '从 js 构建的 Datasource DdbObj 会被识别为 STRING'
     )
+    
+    console.log('测试 Pair 内含 Duration 类型')
+    const dp = await ddb.eval(
+        'pair(duration("20d"), duration("2H"))'
+    ) 
+    
+    
+    assert(dp.type === DdbType.duration, 'Duration 的 Pair 测试通过')
+    
 }
 

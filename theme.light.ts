@@ -584,8 +584,8 @@ export const theme_light = {
         
         
         // function: bold
-        { scope: 'entity.name.function', settings: { foreground: '#000000' , fontStyle: 'bold'  } },
-        { scope: 'support.function', settings: { foreground: '#000000' , fontStyle: 'bold' } },
+        { scope: 'entity.name.function', settings: { foreground: '#000000', fontStyle: 'bold'  } },
+        { scope: 'support.function', settings: { foreground: '#000000', fontStyle: 'bold' } },
         
         { scope: 'constant.language.module.http', settings: { foreground: '#00f' } },
         { scope: 'constant.language.directive.module', settings: { foreground: '#00f' } },

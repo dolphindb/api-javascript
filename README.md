@@ -46,7 +46,7 @@ npm install dolphindb
 ```ts
 import { DDB } from 'dolphindb'
 // The import method for existing projects using CommonJS modules is const { DDB } = require('dolphindb')
-// Use in browser: import { DDB } form 'dolphindb/browser.js'
+// Use in browser: import { DDB } from 'dolphindb/browser.js'
 
 // Initially connect to an instance of DolphinDB using the WebSocket URL (without establishing an actual network connection)
 let ddb = new DDB('ws://127.0.0.1:8848')
@@ -450,4 +450,42 @@ export interface StreamingData extends StreamingParams {
     /** After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */
     error?: Error
 }
+```
+
+
+### Development
+```shell
+# Install the latest version of nodejs
+# https://nodejs.org/en/download/current/
+
+# Install the pnpm package manager
+corepack enable
+corepack prepare pnpm@latest --activate
+
+git clone https://github.com/dolphindb/api-javascript.git
+
+cd api-javascript
+
+# Install project dependencies
+pnpm install
+
+# Copy .vscode/settings.template.json to .vscode/settings.json
+cp .vscode/settings.template.json .vscode/settings.json
+
+# Refer to scripts in package.json
+
+# Construct
+pnpm run build
+
+#lint
+pnpm run lint
+
+# test
+pnpm run test
+
+# scan entries
+pnpm run scan
+# Manually complete untranslated entries
+# Run the scan again to update the dictionary file dict.json
+pnpm run scan
 ```

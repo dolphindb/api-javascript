@@ -350,7 +350,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         const type = buf[0]
         const form = buf[1]
         
-        if (buf.length <= 2) {
+        if (buf.length <= 2) 
             return new this({
                 le,
                 form,
@@ -358,7 +358,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 length: 2,
                 value: null,
             })
-        }
+        
         
         // set 里面 data 嵌套了一个 vector, 跳过 vector 的 type 和 form
         const i_data = form === DdbForm.set ? 4 : 2
@@ -3502,7 +3502,7 @@ export class DDB {
     
     
     private on_message (buffer: ArrayBuffer, websocket: WebSocket) {
-        throw t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message')
+        throw new Error(t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
     }
     
     private on_error () {
@@ -3568,14 +3568,12 @@ export class DDB {
                 
                 await this.rpc('connect', { skip_connection_check: true })
                 
-                if (this.autologin)
-                    await this.call('login', [this.username, this.password], { urgent: true, skip_connection_check: true })
-                
                 if (this.streaming)
                     await this.subscribe()
                 
                 resolve()
             } catch (error) {
+                this.error ??= error
                 reject(error)
             }
         })
@@ -3676,9 +3674,15 @@ export class DDB {
     
     
     disconnect () {
-        if (this.connected)
-            // 这里不获取 lock，直接关闭连接
-            this.lwebsocket.resource.close(1000)
+        const { resource } = this.lwebsocket
+        
+        if (resource) {
+            const { readyState } = resource
+            
+            if (readyState !== WebSocket.CLOSED && readyState !== WebSocket.CLOSING)
+                // 这里不获取 lock，直接关闭连接
+                resource.close(1000)
+        }
     }
     
     
@@ -3850,9 +3854,25 @@ export class DDB {
                             
                             case 'connect':
                                 if (this.verbose)
-                                    console.log('connect()')
+                                    console.log(
+                                        'connect()' + 
+                                        (this.autologin ? 
+                                            '\n' + 
+                                            `login(${this.username.quote()}, ${this.password.quote()})`
+                                        :
+                                            '')
+                                    )
                                 
-                                return 'connect\n'
+                                return 'connect\n' +
+                                    // 详见 InterProcessIO.cpp#APISocketConsole::parseScript 中的
+                                    // Util::startWith "connect"
+                                    (this.autologin ? 
+                                        'login\n' +
+                                        this.username + '\n' +
+                                        this.password /* encrypted (可选参数) + '\n' + 'false' */
+                                    :
+                                        '')
+                                    
                         }
                     })()
                 )
@@ -4361,7 +4381,7 @@ export interface DdbObjectMessage {
 }
 
 export interface DdbErrorMessage {
-    type: 'error',
+    type: 'error'
     data: DdbDatabaseError
 }
 

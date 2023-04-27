@@ -1273,16 +1273,16 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     buf.byteOffset
                 )
                 
-                let ddbDurationVectorValue : DdbDurationVectorValue = {data:[]}
+                let ddbDurationVectorValue: DdbDurationVectorValue = { data: [] }
                 
-                for(let i = 0; i < length; i++){
+                for (let i = 0; i < length; i++) 
                     ddbDurationVectorValue.data.push(
                         {
                             data: dv.getInt32(0 + 8 * i, le),
                             unit: dv.getInt32(4 + 8 * i, le)
                         }
                     )
-                }
+                
                 
                 return [
                     8 * length,

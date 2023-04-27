@@ -154,6 +154,10 @@ export interface DdbDecimal64VectorValue {
     data: BigInt64Array
 }
 
+export interface DdbDurationVectorValue {
+    data: DdbDurationValue[]
+}
+
 export interface DdbSymbolExtendedValue {
     base_id: number
     base: string[]
@@ -235,7 +239,8 @@ export type DdbVectorValue =
     DdbObj[] | // any
     DdbSymbolExtendedValue | 
     DdbArrayVectorValue |
-    DdbDecimal32VectorValue | DdbDecimal64VectorValue
+    DdbDecimal32VectorValue | DdbDecimal64VectorValue |
+    DdbDurationVectorValue
 
 export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
 
@@ -1261,17 +1266,36 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             
-            // case DdbType.duration: -> 实际会返回一个 any vector
-            // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
-            // <Buffer 19 01 type = any, form = vector
-            // 09 00 00 00 01 00 00 00 rows = 9, cols = 1
-            // 24 00 type = DdbType.duration, form = scalar
-            // 02 00 00 00 09 00 00 00 
-            // 24 00 01 00 00 00 08 00 00 00 24 00 03 00 00 00 06 00 00 00 24 00 07 00 00 00 05 00 00 00 ... 50 more bytes>
-            
+            // 4Byte data 4Byte unit
+            // 01 00 00 00 data: 1 
+            // 01 00 00 00 unit: 1
+            // 02 00 00 00 data: 2
+            // 02 00 00 00 unit: 2
+            case DdbType.duration: {         
+                const dv = new DataView(
+                    buf.buffer,
+                    buf.byteOffset
+                )
+                
+                let ddbDurationVectorValue : DdbDurationVectorValue = {data:[]}
+                
+                for(let i = 0; i < length; i++){
+                    ddbDurationVectorValue.data.push(
+                        {
+                            data: dv.getInt32(0 + 8 * i, le),
+                            unit: dv.getInt32(4 + 8 * i, le)
+                        }
+                    )
+                }
+                
+                return [
+                    8 * length,
+                    ddbDurationVectorValue
+                ]
+            }
             
             default:
-                return [0, buf]
+                throw new Error(String(DdbType[type] || type) + t(' 暂时不支持解析'))
         }
     }
     
@@ -1868,6 +1892,19 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             
                             for (let i = 0;  i < items.length;  i++)
                                 items[i] = formati(this as DdbObj<DdbDecimal32VectorValue | DdbDecimal64VectorValue>, i, options)
+                            
+                            return format_array(items, data.length > limit)
+                        }
+                        
+                        case DdbType.duration: {
+                            const limit = 50 as const
+                            
+                            const { data } = this.value as DdbDurationVectorValue
+                            
+                            let items = new Array(Math.min(limit, data.length))
+                            
+                            for (let i = 0;  i < items.length;  i++)
+                                items[i] = formati(this as DdbObj<DdbDurationVectorValue>, i, options)
                             
                             return format_array(items, data.length > limit)
                         }
@@ -2474,6 +2511,13 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
             
             return options.colors ? str.green : str
+        }
+        
+        case DdbType.duration: {
+            const { data } = obj.value as DdbDurationVectorValue
+            
+            return format(obj.type, data[index], obj.le, options)
+            
         }
         
         default:

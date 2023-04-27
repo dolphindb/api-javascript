@@ -154,9 +154,7 @@ export interface DdbDecimal64VectorValue {
     data: BigInt64Array
 }
 
-export interface DdbDurationVectorValue {
-    data: DdbDurationValue[]
-}
+export type DdbDurationVectorValue = DdbDurationValue[]
 
 export interface DdbSymbolExtendedValue {
     base_id: number
@@ -1266,7 +1264,15 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             
-            // 4Byte data 4Byte unit
+            // 以下情况时, DdbType.duration 实际会返回一个 any vector
+            // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
+            // <Buffer 19 01 type = any, form = vector
+            // 09 00 00 00 01 00 00 00 rows = 9, cols = 1
+            // 24 00 type = DdbType.duration, form = scalar
+            // 02 00 00 00 09 00 00 00 
+            // 24 00 01 00 00 00 08 00 00 00 24 00 03 00 00 00 06 00 00 00 24 00 07 00 00 00 05 00 00 00 ... 50 more bytes>
+            // 其余情况(目前仅发现 pair )下, 会返回特殊的 duration 序列化
+            // 4 bytes data 4 bytes unit
             // 01 00 00 00 data: 1 
             // 01 00 00 00 unit: 1
             // 02 00 00 00 data: 2
@@ -1277,10 +1283,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     buf.byteOffset
                 )
                 
-                let ddbDurationVectorValue: DdbDurationVectorValue = { data: [] }
+                let ddbDurationVectorValue: DdbDurationVectorValue = []
                 
                 for (let i = 0; i < length; i++) 
-                    ddbDurationVectorValue.data.push(
+                    ddbDurationVectorValue.push(
                         {
                             data: dv.getInt32(0 + 8 * i, le),
                             unit: dv.getInt32(4 + 8 * i, le)
@@ -1295,7 +1301,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             default:
-                throw new Error(String(DdbType[type] || type) + t(' 暂时不支持解析'))
+                throw new Error(String(DdbType[type] || type) + t(' 的向量暂时不支持解析'))
         }
     }
     
@@ -1891,19 +1897,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             
                             for (let i = 0;  i < items.length;  i++)
                                 items[i] = formati(this as DdbObj<DdbDecimal32VectorValue | DdbDecimal64VectorValue>, i, options)
-                            
-                            return format_array(items, data.length > limit)
-                        }
-                        
-                        case DdbType.duration: {
-                            const limit = 50 as const
-                            
-                            const { data } = this.value as DdbDurationVectorValue
-                            
-                            let items = new Array(Math.min(limit, data.length))
-                            
-                            for (let i = 0;  i < items.length;  i++)
-                                items[i] = formati(this as DdbObj<DdbDurationVectorValue>, i, options)
                             
                             return format_array(items, data.length > limit)
                         }
@@ -2510,13 +2503,6 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
             
             return options.colors ? str.green : str
-        }
-        
-        case DdbType.duration: {
-            const { data } = obj.value as DdbDurationVectorValue
-            
-            return format(obj.type, data[index], obj.le, options)
-            
         }
         
         default:

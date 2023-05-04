@@ -73,5 +73,8 @@
     },
     "new DdbBlob 不能传空的 value": {
         "en": "new DdbBlob cannot pass an empty value"
+    },
+    "vector<{{type}}> 暂时不支持解析": {
+        "en": "cannot parse vector<{{type}}>"
     }
 }

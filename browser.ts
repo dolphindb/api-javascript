@@ -225,6 +225,7 @@ export type DdbScalarValue =
     DdbDecimal32Value | DdbDecimal64Value
 
 export type DdbVectorValue = 
+    null |
     Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | 
     string[] | // string[]
     Uint8Array[] | // blob
@@ -983,6 +984,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         DdbVectorValue
     ] {
         switch (type) {
+            case DdbType.void:
+                return [0, null]
+            
             case DdbType.bool:
             case DdbType.char:
                 return [
@@ -1267,7 +1271,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             
             
             default:
-                return [0, buf]
+                throw new Error(t('vector<{{type}}> 暂时不支持解析', { type: String(DdbType[type] || type) }))
         }
     }
     

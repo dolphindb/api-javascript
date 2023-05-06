@@ -8,8 +8,9 @@ set_inspect_options()
 
 
 // linux
-export const url = 'ws://115.239.209.123:8892' as const
+// export const url = 'ws://115.239.209.123:8892' as const
 // export const url = 'ws://192.168.0.16:20002' as const
+export const url = 'ws://192.168.0.29:9002' as const
 
 // windows
 // export const url = 'ws://192.168.0.29:9002' as const
@@ -26,13 +27,13 @@ export const url = 'ws://115.239.209.123:8892' as const
     const tests = [
         test_repl,
         
-        test_keywords,
-        test_types,
-        test_reconnection,
-        test_print,
-        test_time,
-        test_streaming,
-        test_error,
+        // test_keywords,
+        // test_types,
+        // test_reconnection,
+        // test_print,
+        // test_time,
+        // test_streaming,
+        // test_error,
     ]
     
     for (const fn_test of tests)
@@ -75,7 +76,8 @@ async function get_printed (ddb: DDB, code: string) {
 
 
 async function test_repl (ddb: DDB) {
-    
+    const nullObj = await ddb.eval('select *, NULL as val from table(1..100 as id)')
+    console.log(nullObj)
 }
 
 

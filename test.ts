@@ -1,7 +1,7 @@
 import { assert, inspect, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.js'
-import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, DdbDurationUnit, type DdbVectorObj } from './index.js'
+import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, DdbDurationUnit, type DdbVectorObj, type DdbTableObj } from './index.js'
 
 
 set_inspect_options()
@@ -76,6 +76,7 @@ async function get_printed (ddb: DDB, code: string) {
 
 
 async function test_repl (ddb: DDB) {
+    
 }
 
 
@@ -372,11 +373,14 @@ export async function test_types (ddb: DDB) {
     assert(dp.value[0].data === 20 && dp.value[0].unit === DdbDurationUnit.d, 'pair<duration> 的 value 应该已解析')
     
     console.log('测试 void vector')
-    const nullTable = await ddb.eval('select *, NULL as val from table(1..100 as id)')
+    const table = await ddb.eval<DdbTableObj>('select *, NULL as val from table(1..100 as id)')
+    const { value: [ints, voids] } = table
     
-    console.log(nullTable)
-    assert(nullTable.value[1].rows === nullTable.value[0].rows, 'void vector 应该具有正常的 vector length')
-    assert(nullTable.value[1].length === 10, 'void vector 应该具有正确的数据长度')
-    assert(nullTable.value[1].value === null, 'void vector 的值应该为 null')
+    console.log(voids)
+    assert(voids.rows === ints.rows, 'void vector 应该具有正常的 vector length')
+    assert(voids.length === 10, 'void vector 应该具有正确的数据长度')
+    assert(voids.value === null, 'void vector 的值应该为 null')
+    
+    await ddb.upload(['voidtable'], [table])
 }
 

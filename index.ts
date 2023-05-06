@@ -1833,9 +1833,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             )
                         }
                         
-                        case DdbType.void: {
+                        case DdbType.void:
                             return format(this.type, this.value, this.le, options)
-                        }
                         
                         case DdbType.uuid: 
                         case DdbType.int128: 

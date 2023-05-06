@@ -2465,6 +2465,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             return format(DdbType.string, base[data[index]], obj.le, options)
         }
         
+        case DdbType.void:
+            return format(obj.type, obj.value, obj.le, options)
+        
         case DdbType.uuid:
         case DdbType.int128: 
         case DdbType.ipaddr:

@@ -27,13 +27,13 @@ export const url = 'ws://192.168.0.29:9002' as const
     const tests = [
         test_repl,
         
-        // test_keywords,
-        // test_types,
-        // test_reconnection,
-        // test_print,
-        // test_time,
-        // test_streaming,
-        // test_error,
+        test_keywords,
+        test_types,
+        test_reconnection,
+        test_print,
+        test_time,
+        test_streaming,
+        test_error,
     ]
     
     for (const fn_test of tests)
@@ -76,8 +76,6 @@ async function get_printed (ddb: DDB, code: string) {
 
 
 async function test_repl (ddb: DDB) {
-    const nullObj = await ddb.eval('select *, NULL as val from table(1..100 as id)')
-    console.log(nullObj)
 }
 
 
@@ -372,5 +370,13 @@ export async function test_types (ddb: DDB) {
     console.log(dp)
     assert(dp.type === DdbType.duration, 'dp 的返回值应该为 Duration')
     assert(dp.value[0].data === 20 && dp.value[0].unit === DdbDurationUnit.d, 'pair<duration> 的 value 应该已解析')
+    
+    console.log('测试 void vector')
+    const nullTable = await ddb.eval('select *, NULL as val from table(1..100 as id)')
+    
+    console.log(nullTable)
+    assert(nullTable.value[1].rows === nullTable.value[0].rows, 'void vector 应该具有正常的 vector length')
+    assert(nullTable.value[1].length === 10, 'void vector 应该具有正确的数据长度')
+    assert(nullTable.value[1].value === null, 'void vector 的值应该为 null')
 }
 

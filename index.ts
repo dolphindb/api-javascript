@@ -1573,6 +1573,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         length: number
     ): ArrayBufferView[] {
         switch (type) {
+            case DdbType.void:
+                return []
+            
             case DdbType.bool:
                 return [value as Int8Array]
             
@@ -1829,6 +1832,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                 data.length > limit
                             )
                         }
+                        
+                        case DdbType.void:
+                            return format(this.type, this.value, this.le, options)
                         
                         case DdbType.uuid: 
                         case DdbType.int128: 

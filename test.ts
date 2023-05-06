@@ -1,15 +1,16 @@
 import { assert, inspect, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.js'
-import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, DdbDurationUnit, type DdbVectorObj } from './index.js'
+import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, DdbDurationUnit, type DdbVectorObj, type DdbTableObj } from './index.js'
 
 
 set_inspect_options()
 
 
 // linux
-export const url = 'ws://115.239.209.123:8892' as const
+// export const url = 'ws://115.239.209.123:8892' as const
 // export const url = 'ws://192.168.0.16:20002' as const
+export const url = 'ws://192.168.0.29:9002' as const
 
 // windows
 // export const url = 'ws://192.168.0.29:9002' as const
@@ -370,5 +371,16 @@ export async function test_types (ddb: DDB) {
     console.log(dp)
     assert(dp.type === DdbType.duration, 'dp 的返回值应该为 Duration')
     assert(dp.value[0].data === 20 && dp.value[0].unit === DdbDurationUnit.d, 'pair<duration> 的 value 应该已解析')
+    
+    console.log('测试 void vector')
+    const table = await ddb.eval<DdbTableObj>('select *, NULL as val from table(1..100 as id)')
+    const { value: [ints, voids] } = table
+    
+    console.log(voids)
+    assert(voids.rows === ints.rows, 'void vector 应该具有正常的 vector length')
+    assert(voids.length === 10, 'void vector 应该具有正确的数据长度')
+    assert(voids.value === null, 'void vector 的值应该为 null')
+    
+    await ddb.upload(['voidtable'], [table])
 }
 

@@ -1,6 +1,7 @@
 node_modules/
 
 /.vscode/settings.json
+/.vscode/launch.json
 
 *.js
 *.map

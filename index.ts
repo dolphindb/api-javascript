@@ -154,6 +154,8 @@ export interface DdbDecimal64VectorValue {
     data: BigInt64Array
 }
 
+export type DdbDurationVectorValue = DdbDurationValue[]
+
 export interface DdbSymbolExtendedValue {
     base_id: number
     base: string[]
@@ -236,7 +238,8 @@ export type DdbVectorValue =
     DdbObj[] | // any
     DdbSymbolExtendedValue | 
     DdbArrayVectorValue |
-    DdbDecimal32VectorValue | DdbDecimal64VectorValue
+    DdbDecimal32VectorValue | DdbDecimal64VectorValue |
+    DdbDurationVectorValue
 
 export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
 
@@ -1265,14 +1268,32 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             
-            // case DdbType.duration: -> 实际会返回一个 any vector
+            // 以下情况时, DdbType.duration 实际会返回一个 any vector
             // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
             // <Buffer 19 01 type = any, form = vector
             // 09 00 00 00 01 00 00 00 rows = 9, cols = 1
             // 24 00 type = DdbType.duration, form = scalar
             // 02 00 00 00 09 00 00 00 
             // 24 00 01 00 00 00 08 00 00 00 24 00 03 00 00 00 06 00 00 00 24 00 07 00 00 00 05 00 00 00 ... 50 more bytes>
-            
+            // 其余情况 (目前仅 pair) 下, 会返回特殊的 duration 序列化
+            // 4 bytes data 4 bytes unit
+            // 01 00 00 00 data: 1 
+            // 01 00 00 00 unit: 1
+            // 02 00 00 00 data: 2
+            // 02 00 00 00 unit: 2
+            case DdbType.duration: {         
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                
+                let durations: DdbDurationVectorValue = [ ]
+                
+                for (let i = 0;  i < length;  i++)
+                    durations.push({
+                        data: dv.getInt32(0 + 8 * i, le),
+                        unit: dv.getInt32(4 + 8 * i, le)
+                    })
+                
+                return [8 * length, durations]
+            }
             
             default:
                 throw new Error(t('vector<{{type}}> 暂时不支持解析', { type: String(DdbType[type] || type) }))

@@ -2462,7 +2462,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         }
         
         case DdbType.void:
-            return format(obj.type, obj.value, obj.le, options)
+            return ''
         
         case DdbType.uuid:
         case DdbType.int128: 

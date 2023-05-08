@@ -58,6 +58,8 @@ export const keywords = [
     'update',
     'insert',
     'create',
+    'create table',
+    'create database',
     'alter',
     'delete',
     

@@ -95,3 +95,15 @@ export enum DdbDurationUnit {
     y = 9,
     B = 10
 }
+
+export enum DdbChartType {
+    area = 0,
+    bar = 1,
+    column = 2,
+    histogram = 3,
+    line = 4,
+    pie = 5,
+    scatter = 6,
+    trend = 7,
+    kline = 8,
+}

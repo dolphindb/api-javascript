@@ -18,7 +18,7 @@ import { t } from './i18n/index.js'
 import { DdbDecimal128Serializor, DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
 import { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value } from './shared/utils/decimal-type.js'
-import { DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/enums.js'
+import { DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/enums.js'
 import { DDB_NULL_VALUES } from './shared/constants.js'
 
 export type * from './data-types/decimal-128.js'
@@ -89,7 +89,7 @@ export interface DdbArrayVectorBlock {
     data: Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array
 }
 
-export type DdbArrayVectorValue = DdbArrayVectorBlock[] & /* decimal32, decimal64, decimal128 会有这个属性 */ { scale?: number }
+export type DdbArrayVectorValue = DdbArrayVectorBlock[] & /* decimal 数据会有这个属性 */ { scale?: number }
 
 export interface DdbMatrixValue {
     rows: DdbVectorObj
@@ -98,18 +98,6 @@ export interface DdbMatrixValue {
 }
 
 export type DdbDictValue = [DdbVectorObj, DdbVectorObj]
-
-export enum DdbChartType {
-    area = 0,
-    bar = 1,
-    column = 2,
-    histogram = 3,
-    line = 4,
-    pie = 5,
-    scatter = 6,
-    trend = 7,
-    kline = 8,
-}
 
 export interface DdbChartValue {
     /** 原属性 chartType  original: chartType */

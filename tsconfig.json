@@ -61,6 +61,10 @@
         "watchDirectory": "useFsEvents",
         
         "fallbackPolling": "dynamicPriority"
+    },
+    "ts-node": {
+        "esm": true,
+        "transpileOnly": true
     }
 }
 

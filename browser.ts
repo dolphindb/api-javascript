@@ -2358,7 +2358,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         }
         
         default:
-            return String(value)
+            return value === null ? get_nullstr() : String(value)
     }
 }
 

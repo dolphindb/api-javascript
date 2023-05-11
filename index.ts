@@ -2382,7 +2382,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             return format(obj.type, obj.value, obj.le, options)
         
         case DdbType.uuid:
-        case DdbType.int128: 
+        case DdbType.int128:
         case DdbType.ipaddr:
             return format(
                 obj.type,

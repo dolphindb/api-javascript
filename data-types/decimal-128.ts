@@ -1,5 +1,5 @@
 import { BigInt128Array } from '../shared/bigint-128-array.js'
-import { DDB_NULL_VALUES } from '../shared/constants.js'
+import { nulls } from '../shared/constants.js'
 import { getBigInt128 } from '../shared/data-view-extends.js'
 
 export interface DdbDecimal128Value {
@@ -26,7 +26,7 @@ export const DdbDecimal128Serializor = {
                 
         const data = getBigInt128(dv, 4, le)
         
-        return [20, { scale: dv.getInt32(0, le), data: data === DDB_NULL_VALUES.int128 ? null : data }]
+        return [20, { scale: dv.getInt32(0, le), data: data === nulls.int128 ? null : data }]
     },
     
     /**
@@ -67,6 +67,6 @@ export const DdbDecimal128Serializor = {
      */
     pack (value: DdbDecimal128Value): [Int32Array, BigInt128Array] {
         const { scale, data } = value
-        return [Int32Array.of(scale), BigInt128Array.of(data === null ? DDB_NULL_VALUES.int128 : data)]
+        return [Int32Array.of(scale), BigInt128Array.of(data === null ? nulls.int128 : data)]
     }
 }

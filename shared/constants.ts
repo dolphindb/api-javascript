@@ -1,4 +1,4 @@
-export const DDB_NULL_VALUES = {
+export const nulls = {
     int8: -0x80,  // -128
     int16: -0x80_00,  // -32768
     int32: -0x80_00_00_00,  // -21_4748_3648

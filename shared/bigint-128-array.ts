@@ -76,6 +76,7 @@ export class BigInt128Array {
                 
                 return Reflect.get(target, key, this)
             },
+            
             set (target, key, value) {
                 if (typeof key === 'string') {
                     const index = Number(key)
@@ -112,9 +113,9 @@ export class BigInt128Array {
         if (index < 0) 
             index += length
         
-        if (index > length || index < 0)
+        if (index >= length || index < 0)
             return undefined
-            
+        
         const dv = new DataView(this.buffer)
         return getBigInt128(dv, this.byteOffset + index * this.BYTES_PER_ELEMENT)
     }
@@ -140,7 +141,6 @@ export class BigInt128Array {
         else if (end > length)
             end = length
         
-            
         const newLength = Math.max(end - begin, 0)
         return new BigInt128Array(this.buffer, this.byteOffset + begin * this.BYTES_PER_ELEMENT, newLength)
     }

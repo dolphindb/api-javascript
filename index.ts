@@ -15,14 +15,16 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket, Lock, type WebSocketConnectionError } from 'xshell'
 
 import { t } from './i18n/index.js'
-import { DdbDecimal128Serializor, DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
+
+import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './data-types/decimal-128.js'
 import { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value } from './shared/utils/decimal-type.js'
-import { DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/enums.js'
-import { nulls } from './shared/constants.js'
 
-export type * from './data-types/decimal-128.js'
-export * from './shared/enums.js'
+import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'
+export * from './shared/constants.js'
+
+export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
+
 
 // Simulate other TypedArray behavior in nodejs
 BigInt128Array.prototype[inspect.custom] = function () {
@@ -1166,10 +1168,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 ]
             }
             
-            case DdbType.decimal128: {
+            case DdbType.decimal128:
                 return DdbDecimal128Serializor.parse_as_vector_items(buf, length, le)
-            }
-            
             
             // 以下情况时, DdbType.duration 实际会返回一个 any vector
             // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
@@ -1356,9 +1356,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [Int32Array.of(scale), BigInt64Array.of(data === null ? nulls.int64 : data)]
                         }
                         
-                        case DdbType.decimal128: {
+                        case DdbType.decimal128:
                             return DdbDecimal128Serializor.pack(this.value as DdbDecimal128Value)
-                        }
                         
                         default:
                             throw new Error(String(DdbType[type] || type) + t(' 暂时不支持序列化'))

@@ -60,6 +60,30 @@ export class BigInt128Array {
             this.byteLength = array.length * this.BYTES_PER_ELEMENT
             this.set(array)
         }
+        
+        return new Proxy(this, {
+            get (target, key) {
+                if (typeof key === 'string') {
+                    const index = Number(key)
+                    // only positive integer index is allowed
+                    if (Number.isInteger(index) && index >= 0 && index < target.length) 
+                        return target.at(index)
+                }
+                
+                return Reflect.get(target, key, this)
+            },
+            set (target, key, value) {
+                if (typeof key === 'string') {
+                    const index = Number(key)
+                    if (Number.isInteger(index) && index >= 0 && index < target.length) {
+                        target.set([value], index)
+                        return true
+                    }
+                }
+                
+                return Reflect.set(target, key, value, this)
+            }
+        })
     }
     
     get length () {
@@ -67,6 +91,9 @@ export class BigInt128Array {
     }
     
     set (array: ArrayLike<bigint>, offset: number = 0) {
+        if (offset + array.length > this.length) 
+            throw new RangeError('offset is out of bounds')
+        
         const dv = new DataView(this.buffer)
         for (let i = 0; i < array.length; i++) 
             setBigInt128(dv, this.byteOffset + offset + i * this.BYTES_PER_ELEMENT, array[i])
@@ -74,16 +101,40 @@ export class BigInt128Array {
     
     at (index: number) {
         const length = this.length
-        while (index < 0) 
+        
+        if (index < 0) 
             index += length
         
+        if (index > length || index < 0)
+            return undefined
+            
         const dv = new DataView(this.buffer)
         return getBigInt128(dv, this.byteOffset + index * this.BYTES_PER_ELEMENT)
     }
     
     subarray (begin: number = 0, end: number = this.length) {
-        const length = end - begin
-        return new BigInt128Array(this.buffer, this.byteOffset + begin * this.BYTES_PER_ELEMENT, length)
+        const length = this.length
+        // subarray arguments should be the same behavior as other TypedArray
+        // https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/subarray#%E8%AF%B4%E6%98%8E
+        if (begin < 0)
+            begin += length
+        
+        if (end < 0)
+            end += length
+        
+        if (begin < 0)
+            begin = 0
+        else if (begin > length)
+            begin = length
+        
+        if (end < 0)
+            end = 0
+        else if (end > length)
+            end = length
+        
+            
+        const newLength = Math.max(end - begin, 0)
+        return new BigInt128Array(this.buffer, this.byteOffset + begin * this.BYTES_PER_ELEMENT, newLength)
     }
     
     [Symbol.iterator] () {
@@ -115,6 +166,3 @@ Object.defineProperty(BigInt128Array.prototype, Symbol.toStringTag, {
     enumerable: false,
     value: 'BigInt128Array',
 })
-
-
-

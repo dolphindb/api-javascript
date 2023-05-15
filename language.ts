@@ -1,3 +1,80 @@
+const sql_keywords = [
+    'select',
+    'exec',
+    'update',
+    
+    'insert',
+    'insert into',
+    
+    'create table',
+    'create database',
+    
+    'alter',
+    'alter add',
+    'alter rename',
+    'alter drop',
+    
+    'drop table',
+    'drop database',
+    
+    'delete',
+    
+    'transaction',
+    
+    'inner join',
+    'full join',
+    'full outer join',
+    'left join',
+    'left outer join',
+    'right join',
+    'right outer join',
+    'left semijoin',
+    'cross join',
+    
+    'context by',
+    'partitioned by',
+    'group by',
+    'pivot by',
+    'order by',
+    'cgroup by',
+    'partition by',
+    
+    'csort',
+    'limit',
+    'top',
+    
+    'into',
+    'from',
+    'where',
+    'having',
+    'with',
+    'set',
+    'as',
+    'in',
+    'or',
+    'not',
+    'on',
+    'like',
+    'values',
+    'exists',
+    'distinct',
+    'map',
+    
+    'between', 'and', // between ... and ...
+    
+    'is null', 'is not null',
+    
+    // case when ... then ... end
+    'case', 'when', 'then', 'else', 'end',
+    
+    'union', 'union all',
+    
+    'nulls first', 'nulls last',
+    
+    'asc', 'desc',
+]
+
+
 export const keywords = [
     'assert',
     
@@ -7,14 +84,14 @@ export const keywords = [
     'def',
     'defg',
     
-    'map',
+    // 'map',
     'mapr',
     
     'timer',
     
     // 流程控制
     'if',
-    'else',
+    // 'else',
     'do',
     'for',
     'while',
@@ -44,70 +121,14 @@ export const keywords = [
     'is',
     'lambda',
     'nonlocal',
-    'not',
-    'or',
     'pass',
     'raise',
     'yield',
     
     
-    
     // --- SQL
-    'select',
-    'exec',
-    'update',
-    'insert',
-    'create',
-    'create table',
-    'create database',
-    'alter',
-    'delete',
-    
-    'transaction',
-    
-    'inner join',
-    'full join',
-    'left join',
-    'right join',
-    'left semijoin',
-    'cross join',
-    
-    'context by',
-    'partitioned by',
-    'group by',
-    'pivot by',
-    'order by',
-    'cgroup by',
-    
-    'csort',
-    'limit',
-    'top',
-    
-    'into',
-    'from',
-    'where',
-    'having',
-    'with',
-    'set',
-    'as',
-    'in',
-    'on',
-    'values',
-    'exists',
-    'distinct',
-    
-    'between', 'and', // between ... and ...
-    
-    'is null', 'is not null',
-    
-    // case when ... then ... end
-    'case', 'when', 'then', 'end',
-    
-    'union', 'union all',
-    
-    'nulls first', 'nulls last',
-    
-    'asc', 'desc',
+    ... sql_keywords,
+    ... sql_keywords.map(keyword => keyword.toUpperCase())
 ].sort((l, r) => {  // 长的在前面，正则表达式先匹配全部，而不是部分单词，防止高亮显示不正确
     const delta_len = l.length - r.length
     if (delta_len !== 0)

@@ -12,14 +12,14 @@ import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.bro
 
 import { t } from './i18n/index.js'
 
-import { DdbDecimal128Serializor, DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
+import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './data-types/decimal-128.js'
 import { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value } from './shared/utils/decimal-type.js'
-import { DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/enums.js'
-import { nulls } from './shared/constants.js'
 
-export type * from './data-types/decimal-128.js'
-export * from './shared/enums.js'
+import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'
+export * from './shared/constants.js'
+
+export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
 
 export interface DdbFunctionDefValue {
     type: DdbFunctionType
@@ -50,8 +50,6 @@ export interface DdbDecimal64Value {
     data: bigint | null
 }
 
-export type DdbDurationVectorValue = DdbDurationValue[]
-
 export interface DdbDecimal32VectorValue {
     scale: number
     
@@ -63,6 +61,8 @@ export interface DdbDecimal64VectorValue {
     
     data: BigInt64Array
 }
+
+export type DdbDurationVectorValue = DdbDurationValue[]
 
 export interface DdbSymbolExtendedValue {
     base_id: number
@@ -154,6 +154,7 @@ export type DdbDictObj <TKeys extends DdbVectorObj = DdbVectorObj, TValues exten
 export type DdbMatrixObj <TValue extends DdbMatrixValue = DdbMatrixValue> = DdbObj<TValue>
 
 export type DdbChartObj = DdbObj<DdbChartValue>
+
 
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
 export class DdbObj <TValue extends DdbValue = DdbValue> {
@@ -777,7 +778,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         let blocks: DdbArrayVectorValue = [ ]
         
-        // decimal32/64 会在所有 blocks 之前多一个 scale
+        // decimal 会在所有 blocks 之前多一个 scale
         if (is_decimal_type(type_)) {
             blocks.scale = dv.getInt32(i_items_start, le)
             i_items_start += 4
@@ -1153,10 +1154,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 ]
             }
             
-            case DdbType.decimal128: {
+            case DdbType.decimal128:
                 return DdbDecimal128Serializor.parse_as_vector_items(buf, length, le)
-            }
-            
             
             // 以下情况时, DdbType.duration 实际会返回一个 any vector
             // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
@@ -1343,10 +1342,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [Int32Array.of(scale), BigInt64Array.of(data === null ? nulls.int64 : data)]
                         }
                         
-                        case DdbType.decimal128: {
+                        case DdbType.decimal128:
                             return DdbDecimal128Serializor.pack(this.value as DdbDecimal128Value)
-                        }
-
                         
                         default:
                             throw new Error(String(DdbType[type] || type) + t(' 暂时不支持序列化'))
@@ -2366,7 +2363,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             return format(obj.type, obj.value, obj.le, options)
         
         case DdbType.uuid:
-        case DdbType.int128: 
+        case DdbType.int128:
         case DdbType.ipaddr:
             return format(
                 obj.type,

@@ -142,7 +142,7 @@ export type DdbScalarValue =
 
 export type DdbVectorValue = 
     null |
-    Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array | 
+    Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array |
     string[] | // string[]
     Uint8Array[] | // blob
     DdbObj[] | // any

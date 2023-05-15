@@ -4,11 +4,13 @@ node_modules/
 !*.d.ts
 
 /test/
+/.vscode/
 
 /.gitignore
 /.npmignore
 /tsconfig.json
 /package-lock.json
+/.eslintrc.schema.json
 
 /i18n/stats.json
 /i18n/untranslateds.json

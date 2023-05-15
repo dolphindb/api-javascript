@@ -12,14 +12,14 @@ import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.bro
 
 import { t } from './i18n/index.js'
 
-import { DdbDecimal128Serializor, DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
+import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './data-types/decimal-128.js'
 import { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value } from './shared/utils/decimal-type.js'
-import { DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/enums.js'
-import { DDB_NULL_VALUES } from './shared/constants.js'
 
-export type * from './data-types/decimal-128.js'
-export * from './shared/enums.js'
+import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'
+export * from './shared/constants.js'
+
+export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
 
 export interface DdbFunctionDefValue {
     type: DdbFunctionType
@@ -50,8 +50,6 @@ export interface DdbDecimal64Value {
     data: bigint | null
 }
 
-export type DdbDurationVectorValue = DdbDurationValue[]
-
 export interface DdbDecimal32VectorValue {
     scale: number
     
@@ -63,6 +61,8 @@ export interface DdbDecimal64VectorValue {
     
     data: BigInt64Array
 }
+
+export type DdbDurationVectorValue = DdbDurationValue[]
 
 export interface DdbSymbolExtendedValue {
     base_id: number
@@ -154,6 +154,7 @@ export type DdbDictObj <TKeys extends DdbVectorObj = DdbVectorObj, TValues exten
 export type DdbMatrixObj <TValue extends DdbMatrixValue = DdbMatrixValue> = DdbObj<TValue>
 
 export type DdbChartObj = DdbObj<DdbChartValue>
+
 
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
 export class DdbObj <TValue extends DdbValue = DdbValue> {
@@ -538,21 +539,21 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.bool: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getInt8(0)
-                return [1, value === DDB_NULL_VALUES.int8 ? null : Boolean(value)]
+                return [1, value === nulls.int8 ? null : Boolean(value)]
             }
             
             
             case DdbType.char: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getInt8(0)
-                return [1, value === DDB_NULL_VALUES.int8 ? null : value]
+                return [1, value === nulls.int8 ? null : value]
             }
             
             
             case DdbType.short: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getInt16(0, le)
-                return [2, value === DDB_NULL_VALUES.int16 ? null : value]
+                return [2, value === nulls.int16 ? null : value]
             }
             
             
@@ -567,21 +568,21 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.datehour: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getInt32(0, le)
-                return [4, value === DDB_NULL_VALUES.int32 ? null : value]
+                return [4, value === nulls.int32 ? null : value]
             }
             
             
             case DdbType.float: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getFloat32(0, le)
-                return [4, value === DDB_NULL_VALUES.float32 ? null : value]
+                return [4, value === nulls.float32 ? null : value]
             }
             
             
             case DdbType.double: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getFloat64(0, le)
-                return [8, value === DDB_NULL_VALUES.double ? null : value]
+                return [8, value === nulls.double ? null : value]
             }
             
             
@@ -592,7 +593,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.nanotimestamp: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getBigInt64(0, le)
-                return [8, value === DDB_NULL_VALUES.int64 ? null : value]
+                return [8, value === nulls.int64 ? null : value]
             }
             
             
@@ -664,7 +665,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.decimal32: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const data = dv.getInt32(4, le)
-                return [8, { scale: dv.getInt32(0, le), data: data === DDB_NULL_VALUES.int32 ? null : data } as DdbDecimal32Value]
+                return [8, { scale: dv.getInt32(0, le), data: data === nulls.int32 ? null : data } as DdbDecimal32Value]
             }
             
             case DdbType.decimal64: {
@@ -672,7 +673,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 
                 const data = dv.getBigInt64(4, le)
                 
-                return [12, { scale: dv.getInt32(0, le), data: data === DDB_NULL_VALUES.int64 ? null : data } as DdbDecimal64Value]
+                return [12, { scale: dv.getInt32(0, le), data: data === nulls.int64 ? null : data } as DdbDecimal64Value]
             }
             
             case DdbType.decimal128: {
@@ -777,7 +778,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         let blocks: DdbArrayVectorValue = [ ]
         
-        // decimal32/64 会在所有 blocks 之前多一个 scale
+        // decimal 会在所有 blocks 之前多一个 scale
         if (is_decimal_type(type_)) {
             blocks.scale = dv.getInt32(i_items_start, le)
             i_items_start += 4
@@ -1153,10 +1154,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 ]
             }
             
-            case DdbType.decimal128: {
+            case DdbType.decimal128:
                 return DdbDecimal128Serializor.parse_as_vector_items(buf, length, le)
-            }
-            
             
             // 以下情况时, DdbType.duration 实际会返回一个 any vector
             // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
@@ -1209,7 +1208,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [
                                 Int8Array.of(
                                     value === null ?
-                                        DDB_NULL_VALUES.int8
+                                        nulls.int8
                                     :
                                         Number(value)
                                 )
@@ -1220,7 +1219,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [
                                 Int8Array.of(
                                     (value === null ?
-                                        DDB_NULL_VALUES.int8
+                                        nulls.int8
                                     :
                                         value as number
                                     )
@@ -1232,7 +1231,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [
                                 Int16Array.of(
                                     value === null ?
-                                        DDB_NULL_VALUES.int16
+                                        nulls.int16
                                     :
                                         value as number
                                 )
@@ -1251,7 +1250,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [
                                 Int32Array.of(
                                     value === null ?
-                                        DDB_NULL_VALUES.int32
+                                        nulls.int32
                                     :
                                         value as number
                                 )
@@ -1262,7 +1261,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [
                                 Float32Array.of(
                                     value === null ?
-                                        DDB_NULL_VALUES.float32
+                                        nulls.float32
                                     :
                                         value as number
                                 )
@@ -1273,7 +1272,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [
                                 Float64Array.of(
                                     value === null ?
-                                        DDB_NULL_VALUES.double
+                                        nulls.double
                                     :
                                         value as number
                                 )
@@ -1288,7 +1287,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [
                                 BigInt64Array.of(
                                     value === null ?
-                                        DDB_NULL_VALUES.int64
+                                        nulls.int64
                                     :
                                         value as bigint
                                 )
@@ -1335,18 +1334,16 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         
                         case DdbType.decimal32: {
                             const { scale, data } = this.value as DdbDecimal32Value
-                            return [Int32Array.of(scale, data === null ? DDB_NULL_VALUES.int32 : data)]
+                            return [Int32Array.of(scale, data === null ? nulls.int32 : data)]
                         }
                         
                         case DdbType.decimal64: {
                             const { scale, data } = this.value as DdbDecimal64Value
-                            return [Int32Array.of(scale), BigInt64Array.of(data === null ? DDB_NULL_VALUES.int64 : data)]
+                            return [Int32Array.of(scale), BigInt64Array.of(data === null ? nulls.int64 : data)]
                         }
                         
-                        case DdbType.decimal128: {
+                        case DdbType.decimal128:
                             return DdbDecimal128Serializor.pack(this.value as DdbDecimal128Value)
-                        }
-
                         
                         default:
                             throw new Error(String(DdbType[type] || type) + t(' 暂时不支持序列化'))
@@ -1915,7 +1912,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 switch (type) {
                     case DdbType.bool: {
                         const value = values[i]
-                        row[name] = value === DDB_NULL_VALUES.int8 ?
+                        row[name] = value === nulls.int8 ?
                                 null
                             :
                                 Boolean(value)
@@ -2031,7 +2028,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     
     switch (type) {
         case DdbType.bool:
-            if (value === null || value === DDB_NULL_VALUES.int8)
+            if (value === null || value === nulls.int8)
                 return get_nullstr()
             else {
                 const str = String(Boolean(value))
@@ -2039,7 +2036,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.char:
-            if (value === null || value === DDB_NULL_VALUES.int8)
+            if (value === null || value === nulls.int8)
                 return get_nullstr()
             else {
                 let str = 
@@ -2057,7 +2054,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.short:
-            if (value === null || value === DDB_NULL_VALUES.int16)
+            if (value === null || value === nulls.int16)
                 return get_nullstr()
             else {
                 const str = default_formatter.format(value as number)
@@ -2065,7 +2062,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.int:
-            if (value === null || value === DDB_NULL_VALUES.int32)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = default_formatter.format(value as number)
@@ -2073,7 +2070,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.long:
-            if (value === null || value === DDB_NULL_VALUES.int64)
+            if (value === null || value === nulls.int64)
                 return get_nullstr()
             else {
                 const str = default_formatter.format(value as bigint)
@@ -2081,7 +2078,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.date:
-            if (value === null || value === DDB_NULL_VALUES.int16)
+            if (value === null || value === nulls.int16)
                 return get_nullstr()
             else {
                 const str = date2str(value as number)
@@ -2089,7 +2086,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.month:
-            if (value === null || value === DDB_NULL_VALUES.int32)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = month2str(value as number)
@@ -2097,7 +2094,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.time:
-            if (value === null || value === DDB_NULL_VALUES.int32)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = time2str(value as number)
@@ -2105,7 +2102,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.minute:
-            if (value === null || value === DDB_NULL_VALUES.int16)
+            if (value === null || value === nulls.int16)
                 return get_nullstr()
             else {
                 const str = minute2str(value as number)
@@ -2113,7 +2110,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.second:
-            if (value === null || value === DDB_NULL_VALUES.int32)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = second2str(value as number)
@@ -2121,7 +2118,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.datetime:
-            if (value === null || value === DDB_NULL_VALUES.int32)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = datetime2str(value as number)
@@ -2129,7 +2126,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.timestamp:
-            if (value === null || value === DDB_NULL_VALUES.int64)
+            if (value === null || value === nulls.int64)
                 return get_nullstr()
             else {
                 const str = timestamp2str(value as bigint)
@@ -2137,7 +2134,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.nanotime:
-            if (value === null || value === DDB_NULL_VALUES.int64)
+            if (value === null || value === nulls.int64)
                 return get_nullstr()
             else {
                 const str = nanotime2str(value as bigint)
@@ -2145,7 +2142,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.nanotimestamp:
-            if (value === null || value === DDB_NULL_VALUES.int64)
+            if (value === null || value === nulls.int64)
                 return get_nullstr()
             else {
                 const str = nanotimestamp2str(value as bigint)
@@ -2153,7 +2150,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.float:
-            if (value === null || value === DDB_NULL_VALUES.float32)
+            if (value === null || value === nulls.float32)
                 return get_nullstr()
             else {
                 const str = formatter.format(value as number)
@@ -2161,7 +2158,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.double:
-            if (value === null || value === DDB_NULL_VALUES.double)
+            if (value === null || value === nulls.double)
                 return get_nullstr()
             else {
                 const str = formatter.format(value as number)
@@ -2195,7 +2192,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         }
         
         case DdbType.datehour:
-            if (value === null || value === DDB_NULL_VALUES.int32)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = datehour2str(value as number)
@@ -2366,7 +2363,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             return format(obj.type, obj.value, obj.le, options)
         
         case DdbType.uuid:
-        case DdbType.int128: 
+        case DdbType.int128:
         case DdbType.ipaddr:
             return format(
                 obj.type,
@@ -2539,8 +2536,8 @@ export class DdbPair extends DdbObj<Int32Array> {
             rows: 2,
             cols: 1,
             value: Int32Array.of(
-                l === null ? DDB_NULL_VALUES.int32 : l,
-                r === null ? DDB_NULL_VALUES.int32 : r,
+                l === null ? nulls.int32 : l,
+                r === null ? nulls.int32 : r,
             )
         })
     }
@@ -2569,7 +2566,7 @@ export class DdbVectorInt extends DdbObj<Int32Array> {
                 :
                     Int32Array.from(ints, v => 
                         v === null ?
-                            DDB_NULL_VALUES.int32
+                            nulls.int32
                         :
                             v
                     ),
@@ -2590,7 +2587,7 @@ export class DdbVectorLong extends DdbObj<BigInt64Array> {
                 :
                     BigInt64Array.from(longs, v => 
                         v === null ?
-                            DDB_NULL_VALUES.int64
+                            nulls.int64
                         :
                             BigInt(v)
                     ),
@@ -2611,7 +2608,7 @@ export class DdbVectorDouble extends DdbObj<Float64Array> {
                 :
                     Float64Array.from(doubles, v => 
                         v === null ?
-                            DDB_NULL_VALUES.double
+                            nulls.double
                         :
                             v
                     ),
@@ -2697,7 +2694,7 @@ export class DdbSetInt extends DdbObj<Int32Array> {
                 :
                     Int32Array.from(ints, v => 
                         v === null ?
-                            DDB_NULL_VALUES.int32
+                            nulls.int32
                         :
                             v
                     ),
@@ -2720,7 +2717,7 @@ export class DdbSetDouble extends DdbObj<Float64Array> {
                 :
                     Int32Array.from(doubles, v => 
                         v === null ?
-                            DDB_NULL_VALUES.int32
+                            nulls.int32
                         :
                             v
                     ),
@@ -2797,7 +2794,7 @@ export function date2ms (date: number | null) {
     // 本地的时区与实际的时间值相关，timezone offset 可能会受到夏令时 (DST) 的影响
     // 得到的 utc 毫秒数交给 js date 或者 dayjs 去格式化
     
-    if (date === null || date === DDB_NULL_VALUES.int32)
+    if (date === null || date === nulls.int32)
         return null
     
     const ms = 1000 * 3600 * 24 * date
@@ -2806,7 +2803,7 @@ export function date2ms (date: number | null) {
 }
 
 export function date2str (date: number | null, format = 'YYYY.MM.DD') {
-    return (date === null || date === DDB_NULL_VALUES.int32) ? 
+    return (date === null || date === nulls.int32) ? 
         'null'
     :
         dayjs(
@@ -2815,7 +2812,7 @@ export function date2str (date: number | null, format = 'YYYY.MM.DD') {
 }
 
 export function month2ms (month: number | null): number | null {
-    return (month === null || month === DDB_NULL_VALUES.int32) ?
+    return (month === null || month === nulls.int32) ?
         null
     :
         dayjs(
@@ -2825,7 +2822,7 @@ export function month2ms (month: number | null): number | null {
 }
 
 export function month2str (month: number | null) {
-    if (month === null || month === DDB_NULL_VALUES.int32)
+    if (month === null || month === nulls.int32)
         return 'null'
     
     if (month < 0)
@@ -2837,14 +2834,14 @@ export function month2str (month: number | null) {
 }
 
 export function time2ms (time: number | null): number | null {
-    return (time === null || time === DDB_NULL_VALUES.int32) ?
+    return (time === null || time === nulls.int32) ?
         null
     :
         1000 * 60 * new Date(time).getTimezoneOffset() + time
 }
 
 export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
-    return (time === null || time === DDB_NULL_VALUES.int32) ?
+    return (time === null || time === nulls.int32) ?
         'null'
     :
         dayjs(
@@ -2853,7 +2850,7 @@ export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
 }
 
 export function minute2ms (minute: number | null): number | null {
-    if (minute === null || minute === DDB_NULL_VALUES.int32)
+    if (minute === null || minute === nulls.int32)
         return null
     
     const ms = 60 * 1000 * minute
@@ -2862,7 +2859,7 @@ export function minute2ms (minute: number | null): number | null {
 }
 
 export function minute2str (minute: number | null, format = 'HH:mm[m]') {
-    return (minute === null || minute === DDB_NULL_VALUES.int32) ?
+    return (minute === null || minute === nulls.int32) ?
         'null'
     :
         dayjs(
@@ -2871,7 +2868,7 @@ export function minute2str (minute: number | null, format = 'HH:mm[m]') {
 }
 
 export function second2ms (second: number | null): number | null {
-    if (second === null || second === DDB_NULL_VALUES.int32)
+    if (second === null || second === nulls.int32)
         return null
     
     const ms = 1000 * second
@@ -2880,7 +2877,7 @@ export function second2ms (second: number | null): number | null {
 }
 
 export function second2str (second: number | null, format = 'HH:mm:ss') {
-    return (second === null || second === DDB_NULL_VALUES.int32) ?
+    return (second === null || second === nulls.int32) ?
         'null'
     :
         dayjs(
@@ -2889,7 +2886,7 @@ export function second2str (second: number | null, format = 'HH:mm:ss') {
 }
 
 export function datetime2ms (datetime: number | null): number | null {
-    if (datetime === null || datetime === DDB_NULL_VALUES.int32)
+    if (datetime === null || datetime === nulls.int32)
         return null
     
     const ms = 1000 * datetime
@@ -2898,7 +2895,7 @@ export function datetime2ms (datetime: number | null): number | null {
 }
 
 export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:mm:ss') {
-    return (datetime === null || datetime === DDB_NULL_VALUES.int32) ?
+    return (datetime === null || datetime === nulls.int32) ?
         'null'
     :
         dayjs(
@@ -2907,7 +2904,7 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
 }
 
 export function timestamp2ms (timestamp: bigint | null): number | null {
-    if (timestamp === null || timestamp === DDB_NULL_VALUES.int64)
+    if (timestamp === null || timestamp === nulls.int64)
         return null
         
     const ms = Number(timestamp)
@@ -2923,7 +2920,7 @@ export function timestamp2ms (timestamp: bigint | null): number | null {
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
-    return (timestamp === null || timestamp === DDB_NULL_VALUES.int64) ?
+    return (timestamp === null || timestamp === nulls.int64) ?
         'null'
     :
         dayjs(
@@ -2932,7 +2929,7 @@ export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH
 }
 
 export function datehour2ms (datehour: number | null): number | null {
-    if (datehour === null || datehour === DDB_NULL_VALUES.int32)
+    if (datehour === null || datehour === nulls.int32)
         return null
     
     const ms = 1000 * 3600 * datehour
@@ -2941,7 +2938,7 @@ export function datehour2ms (datehour: number | null): number | null {
 }
 
 export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH') {
-    if (datehour === null || datehour === DDB_NULL_VALUES.int32)
+    if (datehour === null || datehour === nulls.int32)
         return 'null'
     
     const ms = 1000 * 3600 * datehour
@@ -2962,7 +2959,7 @@ export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH')
 */
 export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     if (!str || str === 'null')
-        return DDB_NULL_VALUES.int64
+        return nulls.int64
     
     assert(str.length === format.length, t('timestamp 字符串长度必须等于格式串长度'))
     
@@ -2979,7 +2976,7 @@ export function nanotime2ns (nanotime: bigint | null): bigint | null {
 }
 
 export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSSSSS') {
-    if (nanotime === null || nanotime === DDB_NULL_VALUES.int64)
+    if (nanotime === null || nanotime === nulls.int64)
         return 'null'
     
     if (nanotime < 0n)
@@ -3007,7 +3004,7 @@ export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSS
 }
 
 export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
-    if (nanotimestamp === null || nanotimestamp === DDB_NULL_VALUES.int64)
+    if (nanotimestamp === null || nanotimestamp === nulls.int64)
         return null
     
     const ms = Number(nanotimestamp / 1000000n)
@@ -3032,7 +3029,7 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
     // nanotimestamp2str(-10_0000_0000n)
     // nanotimestamp2str(-10_0000_0001n)
     
-    if (nanotimestamp === null || nanotimestamp === DDB_NULL_VALUES.int64)
+    if (nanotimestamp === null || nanotimestamp === nulls.int64)
         return 'null'
     
     const i_second_start = format.indexOf('ss')
@@ -3079,7 +3076,7 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
         Seconds are in the format ss (must be included); nanoseconds are in the format SSSSSSSSS (must be included) */
 export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSSSSSSSS') {
     if (!str || str === 'null')
-        return DDB_NULL_VALUES.int64
+        return nulls.int64
     
     assert(str.length === format.length, t('nanotimestamp 字符串长度必须等于格式串长度'))
     

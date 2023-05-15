@@ -1,5 +1,7 @@
 node_modules/
 
+/example/
+
 /.vscode/settings.json
 /.vscode/launch.json
 
@@ -12,5 +14,3 @@ node_modules/
 
 /i18n/stats.json
 /i18n/untranslateds.json
-
-example

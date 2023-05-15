@@ -1,9 +1,11 @@
 import { getBigInt128, setBigInt128 } from './data-view-extends.js'
 
+
 export class BigInt128Array {
     static of (...items: bigint[]): BigInt128Array {
         return new BigInt128Array(items)
     }
+    
     
     static from (arrayLike: ArrayLike<bigint>): BigInt128Array
     static from<U>(arrayLike: ArrayLike<U>, mapfn: (v: U, k: number) => bigint, thisArg?: any): BigInt128Array
@@ -20,11 +22,13 @@ export class BigInt128Array {
         }
     }
     
+    
     readonly BYTES_PER_ELEMENT: number = 16
     readonly buffer: ArrayBufferLike
     readonly byteLength: number
     readonly byteOffset: number
-        
+    
+    
     constructor (length?: number)
     constructor (array: Iterable<bigint>)
     constructor (buffer: ArrayBufferLike, byteOffset?: number, length?: number)
@@ -86,9 +90,11 @@ export class BigInt128Array {
         })
     }
     
+    
     get length () {
         return this.byteLength / this.BYTES_PER_ELEMENT
     }
+    
     
     set (array: ArrayLike<bigint>, offset: number = 0) {
         if (offset + array.length > this.length) 
@@ -98,6 +104,7 @@ export class BigInt128Array {
         for (let i = 0; i < array.length; i++) 
             setBigInt128(dv, this.byteOffset + offset + i * this.BYTES_PER_ELEMENT, array[i])
     }
+    
     
     at (index: number) {
         const length = this.length
@@ -111,6 +118,7 @@ export class BigInt128Array {
         const dv = new DataView(this.buffer)
         return getBigInt128(dv, this.byteOffset + index * this.BYTES_PER_ELEMENT)
     }
+    
     
     subarray (begin: number = 0, end: number = this.length) {
         const length = this.length
@@ -137,6 +145,7 @@ export class BigInt128Array {
         return new BigInt128Array(this.buffer, this.byteOffset + begin * this.BYTES_PER_ELEMENT, newLength)
     }
     
+    
     [Symbol.iterator] () {
         let index = 0
         const array = this
@@ -149,8 +158,10 @@ export class BigInt128Array {
             },
         }
     }
-      
+    
+    
     // [Symbol.toStringTag]: 'BigInt128Array'
+    
     
     toString () {
         const values: bigint[] = []
@@ -159,6 +170,7 @@ export class BigInt128Array {
         return values.join(',')
     }
 }
+
 
 Object.defineProperty(BigInt128Array.prototype, Symbol.toStringTag, {
     configurable: false,

@@ -43,7 +43,7 @@ export class BigInt128Array {
             this.byteOffset = byteOffset ?? 0
             
             let byteLength = 0
-            if (length) {
+            if (length !== undefined) {
                 byteLength = length * this.BYTES_PER_ELEMENT
                 if (byteLength + this.byteOffset > fisrtArg.byteLength) 
                     throw new RangeError(`valid typed array length: ${length}`)
@@ -74,18 +74,19 @@ export class BigInt128Array {
                         return target.at(index)
                 }
                 
-                return Reflect.get(target, key, this)
+                return Reflect.get(target, key)
             },
             set (target, key, value) {
                 if (typeof key === 'string') {
                     const index = Number(key)
-                    if (Number.isInteger(index) && index >= 0 && index < target.length) {
+                    if (Number.isInteger(index) && index >= 0 && index < target.length) 
                         target.set([value], index)
-                        return true
-                    }
+                    
+                    // ignore invalid number index setter, and never set value to target
+                    return true
                 }
                 
-                return Reflect.set(target, key, value, this)
+                return Reflect.set(target, key, value)
             }
         })
     }
@@ -101,8 +102,10 @@ export class BigInt128Array {
             throw new RangeError('offset is out of bounds')
         
         const dv = new DataView(this.buffer)
-        for (let i = 0; i < array.length; i++) 
-            setBigInt128(dv, this.byteOffset + offset + i * this.BYTES_PER_ELEMENT, array[i])
+        for (let i = 0; i < array.length; i++) {
+            const byteOffset = this.byteOffset + (offset + i) * this.BYTES_PER_ELEMENT
+            setBigInt128(dv, byteOffset, array[i])
+        }
     }
     
     
@@ -158,9 +161,6 @@ export class BigInt128Array {
             },
         }
     }
-    
-    
-    // [Symbol.toStringTag]: 'BigInt128Array'
     
     
     toString () {

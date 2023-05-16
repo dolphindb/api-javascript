@@ -1,4 +1,9 @@
 const sql_keywords = [
+    // 不要单独算关键字比较好
+    // 'column',
+    // 'table',
+    // 'database',
+    
     'select',
     'exec',
     'update',
@@ -9,10 +14,14 @@ const sql_keywords = [
     'create table',
     'create database',
     
-    'alter',
-    'alter add',
-    'alter rename',
-    'alter drop',
+    'alter table',
+    
+    // alter table ... add column_name datatype
+    'add',
+    'rename',
+    'to',
+    'drop',
+    
     
     'drop table',
     'drop database',
@@ -59,6 +68,7 @@ const sql_keywords = [
     'exists',
     'distinct',
     'map',
+    
     
     'between', 'and', // between ... and ...
     

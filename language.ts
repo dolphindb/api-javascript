@@ -65,6 +65,7 @@ const sql_keywords = [
     'on',
     'like',
     'values',
+    'if',
     'exists',
     'distinct',
     'map',
@@ -100,7 +101,7 @@ export const keywords = [
     'timer',
     
     // 流程控制
-    'if',
+    // 'if',
     // 'else',
     'do',
     'for',

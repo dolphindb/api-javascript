@@ -208,7 +208,7 @@ async function test_streaming (ddb: DDB) {
                 //  console.log(message)
                  rows += message.rows
                  if (rows === 50)
-                    resolve()
+                     resolve()
             },
         }
     })

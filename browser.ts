@@ -1466,7 +1466,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     ): ArrayBufferView[] {
         switch (type) {
             case DdbType.void:
-                return []
+                return [ ]
             
             case DdbType.bool:
                 return [value as Int8Array]
@@ -4054,7 +4054,7 @@ export class DDB {
                     let winsize_ = 0
                     let i = win.segments.length - 1
                     // 往前移动至首个累计 winsize_ 超过 winsize 的位置
-                    for (;  winsize_ < winsize;  i--)
+                    for (  ;  winsize_ < winsize;  i--)
                         winsize_ += win.segments[i].value[0].rows
                     
                     win.segments = win.segments.slice(i)

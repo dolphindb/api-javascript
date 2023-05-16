@@ -11,8 +11,8 @@ export class BigInt128Array {
     static from<U>(arrayLike: ArrayLike<U>, mapfn: (v: U, k: number) => bigint, thisArg?: any): BigInt128Array
     static from<U>(arrayLike: ArrayLike<U>, mapfn?: (v: U, k: number) => bigint, thisArg?: any) {
         if (mapfn) {
-            const array: bigint[] = []
-            for (let i = 0; i < arrayLike.length; i++) 
+            const array: bigint[] = [ ]
+            for (let i = 0;  i < arrayLike.length;  i++) 
                 array.push(mapfn.call(thisArg, arrayLike[i], i))
             
             return new BigInt128Array(array)
@@ -55,7 +55,7 @@ export class BigInt128Array {
             
             this.byteLength = byteLength
         } else {
-            const array: bigint[] = []
+            const array: bigint[] = [ ]
             for (const value of fisrtArg) 
                 array.push(value)
             
@@ -103,7 +103,7 @@ export class BigInt128Array {
             throw new RangeError('offset is out of bounds')
         
         const dv = new DataView(this.buffer)
-        for (let i = 0; i < array.length; i++) {
+        for (let i = 0;  i < array.length;  i++) {
             const byteOffset = this.byteOffset + (offset + i) * this.BYTES_PER_ELEMENT
             setBigInt128(dv, byteOffset, array[i])
         }
@@ -164,7 +164,7 @@ export class BigInt128Array {
     
     
     toString () {
-        const values: bigint[] = []
+        const values: bigint[] = [ ]
         for (const value of this) 
             values.push(value)
         return values.join(',')

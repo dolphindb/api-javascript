@@ -1642,8 +1642,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         case DdbType.decimal128:
                                             const x = data[acc_len + i]
                                             
-                                            if (is_decimal_null_value(type_, x))
-                                                return ''
+                                            if (is_decimal_null_value(type_, x)) {
+                                                items[i] = ''
+                                                break
+                                            }
                                             
                                             const { scale } = this.value as DdbArrayVectorValue
                                             
@@ -2304,8 +2306,10 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                         case DdbType.decimal128:
                             const x = data[acc_len + i]
                             
-                            if (is_decimal_null_value(type_, x))
-                                return ''
+                            if (is_decimal_null_value(type_, x)) {
+                                items[i] = ''
+                                break
+                            }
                             
                             const { scale } = obj.value as DdbArrayVectorValue
                             

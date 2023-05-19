@@ -206,6 +206,7 @@ export const constants = [
     'OBJECT',
     'DECIMAL32',
     'DECIMAL64',
+    'DECIMAL128',
     
     // partition type
     'SEQ',

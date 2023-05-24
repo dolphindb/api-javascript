@@ -32,18 +32,18 @@
         "JavaScript"
     ],
     "devDependencies": {
-        "@types/node": "^20.2.0",
-        "@typescript-eslint/eslint-plugin": "^5.59.6",
-        "@typescript-eslint/parser": "^5.59.6",
-        "eslint": "^8.40.0",
-        "eslint-plugin-xlint": "^1.0.2",
+        "@types/node": "^20.2.3",
+        "@typescript-eslint/eslint-plugin": "^5.59.7",
+        "@typescript-eslint/parser": "^5.59.7",
+        "eslint": "^8.41.0",
+        "eslint-plugin-xlint": "^1.0.5",
         "ts-node": "^10.9.1",
         "typescript": "^5.0.4"
     },
     "dependencies": {
         "dayjs": "^1.11.7",
         "ipaddr.js": "^2.0.1",
-        "tslib": "^2.5.1",
-        "xshell": "^1.0.25"
+        "tslib": "^2.5.2",
+        "xshell": "^1.0.28"
     }
 }

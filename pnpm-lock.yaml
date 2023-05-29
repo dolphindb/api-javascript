@@ -1,4 +1,8 @@
-lockfileVersion: '6.0'
+lockfileVersion: '6.1'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
 dependencies:
   dayjs:
@@ -16,8 +20,8 @@ dependencies:
 
 devDependencies:
   '@types/node':
-    specifier: ^20.2.3
-    version: 20.2.3
+    specifier: ^20.2.5
+    version: 20.2.5
   '@typescript-eslint/eslint-plugin':
     specifier: ^5.59.7
     version: 5.59.7(@typescript-eslint/parser@5.59.7)(eslint@8.41.0)(typescript@5.0.4)
@@ -28,11 +32,11 @@ devDependencies:
     specifier: ^8.41.0
     version: 8.41.0
   eslint-plugin-xlint:
-    specifier: ^1.0.5
-    version: 1.0.5(eslint@8.41.0)(typescript@5.0.4)
+    specifier: ^1.0.6
+    version: 1.0.6(eslint@8.41.0)(typescript@5.0.4)
   ts-node:
     specifier: ^10.9.1
-    version: 10.9.1(@types/node@20.2.3)(typescript@5.0.4)
+    version: 10.9.1(@types/node@20.2.5)(typescript@5.0.4)
   typescript:
     specifier: ^5.0.4
     version: 5.0.4
@@ -436,8 +440,8 @@ packages:
     resolution: {integrity: sha512-wOuvG1SN4Us4rez+tylwwwCV1psiNVOkJeM3AUWUNWg/jDQY2+HE/444y5gc+jBmRqASOm2Oeh5c1axHobwRKQ==}
     dev: true
 
-  /@types/node@20.2.3:
-    resolution: {integrity: sha512-pg9d0yC4rVNWQzX8U7xb4olIOFuuVL9za3bzMT2pu2SU0SNEi66i2qrvhE2qt0HvkhuCaWJu7pLNOt/Pj8BIrw==}
+  /@types/node@20.2.5:
+    resolution: {integrity: sha512-JJulVEQXmiY9Px5axXHeYGLSjhkZEnD+MDPDGbCbIAbMslkKwmygtZFy1X6s/075Yo94sf8GuSlFfPzysQrWZQ==}
 
   /@types/semver@7.3.13:
     resolution: {integrity: sha512-21cFJr9z3g5dW8B0CVI9g2O9beqaThGQ6ZFBqHfwhzLDKUxaqTIy3vnfah/UPkfOiF2pLq+tGz+W8RyCskuslw==}
@@ -446,7 +450,7 @@ packages:
   /@types/ws@8.5.4:
     resolution: {integrity: sha512-zdQDHKUgcX/zBc4GrwsE/7dVdAD8JR4EuiAXiiUhhfyIJXXb2+PrGshFyeXWQPMmmZ2XxgaqclgpIC7eTXc1mg==}
     dependencies:
-      '@types/node': 20.2.3
+      '@types/node': 20.2.5
     dev: false
 
   /@typescript-eslint/eslint-plugin@5.59.7(@typescript-eslint/parser@5.59.7)(eslint@8.41.0)(typescript@5.0.4):
@@ -1142,12 +1146,12 @@ packages:
     engines: {node: '>=10'}
     dev: true
 
-  /eslint-plugin-xlint@1.0.5(eslint@8.41.0)(typescript@5.0.4):
-    resolution: {integrity: sha512-rAEwN2xQiaIc/DnGrvsNJhgo3ki45rWvjZ+1O82FeSfOeB8x4O9kWxfSGLmlHzNqrDSpWEq3iDT3CLhLF8wOng==}
+  /eslint-plugin-xlint@1.0.6(eslint@8.41.0)(typescript@5.0.4):
+    resolution: {integrity: sha512-MuBwT5KqGNK9jdr+s19bhFagKwyAhGWtpWq/rl+faJUEZ8XO6fO2+ef35hlFtzqWg4gEHDki/FJLQMfp+/LIWA==}
     dependencies:
       '@types/eslint': 8.40.0
       '@types/estree': 1.0.1
-      '@types/node': 20.2.3
+      '@types/node': 20.2.5
       '@typescript-eslint/utils': 5.59.7(eslint@8.41.0)(typescript@5.0.4)
     transitivePeerDependencies:
       - eslint
@@ -2584,7 +2588,7 @@ packages:
       url-parse: 1.5.10
     dev: false
 
-  /ts-node@10.9.1(@types/node@20.2.3)(typescript@5.0.4):
+  /ts-node@10.9.1(@types/node@20.2.5)(typescript@5.0.4):
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -2603,7 +2607,7 @@ packages:
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.3
-      '@types/node': 20.2.3
+      '@types/node': 20.2.5
       acorn: 8.8.2
       acorn-walk: 8.2.0
       arg: 4.1.3

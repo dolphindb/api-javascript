@@ -1,5 +1,17 @@
 import { getBigInt128, setBigInt128 } from './data-view-extends.js'
 
+/**
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#security_requirements
+ * SharedArrayBuffer is disabled by default in most browsers as a security precaution to avoid Spectre attacks.
+ * But it's still available in Node.js or some browsers.
+ */
+const HAS_SHARED_ARRAY_BUFFER = (() => {
+    try {
+        return typeof SharedArrayBuffer !== 'undefined'
+    } catch {
+        return false
+    }
+})()
 
 export class BigInt128Array {
     static of (...items: bigint[]): BigInt128Array {
@@ -38,7 +50,7 @@ export class BigInt128Array {
             this.buffer = new ArrayBuffer(length * this.BYTES_PER_ELEMENT)
             this.byteOffset = 0
             this.byteLength = length * this.BYTES_PER_ELEMENT
-        } else if (fisrtArg instanceof ArrayBuffer || fisrtArg instanceof SharedArrayBuffer) {
+        } else if (fisrtArg instanceof ArrayBuffer || (HAS_SHARED_ARRAY_BUFFER && fisrtArg instanceof SharedArrayBuffer)) {
             this.buffer = fisrtArg
             this.byteOffset = byteOffset ?? 0
             
@@ -56,7 +68,7 @@ export class BigInt128Array {
             this.byteLength = byteLength
         } else {
             const array: bigint[] = [ ]
-            for (const value of fisrtArg) 
+            for (const value of fisrtArg as Iterable<bigint>) 
                 array.push(value)
             
             this.buffer = new ArrayBuffer(array.length * this.BYTES_PER_ELEMENT)

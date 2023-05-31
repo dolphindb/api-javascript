@@ -12,7 +12,7 @@ dayjs.extend(DayjsCustomParseFormat)
 import ipaddrjs from 'ipaddr.js'
 const { fromByteArray: buf2ipaddr } = ipaddrjs
 
-import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket, Lock, type WebSocketConnectionError } from 'xshell'
+import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket, Lock, genid, type WebSocketConnectionError } from 'xshell'
 
 import { t } from './i18n/index.js'
 
@@ -3675,8 +3675,68 @@ export class DDB {
             if (this.errored || !this.connected)
                 throw this.error || new DdbConnectionError(this)
             
+            const args = DdbObj.to_ddbobjs(_args)
+            
+            const id = genid() % 1000
+            const rpc_id = ` (id = ${id})`
+            
+            const command = this.enc.encode(
+                (() => {
+                    switch (type) {
+                        case 'function':
+                            if (this.verbose)
+                                console.log(func + inspect(args, { colors: false }) + rpc_id)
+                            
+                            return 'function\n' +
+                                `${func}\n` +
+                                `${args.length}\n` +
+                                `${Number(DDB.le_client)}\n`
+                        
+                        case 'script':
+                            if (this.verbose)
+                                console.log(script + rpc_id)
+                            
+                            return 'script\n' +
+                                script
+                        
+                        case 'variable':
+                            if (this.verbose)
+                                for (let i = 0;  i < vars.length;  i++)
+                                    console.log(`${vars[i]} = ${inspect(args[i], { colors: false })}`)
+                            
+                            return 'variable\n' +
+                                `${vars.join(',')}\n` +
+                                `${vars.length}\n` +
+                                `${Number(DDB.le_client)}\n`
+                        
+                        case 'connect':
+                            if (this.verbose)
+                                console.log(
+                                    'connect()' + 
+                                    (this.autologin ? 
+                                        '\n' + 
+                                        `login(${this.username.quote()}, ${this.password.quote()})`
+                                    :
+                                        '') +
+                                    rpc_id
+                                )
+                            
+                            return 'connect\n' +
+                                // 详见 InterProcessIO.cpp#APISocketConsole::parseScript 中的
+                                // Util::startWith "connect"
+                                (this.autologin ? 
+                                    'login\n' +
+                                    this.username + '\n' +
+                                    this.password /* encrypted (可选参数) + '\n' + 'false' */
+                                :
+                                    '')
+                                
+                    }
+                })()
+            )
+            
             // 使用资源发送请求并等待请求完成
-            return new Promise<TResult>((resolve, reject) => {
+            const result = await new Promise<TResult>((resolve, reject) => {
                 this.on_error = () => {
                     // 这里一定有了 this.error, 不需要再 || new DdbConnectionError(this)
                     reject(this.error)
@@ -3717,62 +3777,6 @@ export class DDB {
                     }
                 }
                 
-                const args = DdbObj.to_ddbobjs(_args)
-                
-                const command = this.enc.encode(
-                    (() => {
-                        switch (type) {
-                            case 'function':
-                                if (this.verbose)
-                                    console.log(func + inspect(args, { colors: false }))
-                                
-                                return 'function\n' +
-                                    `${func}\n` +
-                                    `${args.length}\n` +
-                                    `${Number(DDB.le_client)}\n`
-                            
-                            case 'script':
-                                if (this.verbose)
-                                    console.log(script)
-                                
-                                return 'script\n' +
-                                    script
-                            
-                            case 'variable':
-                                if (this.verbose)
-                                    for (let i = 0;  i < vars.length;  i++)
-                                        console.log(`${vars[i]} = ${inspect(args[i], { colors: false })}`)
-                                
-                                return 'variable\n' +
-                                    `${vars.join(',')}\n` +
-                                    `${vars.length}\n` +
-                                    `${Number(DDB.le_client)}\n`
-                            
-                            case 'connect':
-                                if (this.verbose)
-                                    console.log(
-                                        'connect()' + 
-                                        (this.autologin ? 
-                                            '\n' + 
-                                            `login(${this.username.quote()}, ${this.password.quote()})`
-                                        :
-                                            '')
-                                    )
-                                
-                                return 'connect\n' +
-                                    // 详见 InterProcessIO.cpp#APISocketConsole::parseScript 中的
-                                    // Util::startWith "connect"
-                                    (this.autologin ? 
-                                        'login\n' +
-                                        this.username + '\n' +
-                                        this.password /* encrypted (可选参数) + '\n' + 'false' */
-                                    :
-                                        '')
-                                    
-                        }
-                    })()
-                )
-                
                 websocket.send(
                     concat([
                         this.enc.encode(`API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent })}\n`),
@@ -3781,6 +3785,11 @@ export class DDB {
                     ])
                 )
             })
+            
+            if (this.verbose)
+                console.log(result, rpc_id)
+            
+            return result
         })
     }
     

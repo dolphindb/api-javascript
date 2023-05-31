@@ -3722,7 +3722,7 @@ export class DDB {
             )
             
             // 使用资源发送请求并等待请求完成
-            const result = new Promise<TResult>((resolve, reject) => {
+            const result = await new Promise<TResult>((resolve, reject) => {
                 this.on_error = () => {
                     // 这里一定有了 this.error, 不需要再 || new DdbConnectionError(this)
                     reject(this.error)
@@ -3773,7 +3773,7 @@ export class DDB {
             })
             
             if (this.verbose)
-                console.log(result, rpc_id)
+                console.log(result.toString() + rpc_id)
             
             return result
         })

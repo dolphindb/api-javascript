@@ -3787,7 +3787,7 @@ export class DDB {
             })
             
             if (this.verbose)
-                console.log(result, rpc_id)
+                console.log(inspect(result) + rpc_id)
             
             return result
         })

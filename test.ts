@@ -238,7 +238,7 @@ async function test_streaming (ddb: DDB) {
 
 async function test_time (ddb: DDB) {
     console.log('测试时间显示')
-
+    
     await time2str_equal(ddb, '2022-09-01T14:30:01.095')
     await time2str_equal(ddb, '2022-07-01T00:00:00.000')
     await time2str_equal(ddb, '2022-07-02T00:00:00.000')

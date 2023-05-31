@@ -30,11 +30,13 @@ const sql_keywords = [
     
     'transaction',
     
+    'join',
     'inner join',
     'full join',
     'full outer join',
     'left join',
     'left outer join',
+    'left semi join',
     'right join',
     'right outer join',
     'left semijoin',

@@ -475,28 +475,8 @@ export const tm_language = {
                     ]
                 },
                 {
-                    match: '`[\\w\\.]+',
+                    match: '`[\\w\\.]*',
                     name: 'string.quoted.other.dolphindb'
-                },
-                {
-                    match: '(`)(.*)(`)',
-                    name: 'string.quoted.script.dolphindb',
-                    captures: {
-                        1: {
-                            name: 'punctuation.definition.string.begin.dolphindb'
-                        },
-                        2: {
-                            name: 'source.js.embedded.dolphindb',
-                            patterns: [
-                                {
-                                    include: 'source.js'
-                                }
-                            ]
-                        },
-                        3: {
-                            name: 'punctuation.definition.string.end.dolphindb'
-                        }
-                    }
                 }
             ]
         },

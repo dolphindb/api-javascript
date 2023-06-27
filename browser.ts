@@ -2080,7 +2080,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.date:
-            if (value === null || value === nulls.int16)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = date2str(value as number)
@@ -2104,7 +2104,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             }
         
         case DdbType.minute:
-            if (value === null || value === nulls.int16)
+            if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
                 const str = minute2str(value as number)

@@ -9,7 +9,7 @@ set_inspect_options()
 
 // linux
 // export const url = 'ws://115.239.209.123:8892' as const
-export const url = 'ws://192.168.0.37:20023' as const
+export const url = 'ws://192.168.0.200:20023' as const
 // export const url = 'ws://192.168.0.29:9002' as const
 
 // windows

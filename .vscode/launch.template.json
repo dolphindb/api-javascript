@@ -2,12 +2,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Debug Current TS File",
+            "name": "Current TS File Debug",
             "type": "node",
             "request": "launch",
             "runtimeExecutable": "node",
-            "runtimeArgs": ["./node_modules/ts-node/dist/bin-esm.js"],
+            "runtimeArgs": ["--loader", "ts-node/esm"],
             "args": ["${file}"],
+            "outFiles": [
+                "${workspaceFolder}/**/*.js",
+                "!**/node_modules/**"
+            ],
             "cwd": "${workspaceRoot}",
             "internalConsoleOptions": "openOnSessionStart",
             "skipFiles": ["<node_internals>/**", "node_modules/**"]

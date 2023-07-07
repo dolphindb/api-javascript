@@ -45,7 +45,7 @@ npm install dolphindb
 ### 0. 初始化并连接到 DolphinDB
 ```ts
 import { DDB } from 'dolphindb'
-// 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = require('dolphindb')
+// 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = await import('dolphindb')
 // 在浏览器中使用: import { DDB } from 'dolphindb/browser.js'
 
 // 使用 WebSocket URL 初始化连接到 DolphinDB 的实例（不建立实际的网络连接）

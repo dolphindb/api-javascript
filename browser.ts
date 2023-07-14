@@ -3250,7 +3250,14 @@ export interface DdbOptions {
     python?: boolean
     streaming?: StreamingParams
     verbose?: boolean
-    sql?: number
+    sql?: SqlType
+}
+
+export type SqlType = 'DolphinDB' | 'MySQL' | 'Oracle'
+
+export enum SqlTypes {
+    DolphinDB = 0,
+    
 }
 
 
@@ -3301,8 +3308,8 @@ export class DDB {
     /** 是否打印每个 rpc 的信息用于调试 */
     verbose = false
     
-    /** 表示本次会话执行的SQL标准，0代表DolphinDB，1代表Oracle，2代表MySQL， 默认是0，即DolphinDB*/
-    sql = 0
+    /** 表示本次会话执行的 SQL 标准，0 代表 DolphinDB，1 代表 Oracle，2 代表 MySQL， 默认是 0，即 DolphinDB */
+    sql: SqlType = 'DolphinDB'
     
     
     // --- 内部选项, 状态
@@ -3384,12 +3391,11 @@ export class DDB {
         if (options.python !== undefined)
             this.python = options.python
         
-        if (options.streaming !== undefined)
-            this.streaming = options.streaming as StreamingData
-            
         if (options.sql !== undefined)
             this.sql = options.sql
         
+        if (options.streaming !== undefined)
+            this.streaming = options.streaming as StreamingData
     }
     
     
@@ -3551,7 +3557,7 @@ export class DDB {
             flag += 2048
             
         if (this.sql)
-            flag += 524288 * this.sql
+            flag += 2**13 * this.sql
         
         const options = [
             flag,

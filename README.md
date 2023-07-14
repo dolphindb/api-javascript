@@ -76,6 +76,9 @@ let ddbsecure = new DDB('wss://dolphindb.com', {
     // set python session flag, default `false`
     python: false,
     
+    // set sql standrd flag, `0` represent DolphinDB, `1` represent Oracle, `2` represent MySQL, default `0`
+    sql: 0,
+    
     // After setting this option, the database connection is only used for streaming data. For details, see `5. Streaming Data`
     streaming: undefined
 })

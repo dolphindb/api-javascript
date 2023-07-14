@@ -73,6 +73,9 @@ let ddb = new DDB('ws://127.0.0.1:8848', {
     // 设置 python session flag，默认 `false`
     python: false,
     
+    // 本次会话执行的 SQL 标准，设置 sql standrd flag，0代表DolphinDB，1代表Oracle，2代表MySQL，默认 `0`
+    sql: 0,
+    
     // 设置该选项后，该数据库连接只用于流数据，详细用法见后文 `5. 流数据`
     streaming: undefined
 })

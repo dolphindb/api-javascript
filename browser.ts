@@ -3242,24 +3242,24 @@ export class DdbDatabaseError extends Error {
     }
 }
 
+
 /** SQL Standrd 标准类型 */
-export enum SqlTypes {
+export enum SqlStandard {
     DolphinDB = 0,
     Oracle = 1,
     MySQL = 2
 }
+
 
 export interface DdbOptions {
     autologin?: boolean
     username?: string
     password?: string
     python?: boolean
+    sql?: SqlStandard
     streaming?: StreamingParams
     verbose?: boolean
-    sql?: SqlTypes
 }
-
-
 
 
 export class DDB {
@@ -3303,14 +3303,14 @@ export class DDB {
     /** python session flag (2048) */
     python = false
     
+    /** 表示本次会话执行的 SQL 标准 */
+    sql: SqlStandard = SqlStandard.DolphinDB
+    
     /** 是否为流数据连接，非流数据这个字段恒为 null  Whether it is a streaming data connection, this field is always null for non-streaming data */
     streaming = null as StreamingData
     
     /** 是否打印每个 rpc 的信息用于调试 */
     verbose = false
-    
-    /** 表示本次会话执行的 SQL 标准 */
-    sql: SqlTypes = SqlTypes.DolphinDB
     
     
     // --- 内部选项, 状态

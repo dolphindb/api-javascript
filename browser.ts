@@ -3250,6 +3250,7 @@ export interface DdbOptions {
     python?: boolean
     streaming?: StreamingParams
     verbose?: boolean
+    sql?: number
 }
 
 
@@ -3299,6 +3300,9 @@ export class DDB {
     
     /** 是否打印每个 rpc 的信息用于调试 */
     verbose = false
+    
+    /** 表示本次会话执行的SQL标准，0代表DolphinDB，1代表Oracle，2代表MySQL， 默认是0，即DolphinDB*/
+    sql = 0
     
     
     // --- 内部选项, 状态
@@ -3350,6 +3354,7 @@ export class DDB {
             - python?: 设置 python session flag，默认 `false`  set python session flag, default `false`
             - streaming?: 设置该选项后，该 WebSocket 连接只用于流数据  When this option is set, the WebSocket connection is only used for streaming data
             - verbose?: 是否打印每个 rpc 的信息用于调试
+            - sql?: 设置当前会话执行的 sql 标准，0代表DolphinDB，1代表Oracle，2代表MySQL，默认是0
         
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
@@ -3381,6 +3386,10 @@ export class DDB {
         
         if (options.streaming !== undefined)
             this.streaming = options.streaming as StreamingData
+            
+        if (options.sql !== undefined)
+            this.sql = options.sql
+        
     }
     
     
@@ -3540,6 +3549,9 @@ export class DDB {
         // python session
         if (this.python)
             flag += 2048
+            
+        if (this.sql)
+            flag += 524288 * this.sql
         
         const options = [
             flag,

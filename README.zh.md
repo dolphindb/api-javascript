@@ -44,9 +44,9 @@ npm install dolphindb
 ## 用法
 ### 0. 初始化并连接到 DolphinDB
 ```ts
-import { DDB , SqlStandard } from 'dolphindb'
-// 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB , SqlStandard} = await import('dolphindb')
-// 在浏览器中使用: import { DDB , SqlStandard } from 'dolphindb/browser.js'
+import { DDB } from 'dolphindb'
+// 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = await import('dolphindb')
+// 在浏览器中使用: import { DDB } from 'dolphindb/browser.js'
 
 // 使用 WebSocket URL 初始化连接到 DolphinDB 的实例（不建立实际的网络连接）
 let ddb = new DDB('ws://127.0.0.1:8848')
@@ -74,7 +74,8 @@ let ddb = new DDB('ws://127.0.0.1:8848', {
     python: false,
     
     // 设置当前会话执行的 sql 标准, 请使用 SqlStandard 枚举进行传参，默认 `DolphinDB`
-    sql: 0,
+    // sql: SqlStandard.MySQL,
+    // sql: SqlStandard.Oracle,
     
     // 设置该选项后，该数据库连接只用于流数据，详细用法见后文 `5. 流数据`
     streaming: undefined

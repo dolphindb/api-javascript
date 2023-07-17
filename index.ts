@@ -3569,7 +3569,7 @@ export class DDB {
         // python session
         if (this.python)
             flag += 2048
-            
+        
         // sql standrd
         flag += 2**19 * this.sql
         

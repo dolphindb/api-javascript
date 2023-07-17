@@ -44,9 +44,9 @@ npm install dolphindb
 ## Usage
 ### 0. Initialize and connect to DolphinDB
 ```ts
-import { DDB , SqlStandard } from 'dolphindb'
-// The import method for existing projects using CommonJS modules is const { DDB , SqlStandard } = await import('dolphindb')
-// Use in browser: import { DDB , SqlStandard } from 'dolphindb/browser.js'
+import { DDB } from 'dolphindb'
+// The import method for existing projects using CommonJS modules is const { DDB } = await import('dolphindb')
+// Use in browser: import { DDB } from 'dolphindb/browser.js'
 
 // Initially connect to an instance of DolphinDB using the WebSocket URL (without establishing an actual network connection)
 let ddb = new DDB('ws://127.0.0.1:8848')
@@ -77,7 +77,8 @@ let ddbsecure = new DDB('wss://dolphindb.com', {
     python: false,
     
     // set sql standrd flag,  use the SqlStandard enum to pass arguments, default `DolphinDB`
-    sql: 0,
+    // sql: SqlStandard.MySQL,
+    // sql: SqlStandard.Oracle,
     
     // After setting this option, the database connection is only used for streaming data. For details, see `5. Streaming Data`
     streaming: undefined

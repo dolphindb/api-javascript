@@ -2907,7 +2907,6 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
         ).format(format)
 }
 
-
 export function timestamp2ms (timestamp: bigint | null): number | null {
     if (timestamp === null || timestamp === nulls.int64)
         return null

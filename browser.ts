@@ -2907,15 +2907,6 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
         ).format(format)
 }
 
-export function timestamp2ms (timestamp: bigint | null): number | null {
-    if (timestamp === null || timestamp === nulls.int64)
-        return null
-        
-    const ms = Number(timestamp)
-    
-    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
-}
-
 
 /** format timestamp (bigint) to string 
     - timestamp: bigint value
@@ -2924,12 +2915,12 @@ export function timestamp2ms (timestamp: bigint | null): number | null {
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
-    return (timestamp === null || timestamp === nulls.int64) ?
-        'null'
-    :
-        dayjs(
-            timestamp2ms(timestamp)
-        ).format(format)
+    if (timestamp === null || timestamp === nulls.int64)
+        return 'null'
+    const date = new Date(Number(timestamp))
+    return dayjs(
+        date.toLocaleString('chinese', { timeZone: 'UTC' }) + date.getUTCMilliseconds()
+    ).format(format)
 }
 
 export function datehour2ms (datehour: number | null): number | null {
@@ -3051,11 +3042,7 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
     
     return (
         dayjs(
-            1000 * 60 * new Date(ms).getTimezoneOffset() +
-            // 去掉 9 位的纳秒部分，转化为毫秒
-            Number(
-                (nanotimestamp - remainder + (borrow ? -1000000000n : 0n)) / 1000000n
-            )
+            new Date(ms).toLocaleString('chinese', { timeZone: 'UTC' }) 
         ).format(
             format.slice(0, i_second_end)
         ) + 

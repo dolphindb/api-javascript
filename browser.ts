@@ -2924,12 +2924,12 @@ export function timestamp2ms (timestamp: bigint | null): number | null {
         https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
 */
 export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
-    if (timestamp === null || timestamp === nulls.int64)
-        return 'null'
-    const date = new Date(Number(timestamp))
-    return dayjs(
-        date.toLocaleString('chinese', { timeZone: 'UTC' }) + date.getUTCMilliseconds()
-    ).format(format)
+    return (timestamp === null || timestamp === nulls.int64) ?
+        'null'
+    :
+        dayjs(
+            timestamp2ms(timestamp)
+        ).format(format)
 }
 
 export function datehour2ms (datehour: number | null): number | null {

@@ -3248,11 +3248,20 @@ export class DdbDatabaseError extends Error {
 }
 
 
+/** SQL Standrd 标准类型 */
+export enum SqlStandard {
+    DolphinDB = 0,
+    Oracle = 1,
+    MySQL = 2
+}
+
+
 export interface DdbOptions {
     autologin?: boolean
     username?: string
     password?: string
     python?: boolean
+    sql?: SqlStandard
     streaming?: StreamingParams
     verbose?: boolean
 }
@@ -3307,6 +3316,9 @@ export class DDB {
     
     /** python session flag (2048) */
     python = false
+    
+    /** 表示本次会话执行的 SQL 标准 */
+    sql = SqlStandard.DolphinDB
     
     /** 是否为流数据连接，非流数据这个字段恒为 null  Whether it is a streaming data connection, this field is always null for non-streaming data */
     streaming = null as StreamingData
@@ -3363,6 +3375,7 @@ export class DDB {
             - python?: 设置 python session flag，默认 `false`  set python session flag, default `false`
             - streaming?: 设置该选项后，该 WebSocket 连接只用于流数据  When this option is set, the WebSocket connection is only used for streaming data
             - verbose?: 是否打印每个 rpc 的信息用于调试
+            - sql?: 设置当前会话执行的 sql 标准, 请使用 SqlStandard 枚举进行传参，默认 `DolphinDB`
         
         @example
         let ddb = new DDB('ws://127.0.0.1:8848')
@@ -3391,6 +3404,9 @@ export class DDB {
         
         if (options.python !== undefined)
             this.python = options.python
+            
+        if (options.sql !== undefined)
+            this.sql = options.sql
         
         if (options.streaming !== undefined)
             this.streaming = options.streaming as StreamingData
@@ -3553,6 +3569,9 @@ export class DDB {
         // python session
         if (this.python)
             flag += 2048
+        
+        // sql standrd
+        flag += 2**19 * this.sql
         
         const options = [
             flag,

@@ -76,6 +76,10 @@ let ddbsecure = new DDB('wss://dolphindb.com', {
     // set python session flag, default `false`
     python: false,
     
+    // set sql standrd flag,  use the SqlStandard enum to pass arguments, default `DolphinDB`
+    // sql: SqlStandard.MySQL,
+    // sql: SqlStandard.Oracle,
+    
     // After setting this option, the database connection is only used for streaming data. For details, see `5. Streaming Data`
     streaming: undefined
 })

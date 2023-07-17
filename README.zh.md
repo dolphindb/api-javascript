@@ -73,6 +73,10 @@ let ddb = new DDB('ws://127.0.0.1:8848', {
     // 设置 python session flag，默认 `false`
     python: false,
     
+    // 设置当前会话执行的 sql 标准, 请使用 SqlStandard 枚举进行传参，默认 `DolphinDB`
+    // sql: SqlStandard.MySQL,
+    // sql: SqlStandard.Oracle,
+    
     // 设置该选项后，该数据库连接只用于流数据，详细用法见后文 `5. 流数据`
     streaming: undefined
 })

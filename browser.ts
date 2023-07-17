@@ -3010,10 +3010,9 @@ export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
     if (nanotimestamp === null || nanotimestamp === nulls.int64)
         return null
     
-    const ms = Number(nanotimestamp / 1000000n)
-    
+    const date = new Date(Number(nanotimestamp / 1000000n))
     return BigInt(
-            1000 * 60 * new Date(ms).getTimezoneOffset()
+            dayjs(`${date.toLocaleString('chinese', { timeZone: 'UTC' })}.${date.getUTCMilliseconds()}`).valueOf()
         ) * 1000000n + nanotimestamp
 }
 

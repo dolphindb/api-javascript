@@ -2007,7 +2007,6 @@ let _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 /** 用来处理时差  To deal with jet lag*/
 let _dateTimeFormat = Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'UTC' })
 
-
 /** 根据 DdbType 格式化单个元素 (value) 为字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
     const { decimals, nullstr = false, colors = false, quote = false } = options

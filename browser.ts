@@ -1996,16 +1996,16 @@ export interface InspectOptions {
 
 
 /** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个  Integer must use this number formatter, InspectOptions.decimals also use this if not passed */
-let default_formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
+let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
 
 let _decimals = 20
 
 /** 缓存，为了优化性能，通常 options.decimals 都是不变的  Cache, in order to optimize performance, usually options.decimals are unchanged */
-let _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
+let _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
-/** 用来处理时差  To deal with jet lag*/
-let _dateTimeFormat = Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'UTC' })
+/** 用来处理时差  To deal with jet lag */
+let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'UTC' })
 
 /** 根据 DdbType 格式化单个元素 (value) 为字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
@@ -2017,7 +2017,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         if (decimals !== _decimals) {
             _decimals = decimals
-            _formatter = Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals })
+            _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals })
         }
         
         return _formatter
@@ -2896,7 +2896,7 @@ export function datetime2ms (datetime: number | null): number | null {
         return null
     
     const date = new Date(1000 * datetime)
-    return dayjs(`${_dateTimeFormat.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+    return dayjs(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
 }
 
 export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:mm:ss') {
@@ -2913,7 +2913,7 @@ export function timestamp2ms (timestamp: bigint | null): number | null {
         return null
         
     const date = new Date(Number(timestamp))
-    return dayjs(`${_dateTimeFormat.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+    return dayjs(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
 }
 
 
@@ -3013,7 +3013,7 @@ export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
     
     const date = new Date(Number(nanotimestamp / 1000000n))
     return BigInt(
-            dayjs(`${_dateTimeFormat.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+            dayjs(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
         ) * 1000000n + nanotimestamp % 1000000n
 }
 
@@ -3050,7 +3050,7 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
     
     return (
         dayjs(
-            _dateTimeFormat.format(new Date(ms))
+            _datetime_formatter.format(new Date(ms))
         ).format(
             format.slice(0, i_second_end)
         ) + 

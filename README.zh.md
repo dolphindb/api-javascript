@@ -58,6 +58,16 @@ let ddb = new DDB('ws://127.0.0.1:8848')
 await ddb.connect()
 ```
 
+### CDN
+```html
+<script src="https://cdn.dolphindb.cn/assets/api.umd.js"></script>
+<script>
+    let ddb = new dolphindb.DDB('ws://127.0.0.1:8848')
+    console.log(ddb)
+</script>
+```
+
+
 #### DDB 选项
 ```ts
 let ddb = new DDB('ws://127.0.0.1:8848', {

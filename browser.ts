@@ -3011,9 +3011,10 @@ export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
         return null
     
     const date = new Date(Number(nanotimestamp / 1000000n))
+    const ns = nanotimestamp % 1000000n
     return BigInt(
             dayjs(`${date.toLocaleString('chinese', { timeZone: 'UTC' })}.${date.getUTCMilliseconds()}`).valueOf()
-        ) * 1000000n + nanotimestamp
+        ) * 1000000n + ns
 }
 
 /** format nanotimestamp value (bigint) to string 

@@ -43,6 +43,7 @@ npm install dolphindb
 
 ## Usage
 ### 0. Initialize and connect to DolphinDB
+#### NPM
 ```ts
 import { DDB } from 'dolphindb'
 // The import method for existing projects using CommonJS modules is const { DDB } = await import('dolphindb')
@@ -57,6 +58,16 @@ let ddb = new DDB('ws://127.0.0.1:8848')
 // Establish a connection to DolphinDB (requires DolphinDB database version at least 1.30.16 or 2.00.4)
 await ddb.connect()
 ```
+
+#### CDN
+```html
+<script src="https://cdn.dolphindb.cn/assets/api.umd.js"></script>
+<script>
+    let ddb = new dolphindb.DDB('ws://127.0.0.1:8848')
+    console.log(ddb)
+</script>
+```
+
 
 #### DDB options
 ```ts

@@ -68,6 +68,9 @@ await ddb.connect()
 </script>
 ```
 
+Code completion, function prompt data:
+https://cdn.dolphindb.cn/assets/docs.zh.json
+https://cdn.dolphindb.cn/assets/docs.en.json
 
 #### DDB options
 ```ts

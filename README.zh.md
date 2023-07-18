@@ -43,7 +43,7 @@ npm install dolphindb
 
 ## 用法
 ### 0. 初始化并连接到 DolphinDB
-### NPM
+#### NPM
 ```ts
 import { DDB } from 'dolphindb'
 // 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = await import('dolphindb')
@@ -59,7 +59,7 @@ let ddb = new DDB('ws://127.0.0.1:8848')
 await ddb.connect()
 ```
 
-### CDN
+#### CDN
 ```html
 <script src="https://cdn.dolphindb.cn/assets/api.umd.js"></script>
 <script>

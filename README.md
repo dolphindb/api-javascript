@@ -61,7 +61,6 @@ await ddb.connect()
 
 #### CDN
 ```html
-<script src="https://cdn.dolphindb.cn/assets/api.js" type="module"></script>
 <script type="module">
     import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
     

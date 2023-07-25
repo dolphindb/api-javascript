@@ -15,8 +15,8 @@ dependencies:
     specifier: ^2.6.1
     version: 2.6.1
   xshell:
-    specifier: ^1.0.42
-    version: 1.0.42
+    specifier: ^1.0.43
+    version: 1.0.43
 
 devDependencies:
   '@types/node':
@@ -89,16 +89,6 @@ packages:
       semver: 6.3.1
     transitivePeerDependencies:
       - supports-color
-    dev: false
-
-  /@babel/generator@7.22.7:
-    resolution: {integrity: sha512-p+jPjMG+SI8yvIaxGgeW24u7q9+5+TGpZh8/CuB7RhBKd7RCy8FayNEFNNKrNK/eUcY/4ExQqLmyrvBXKsIcwQ==}
-    engines: {node: '>=6.9.0'}
-    dependencies:
-      '@babel/types': 7.22.5
-      '@jridgewell/gen-mapping': 0.3.2
-      '@jridgewell/trace-mapping': 0.3.17
-      jsesc: 2.5.2
     dev: false
 
   /@babel/generator@7.22.9:
@@ -244,7 +234,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/code-frame': 7.22.5
-      '@babel/generator': 7.22.7
+      '@babel/generator': 7.22.9
       '@babel/helper-environment-visitor': 7.22.5
       '@babel/helper-function-name': 7.22.5
       '@babel/helper-hoist-variables': 7.22.5
@@ -2728,8 +2718,8 @@ packages:
         optional: true
     dev: false
 
-  /xshell@1.0.42:
-    resolution: {integrity: sha512-4n9g55CP7Cgq/IwM5A4KQif+ex64BPvmpC1FLFoh92+c+qBE0e/smibYPITiSlv4ieqywyPd0tFjgkv+N6uBKA==}
+  /xshell@1.0.43:
+    resolution: {integrity: sha512-OAWzGUwD86wmzURcsDtaYb/dSvvTlNoIK8WDrtkpkgC2dklWmcKdHoP92ihC/patoKmr6o2J/pQ1j/rQhzZ8qQ==}
     engines: {node: '>=20.5.0', vscode: '>=1.79.0'}
     hasBin: true
     dependencies:

@@ -61,10 +61,13 @@ await ddb.connect()
 
 #### CDN
 ```html
-<script src="https://cdn.dolphindb.cn/assets/api.umd.js"></script>
-<script>
-    let ddb = new dolphindb.DDB('ws://127.0.0.1:8848')
-    console.log(ddb)
+<script src="https://cdn.dolphindb.cn/assets/api.js" type="module"></script>
+<script type="module">
+    import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
+    
+    let ddb = new DDB('ws://127.0.0.1:8848')
+    
+    await ddb.connect()
 </script>
 ```
 

@@ -70,8 +70,8 @@ await ddb.connect()
 </script>
 ```
 
-代码补全、函数提示数据:
-https://cdn.dolphindb.cn/assets/docs.zh.json
+代码补全、函数提示数据:  
+https://cdn.dolphindb.cn/assets/docs.zh.json  
 https://cdn.dolphindb.cn/assets/docs.en.json
 
 

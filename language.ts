@@ -308,13 +308,13 @@ export const constants = [
 
 
 
-export const tm_language = function (is_python: boolean) {
+function get_tm_language (python = false) {
     return {
         $schema: 'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
     
-        name: is_python ? 'DolphinDB Python' : 'DolphinDB',
+        name: python ? 'DolphinDB Python' : 'DolphinDB',
         
-        scopeName: is_python ? 'source.dolphindb-python' : 'source.dolphindb',
+        scopeName: python ? 'source.dolphindb-python' : 'source.dolphindb',
         
         patterns: [
             {
@@ -685,7 +685,18 @@ export const tm_language = function (is_python: boolean) {
             },
             
             comment: {
-                patterns: [
+                patterns: python ? [
+                    {
+                        begin: '#',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.comment.dolphindb'
+                            }
+                        },
+                        end: '$',
+                        name: 'comment.line.number-sign.dolphindb'
+                    }
+                ] : [
                     {
                         begin: '/\\*',
                         beginCaptures: {
@@ -711,16 +722,6 @@ export const tm_language = function (is_python: boolean) {
                         end: '$',
                         name: 'comment.line.number-sign.dolphindb'
                     },
-                    {
-                        begin: '#',
-                        beginCaptures: {
-                            0: {
-                                name: 'punctuation.definition.comment.dolphindb'
-                            }
-                        },
-                        end: '$',
-                        name: 'comment.line.number-sign.dolphindb'
-                    }
                 ]
             },
             
@@ -952,6 +953,11 @@ export const tm_language = function (is_python: boolean) {
         }
     } as Block
 }
+
+
+export const tm_language = get_tm_language(false)
+
+export const tm_language_python = get_tm_language(true)
 
 
 interface Block {

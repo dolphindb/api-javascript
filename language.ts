@@ -308,648 +308,650 @@ export const constants = [
 
 
 
-export const tm_language = {
-    $schema: 'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
+export const tm_language = function (is_python: boolean) {
+    return {
+        $schema: 'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
     
-    name: 'DolphinDB',
-    
-    scopeName: 'source.dolphindb',
-    
-    patterns: [
-        {
-            match: '\\.\\.\\.',
-            name: 'invalid.ellipsis.dolphindb'
-        },
-        {
-            include: '#keyword'
-        },
-        {
-            include: '#literal'
-        },
-        {
-            include: '#comment'
-        },
-        {
-            include: '#decorator'
-        },
-        {
-            include: '#variable'
-        },
-        {
-            include: '#operator'
-        },
-        {
-            include: '#method_call'
-        },
-        {
-            include: '#function_call'
-        },
-        {
-            include: '#property'
-        },
-        {
-            match: ';',
-            name: 'punctuation.terminator.statement.dolphindb'
-        },
-        {
-            match: ',',
-            name: 'punctuation.separator.commma.dolphindb'
-        }
-    ],
-    
-    
-    repository: {
-        keyword: {
-            // \b: word boundary
-            // (?<![.$]): boundary 不是 . 或 $
-            // ?!\s*: 不是 label
-            match: `\\b(?<![.$])(${keywords.join('|')})(?!(\\s*:|\\())\\b`,
-            name: 'keyword.control.dolphindb'
-        },
+        name: is_python ? 'DolphinDB Python' : 'DolphinDB',
         
-        literal: {
-            patterns: [
-                { include: '#constant' },
-                { include: '#datetime' },
-                { include: '#string' },
-                { include: '#number' },
-            ]
-        },
+        scopeName: is_python ? 'source.dolphindb-python' : 'source.dolphindb',
         
-        constant: {
-            match: `\\b(?<![.$])(${constants.join('|')})(?!\\s*:)\\b`,
-            name: 'constant.language.int.dolphindb'
-        },
+        patterns: [
+            {
+                match: '\\.\\.\\.',
+                name: 'invalid.ellipsis.dolphindb'
+            },
+            {
+                include: '#keyword'
+            },
+            {
+                include: '#literal'
+            },
+            {
+                include: '#comment'
+            },
+            {
+                include: '#decorator'
+            },
+            {
+                include: '#variable'
+            },
+            {
+                include: '#operator'
+            },
+            {
+                include: '#method_call'
+            },
+            {
+                include: '#function_call'
+            },
+            {
+                include: '#property'
+            },
+            {
+                match: ';',
+                name: 'punctuation.terminator.statement.dolphindb'
+            },
+            {
+                match: ',',
+                name: 'punctuation.separator.commma.dolphindb'
+            }
+        ],
         
-        decorator: {
-            match: '^@testing',
-            name: 'meta.decorator.dolphindb',
-        },
         
-        datetime: {
-            patterns: [
-                {
-                    match: '\\b[0-9]{4}[.][0-9]{2}[.][0-9]{2}[T ][0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]{3,9})?\\b',
-                    name: 'constant.numeric.datetime.datetime.dolphindb',
-                },
-                {
-                    match: '\\b[0-9]{4}\\.[0-9]{2}M\\b',
-                    name: 'constant.numeric.datetime.month.dolphindb',
-                },
-                {
-                    match: '\\b[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}\\b',
-                    name: 'constant.numeric.datetime.date.dolphindb',
-                },
-                {
-                    match: '\\b[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]{3,9})?\\b',
-                    name: 'constant.numeric.datetime.time.dolphindb',
-                },
-                {
-                    match: '\\b[0-9]{2}:[0-9]{2}m\\b',
-                    name: 'constant.numeric.datetime.minute.dolphindb',
-                },
-            ]
-        },
-        
-        string: {
-            patterns: [
-                {
-                    include: '#string_single_quoted'
-                },
-                {
-                    include: '#string_double_quoted'
-                },
-                {
-                    begin: "'''",
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.begin.dolphindb'
-                        }
+        repository: {
+            keyword: {
+                // \b: word boundary
+                // (?<![.$]): boundary 不是 . 或 $
+                // ?!\s*: 不是 label
+                match: `\\b(?<![.$])(${keywords.join('|')})(?!(\\s*:|\\())\\b`,
+                name: 'keyword.control.dolphindb'
+            },
+            
+            literal: {
+                patterns: [
+                    { include: '#constant' },
+                    { include: '#datetime' },
+                    { include: '#string' },
+                    { include: '#number' },
+                ]
+            },
+            
+            constant: {
+                match: `\\b(?<![.$])(${constants.join('|')})(?!\\s*:)\\b`,
+                name: 'constant.language.int.dolphindb'
+            },
+            
+            decorator: {
+                match: '^@testing',
+                name: 'meta.decorator.dolphindb',
+            },
+            
+            datetime: {
+                patterns: [
+                    {
+                        match: '\\b[0-9]{4}[.][0-9]{2}[.][0-9]{2}[T ][0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]{3,9})?\\b',
+                        name: 'constant.numeric.datetime.datetime.dolphindb',
                     },
-                    end: "'''",
-                    endCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.end.dolphindb'
-                        }
+                    {
+                        match: '\\b[0-9]{4}\\.[0-9]{2}M\\b',
+                        name: 'constant.numeric.datetime.month.dolphindb',
                     },
-                    name: 'string.quoted.single.heredoc.dolphindb',
-                    patterns: [
-                        {
-                            captures: {
-                                1: {
-                                    name: 'punctuation.definition.escape.backslash.dolphindb'
-                                }
-                            },
-                            match: '(\\\\).',
-                            name: 'constant.character.escape.backslash.dolphindb'
-                        }
-                    ]
-                },
-                {
-                    begin: '"""',
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.begin.dolphindb'
-                        }
+                    {
+                        match: '\\b[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}\\b',
+                        name: 'constant.numeric.datetime.date.dolphindb',
                     },
-                    end: '"""',
-                    endCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.end.dolphindb'
-                        }
+                    {
+                        match: '\\b[0-9]{2}:[0-9]{2}:[0-9]{2}([.][0-9]{3,9})?\\b',
+                        name: 'constant.numeric.datetime.time.dolphindb',
                     },
-                    name: 'string.quoted.double.heredoc.dolphindb',
-                    patterns: [
-                        {
-                            captures: {
-                                1: {
-                                    name: 'punctuation.definition.escape.backslash.dolphindb'
-                                }
-                            },
-                            match: '(\\\\).',
-                            name: 'constant.character.escape.backslash.dolphindb'
-                        },
-                        {
-                            include: '#interpolated_dolphindb'
-                        }
-                    ]
-                },
-                {
-                    match: '`[\\w\\.]*',
-                    name: 'string.quoted.other.dolphindb'
-                }
-            ]
-        },
-        
-        number: {
-            patterns: [
-                {
-                    match: '\\b[01]+[bB]\\b',
-                    name: 'constant.numeric.binary.dolphindb'
-                },
-                {
-                    // 97c
-                    match: '\\b[0-9]+([clhsmyM]|ms)\\b',
-                    name: 'constant.numeric.dolphindb'
-                },
-                {
-                    // 1.2f, 1f
-                    match: '\\b[0-9]+(\\.[0-9]+)?f\\b',
-                    name: 'constant.numeric.dolphindb'
-                },
-                {
-                    match: 
-                        '(?x)\n' +
-                        '(?:\n' +
-                        '  (?:\\b[0-9]+(\\.)[0-9]+[eE][+-]?[0-9]+\\b)| # 1.1E+3\n' +
-                        '  (?:\\b[0-9]+(\\.)[eE][+-]?[0-9]+\\b)|       # 1.E+3\n' +
-                        '  (?:\\b(\\.)[0-9]+[eE][+-]?[0-9]+\\b)|       # .1E+3\n' +
-                        '  (?:\\b[0-9]+[eE][+-]?[0-9]+\\b)|            # 1E+3\n' +
-                        '  (?:\\b[0-9]+(\\.)[0-9]+\\b)|                # 1.1\n' +
-                        '  (?:\\b[0-9]+(?=\\.{2,3}))|                  # 1 followed by a slice\n' +
-                        '  (?:\\b[0-9]+(\\.)\\b)|                      # 1.\n' +
-                        '  (?:\\b(\\.)[0-9]+\\b)|                      # .1\n' +
-                        '  (?:\\b[0-9]+\\b(?!\\.))                     # 1\n' +
-                        ')\n',
-                    
-                    captures: {
-                        0: {
-                            name: 'constant.numeric.decimal.dolphindb'
-                        },
-                        1: {
-                            name: 'punctuation.separator.decimal.period.dolphindb'
-                        },
-                        2: {
-                            name: 'punctuation.separator.decimal.period.dolphindb'
-                        },
-                        3: {
-                            name: 'punctuation.separator.decimal.period.dolphindb'
-                        },
-                        4: {
-                            name: 'punctuation.separator.decimal.period.dolphindb'
-                        },
-                        5: {
-                            name: 'punctuation.separator.decimal.period.dolphindb'
-                        },
-                        6: {
-                            name: 'punctuation.separator.decimal.period.dolphindb'
-                        }
-                    }
-                },
-            ]
-        },
-        
-        string_single_quoted: {
-            patterns: [
-                {
-                    begin: "'",
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.begin.dolphindb'
-                        }
+                    {
+                        match: '\\b[0-9]{2}:[0-9]{2}m\\b',
+                        name: 'constant.numeric.datetime.minute.dolphindb',
                     },
-                    end: "'",
-                    endCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.end.dolphindb'
-                        }
+                ]
+            },
+            
+            string: {
+                patterns: [
+                    {
+                        include: '#string_single_quoted'
                     },
-                    name: 'string.quoted.single.dolphindb',
-                    patterns: [
-                        {
-                            captures: {
-                                1: {
-                                    name: 'punctuation.definition.escape.backslash.dolphindb'
-                                }
-                            },
-                            match: '(\\\\)(x[0-9A-Fa-f]{2}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.)',
-                            name: 'constant.character.escape.backslash.dolphindb'
-                        }
-                    ]
-                }
-            ]
-        },
-        
-        string_double_quoted: {
-            patterns: [
-                {
-                    begin: '"',
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.begin.dolphindb'
-                        }
+                    {
+                        include: '#string_double_quoted'
                     },
-                    end: '"',
-                    endCaptures: {
-                        0: {
-                            name: 'punctuation.definition.string.end.dolphindb'
-                        }
-                    },
-                    name: 'string.quoted.double.dolphindb',
-                    patterns: [
-                        {
-                            captures: {
-                                1: {
-                                    name: 'punctuation.definition.escape.backslash.dolphindb'
-                                }
-                            },
-                            match: '(\\\\)(x[0-9A-Fa-f]{2}|[0-2][0-7]{0,2}|3[0-6][0-7]|37[0-7]?|[4-7][0-7]?|.)',
-                            name: 'constant.character.escape.backslash.dolphindb'
-                        },
-                        {
-                            include: '#interpolated_dolphindb'
-                        }
-                    ]
-                }
-            ]
-        },
-        
-        function_call: {
-            patterns: [
-                {
-                    begin: '(@)?([\\w$]+!?)\\s*(?=\\()',
-                    beginCaptures: {
-                        1: {
-                            name: 'variable.other.readwrite.instance.dolphindb'
-                        },
-                        2: {
-                            patterns: [
-                                {
-                                    include: '#function_name'
-                                }
-                            ]
-                        }
-                    },
-                    end: '(?<=\\))',
-                    name: 'meta.function-call.dolphindb',
-                    patterns: [
-                        {
-                            include: '#arguments'
-                        }
-                    ]
-                }
-            ]
-        },
-        
-        function_name: {
-            patterns: [
-                {
-                    match: '[a-zA-Z_$][\\w$]*',
-                    name: 'entity.name.function.dolphindb'
-                },
-                {
-                    match: '\\d[\\w$]*',
-                    name: 'invalid.illegal.identifier.dolphindb'
-                }
-            ]
-        },
-        
-        function_params: {
-            patterns: [
-                {
-                    begin: '\\(',
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.parameters.begin.bracket.round.dolphindb'
-                        }
-                    },
-                    end: '\\)',
-                    endCaptures: {
-                        0: {
-                            name: 'punctuation.definition.parameters.end.bracket.round.dolphindb'
-                        }
-                    },
-                    name: 'meta.parameters.dolphindb',
-                    patterns: [
-                        {
-                            include: '#variable'
-                        },
-                        {
-                            match: '(@(?:[a-zA-Z_$][\\w$]*)?)(\\.\\.\\.)?',
-                            captures: {
-                                1: {
-                                    name: 'variable.parameter.function.readwrite.instance.dolphindb'
-                                },
-                                2: {
-                                    name: 'keyword.operator.splat.dolphindb'
-                                }
+                    {
+                        begin: "'''",
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.begin.dolphindb'
                             }
                         },
-                        {
-                            include: '$self'
-                        }
-                    ]
-                }
-            ]
-        },
-        
-        comment: {
-            patterns: [
-                {
-                    begin: '/\\*',
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.comment.dolphindb'
-                        }
-                    },
-                    end: '\\*/',
-                    endCaptures: {
-                        0: {
-                            name: 'punctuation.definition.comment.dolphindb'
-                        }
-                    },
-                    name: 'comment.block.dolphindb'
-                },
-                {
-                    begin: '//',
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.comment.dolphindb'
-                        }
-                    },
-                    end: '$',
-                    name: 'comment.line.number-sign.dolphindb'
-                },
-                {
-                    begin: '#',
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.comment.dolphindb'
-                        }
-                    },
-                    end: '$',
-                    name: 'comment.line.number-sign.dolphindb'
-                }
-            ]
-        },
-        
-        arguments: {
-            patterns: [
-                {
-                    begin: '\\(',
-                    beginCaptures: {
-                        0: {
-                            name: 'punctuation.definition.arguments.begin.bracket.round.dolphindb'
-                        }
-                    },
-                    end: '\\)',
-                    endCaptures: {
-                        0: {
-                            name: 'punctuation.definition.arguments.end.bracket.round.dolphindb'
-                        }
-                    },
-                    name: 'meta.arguments.dolphindb',
-                    patterns: [
-                        {
-                            include: '$self'
+                        end: "'''",
+                        endCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.end.dolphindb'
+                            }
                         },
-                        {
-                            include: '#literal'
+                        name: 'string.quoted.single.heredoc.dolphindb',
+                        patterns: [
+                            {
+                                captures: {
+                                    1: {
+                                        name: 'punctuation.definition.escape.backslash.dolphindb'
+                                    }
+                                },
+                                match: '(\\\\).',
+                                name: 'constant.character.escape.backslash.dolphindb'
+                            }
+                        ]
+                    },
+                    {
+                        begin: '"""',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.begin.dolphindb'
+                            }
                         },
-                        {
-                            include: '#variable'
-                        }
-                    ]
-                }
-            ]
-        },
-        
-        variable: {
-            patterns: [
-                {
-                    match: '(@)([a-zA-Z_\\$]\\w*)?',
-                    name: 'variable.other.readwrite.instance.dolphindb'
-                }
-            ]
-        },
-        
-        interpolated_dolphindb: {
-            patterns: [
-                {
-                    begin: '\\#\\{',
-                    captures: {
-                        0: {
-                            name: 'punctuation.section.embedded.dolphindb'
+                        end: '"""',
+                        endCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.end.dolphindb'
+                            }
+                        },
+                        name: 'string.quoted.double.heredoc.dolphindb',
+                        patterns: [
+                            {
+                                captures: {
+                                    1: {
+                                        name: 'punctuation.definition.escape.backslash.dolphindb'
+                                    }
+                                },
+                                match: '(\\\\).',
+                                name: 'constant.character.escape.backslash.dolphindb'
+                            },
+                            {
+                                include: '#interpolated_dolphindb'
+                            }
+                        ]
+                    },
+                    {
+                        match: '`[\\w\\.]*',
+                        name: 'string.quoted.other.dolphindb'
+                    }
+                ]
+            },
+            
+            number: {
+                patterns: [
+                    {
+                        match: '\\b[01]+[bB]\\b',
+                        name: 'constant.numeric.binary.dolphindb'
+                    },
+                    {
+                        // 97c
+                        match: '\\b[0-9]+([clhsmyM]|ms)\\b',
+                        name: 'constant.numeric.dolphindb'
+                    },
+                    {
+                        // 1.2f, 1f
+                        match: '\\b[0-9]+(\\.[0-9]+)?f\\b',
+                        name: 'constant.numeric.dolphindb'
+                    },
+                    {
+                        match: 
+                            '(?x)\n' +
+                            '(?:\n' +
+                            '  (?:\\b[0-9]+(\\.)[0-9]+[eE][+-]?[0-9]+\\b)| # 1.1E+3\n' +
+                            '  (?:\\b[0-9]+(\\.)[eE][+-]?[0-9]+\\b)|       # 1.E+3\n' +
+                            '  (?:\\b(\\.)[0-9]+[eE][+-]?[0-9]+\\b)|       # .1E+3\n' +
+                            '  (?:\\b[0-9]+[eE][+-]?[0-9]+\\b)|            # 1E+3\n' +
+                            '  (?:\\b[0-9]+(\\.)[0-9]+\\b)|                # 1.1\n' +
+                            '  (?:\\b[0-9]+(?=\\.{2,3}))|                  # 1 followed by a slice\n' +
+                            '  (?:\\b[0-9]+(\\.)\\b)|                      # 1.\n' +
+                            '  (?:\\b(\\.)[0-9]+\\b)|                      # .1\n' +
+                            '  (?:\\b[0-9]+\\b(?!\\.))                     # 1\n' +
+                            ')\n',
+                        
+                        captures: {
+                            0: {
+                                name: 'constant.numeric.decimal.dolphindb'
+                            },
+                            1: {
+                                name: 'punctuation.separator.decimal.period.dolphindb'
+                            },
+                            2: {
+                                name: 'punctuation.separator.decimal.period.dolphindb'
+                            },
+                            3: {
+                                name: 'punctuation.separator.decimal.period.dolphindb'
+                            },
+                            4: {
+                                name: 'punctuation.separator.decimal.period.dolphindb'
+                            },
+                            5: {
+                                name: 'punctuation.separator.decimal.period.dolphindb'
+                            },
+                            6: {
+                                name: 'punctuation.separator.decimal.period.dolphindb'
+                            }
                         }
                     },
-                    end: '\\}',
-                    name: 'source.dolphindb.embedded.source',
-                    patterns: [
-                        {
-                            include: '$self'
-                        }
-                    ]
-                }
-            ]
-        },
-        
-        method_call: {
-            patterns: [
-                {
-                    begin: '(?:(\\.)|(::))\\s*([\\w$]+!?)(?=\\()',
-                    beginCaptures: {
-                        1: {
-                            name: 'punctuation.separator.method.period.dolphindb'
+                ]
+            },
+            
+            string_single_quoted: {
+                patterns: [
+                    {
+                        begin: "'",
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.begin.dolphindb'
+                            }
                         },
-                        2: {
-                            name: 'keyword.operator.prototype.dolphindb'
+                        end: "'",
+                        endCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.end.dolphindb'
+                            }
                         },
-                        3: {
-                            patterns: [
-                                {
-                                    include: '#method_name'
+                        name: 'string.quoted.single.dolphindb',
+                        patterns: [
+                            {
+                                captures: {
+                                    1: {
+                                        name: 'punctuation.definition.escape.backslash.dolphindb'
+                                    }
+                                },
+                                match: '(\\\\)(x[0-9A-Fa-f]{2}|[0-2][0-7]{0,2}|3[0-6][0-7]?|37[0-7]?|[4-7][0-7]?|.)',
+                                name: 'constant.character.escape.backslash.dolphindb'
+                            }
+                        ]
+                    }
+                ]
+            },
+            
+            string_double_quoted: {
+                patterns: [
+                    {
+                        begin: '"',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.begin.dolphindb'
+                            }
+                        },
+                        end: '"',
+                        endCaptures: {
+                            0: {
+                                name: 'punctuation.definition.string.end.dolphindb'
+                            }
+                        },
+                        name: 'string.quoted.double.dolphindb',
+                        patterns: [
+                            {
+                                captures: {
+                                    1: {
+                                        name: 'punctuation.definition.escape.backslash.dolphindb'
+                                    }
+                                },
+                                match: '(\\\\)(x[0-9A-Fa-f]{2}|[0-2][0-7]{0,2}|3[0-6][0-7]|37[0-7]?|[4-7][0-7]?|.)',
+                                name: 'constant.character.escape.backslash.dolphindb'
+                            },
+                            {
+                                include: '#interpolated_dolphindb'
+                            }
+                        ]
+                    }
+                ]
+            },
+            
+            function_call: {
+                patterns: [
+                    {
+                        begin: '(@)?([\\w$]+!?)\\s*(?=\\()',
+                        beginCaptures: {
+                            1: {
+                                name: 'variable.other.readwrite.instance.dolphindb'
+                            },
+                            2: {
+                                patterns: [
+                                    {
+                                        include: '#function_name'
+                                    }
+                                ]
+                            }
+                        },
+                        end: '(?<=\\))',
+                        name: 'meta.function-call.dolphindb',
+                        patterns: [
+                            {
+                                include: '#arguments'
+                            }
+                        ]
+                    }
+                ]
+            },
+            
+            function_name: {
+                patterns: [
+                    {
+                        match: '[a-zA-Z_$][\\w$]*',
+                        name: 'entity.name.function.dolphindb'
+                    },
+                    {
+                        match: '\\d[\\w$]*',
+                        name: 'invalid.illegal.identifier.dolphindb'
+                    }
+                ]
+            },
+            
+            function_params: {
+                patterns: [
+                    {
+                        begin: '\\(',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.parameters.begin.bracket.round.dolphindb'
+                            }
+                        },
+                        end: '\\)',
+                        endCaptures: {
+                            0: {
+                                name: 'punctuation.definition.parameters.end.bracket.round.dolphindb'
+                            }
+                        },
+                        name: 'meta.parameters.dolphindb',
+                        patterns: [
+                            {
+                                include: '#variable'
+                            },
+                            {
+                                match: '(@(?:[a-zA-Z_$][\\w$]*)?)(\\.\\.\\.)?',
+                                captures: {
+                                    1: {
+                                        name: 'variable.parameter.function.readwrite.instance.dolphindb'
+                                    },
+                                    2: {
+                                        name: 'keyword.operator.splat.dolphindb'
+                                    }
                                 }
-                            ]
+                            },
+                            {
+                                include: '$self'
+                            }
+                        ]
+                    }
+                ]
+            },
+            
+            comment: {
+                patterns: [
+                    {
+                        begin: '/\\*',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.comment.dolphindb'
+                            }
+                        },
+                        end: '\\*/',
+                        endCaptures: {
+                            0: {
+                                name: 'punctuation.definition.comment.dolphindb'
+                            }
+                        },
+                        name: 'comment.block.dolphindb'
+                    },
+                    {
+                        begin: '//',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.comment.dolphindb'
+                            }
+                        },
+                        end: '$',
+                        name: 'comment.line.number-sign.dolphindb'
+                    },
+                    {
+                        begin: '#',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.comment.dolphindb'
+                            }
+                        },
+                        end: '$',
+                        name: 'comment.line.number-sign.dolphindb'
+                    }
+                ]
+            },
+            
+            arguments: {
+                patterns: [
+                    {
+                        begin: '\\(',
+                        beginCaptures: {
+                            0: {
+                                name: 'punctuation.definition.arguments.begin.bracket.round.dolphindb'
+                            }
+                        },
+                        end: '\\)',
+                        endCaptures: {
+                            0: {
+                                name: 'punctuation.definition.arguments.end.bracket.round.dolphindb'
+                            }
+                        },
+                        name: 'meta.arguments.dolphindb',
+                        patterns: [
+                            {
+                                include: '$self'
+                            },
+                            {
+                                include: '#literal'
+                            },
+                            {
+                                include: '#variable'
+                            }
+                        ]
+                    }
+                ]
+            },
+            
+            variable: {
+                patterns: [
+                    {
+                        match: '(@)([a-zA-Z_\\$]\\w*)?',
+                        name: 'variable.other.readwrite.instance.dolphindb'
+                    }
+                ]
+            },
+            
+            interpolated_dolphindb: {
+                patterns: [
+                    {
+                        begin: '\\#\\{',
+                        captures: {
+                            0: {
+                                name: 'punctuation.section.embedded.dolphindb'
+                            }
+                        },
+                        end: '\\}',
+                        name: 'source.dolphindb.embedded.source',
+                        patterns: [
+                            {
+                                include: '$self'
+                            }
+                        ]
+                    }
+                ]
+            },
+            
+            method_call: {
+                patterns: [
+                    {
+                        begin: '(?:(\\.)|(::))\\s*([\\w$]+!?)(?=\\()',
+                        beginCaptures: {
+                            1: {
+                                name: 'punctuation.separator.method.period.dolphindb'
+                            },
+                            2: {
+                                name: 'keyword.operator.prototype.dolphindb'
+                            },
+                            3: {
+                                patterns: [
+                                    {
+                                        include: '#method_name'
+                                    }
+                                ]
+                            }
+                        },
+                        end: '(?<=\\))',
+                        name: 'meta.method-call.dolphindb',
+                        patterns: [
+                            {
+                                include: '#arguments'
+                            }
+                        ]
+                    }
+                ]
+            },
+            
+            method_name: {
+                patterns: [
+                    {
+                        match: '[a-zA-Z_$][\\w$]*',
+                        name: 'entity.name.function.dolphindb'
+                    },
+                    {
+                        match: '\\d[\\w$]*',
+                        name: 'invalid.illegal.identifier.dolphindb'
+                    }
+                ]
+            },
+            
+            operator: {
+                patterns: [
+                    {
+                        match: '<<|>>',
+                        name: 'keyword.operator.bitwise.shift.dolphindb'
+                    },
+                    {
+                        match: '!=|<=|>=|==|>|<',
+                        name: 'keyword.operator.comparison.dolphindb'
+                    },
+                    {
+                        match: '<-|->',
+                        name: 'keyword.operator.join.dolphindb'
+                    },
+                    {
+                        match: '&&|!|\\|\\|',
+                        name: 'keyword.operator.logical.dolphindb'
+                    },
+                    {
+                        match: '&|\\||\\^',
+                        name: 'keyword.operator.bitwise.dolphindb'
+                    },
+                    {
+                        match: '\\.\\.',
+                        name: 'keyword.operator.splat.dolphindb'
+                    },
+                    {
+                        match: '\\?',
+                        name: 'keyword.operator.existential.dolphindb'
+                    },
+                    {
+                        match: '/|<-|%|\\*|/|-|\\$|\\+',
+                        name: 'keyword.operator.dolphindb'
+                    },
+                    {
+                        match: '([a-zA-Z$_][\\w$]*)?\\s*(=|:(?!:))(?![>=])',
+                        captures: {
+                            1: {
+                                name: 'variable.assignment.dolphindb'
+                            },
+                            2: {
+                                name: 'keyword.operator.assignment.dolphindb'
+                            }
+                        }
+                    }
+                ]
+            },
+            
+            property: {
+                patterns: [
+                    {
+                        match: '(?:(\\.)|(::))\\s*([A-Z][A-Z0-9_$]*\\b\\$*)(?=\\s*\\??(\\.\\s*[a-zA-Z_$]\\w*|::))',
+                        captures: {
+                            1: {
+                                name: 'punctuation.separator.property.period.dolphindb'
+                            },
+                            2: {
+                                name: 'keyword.operator.prototype.dolphindb'
+                            },
+                            3: {
+                                name: 'constant.other.object.property.dolphindb'
+                            }
                         }
                     },
-                    end: '(?<=\\))',
-                    name: 'meta.method-call.dolphindb',
-                    patterns: [
-                        {
-                            include: '#arguments'
+                    {
+                        match: '(?:(\\.)|(::))\\s*(\\$*[a-zA-Z_$][\\w$]*)(?=\\s*\\??(\\.\\s*[a-zA-Z_$]\\w*|::))',
+                        captures: {
+                            1: {
+                                name: 'punctuation.separator.property.period.dolphindb'
+                            },
+                            2: {
+                                name: 'keyword.operator.prototype.dolphindb'
+                            },
+                            3: {
+                                name: 'variable.other.object.property.dolphindb'
+                            }
                         }
-                    ]
-                }
-            ]
-        },
-        
-        method_name: {
-            patterns: [
-                {
-                    match: '[a-zA-Z_$][\\w$]*',
-                    name: 'entity.name.function.dolphindb'
-                },
-                {
-                    match: '\\d[\\w$]*',
-                    name: 'invalid.illegal.identifier.dolphindb'
-                }
-            ]
-        },
-        
-        operator: {
-            patterns: [
-                {
-                    match: '<<|>>',
-                    name: 'keyword.operator.bitwise.shift.dolphindb'
-                },
-                {
-                    match: '!=|<=|>=|==|>|<',
-                    name: 'keyword.operator.comparison.dolphindb'
-                },
-                {
-                    match: '<-|->',
-                    name: 'keyword.operator.join.dolphindb'
-                },
-                {
-                    match: '&&|!|\\|\\|',
-                    name: 'keyword.operator.logical.dolphindb'
-                },
-                {
-                    match: '&|\\||\\^',
-                    name: 'keyword.operator.bitwise.dolphindb'
-                },
-                {
-                    match: '\\.\\.',
-                    name: 'keyword.operator.splat.dolphindb'
-                },
-                {
-                    match: '\\?',
-                    name: 'keyword.operator.existential.dolphindb'
-                },
-                {
-                    match: '/|<-|%|\\*|/|-|\\$|\\+',
-                    name: 'keyword.operator.dolphindb'
-                },
-                {
-                    match: '([a-zA-Z$_][\\w$]*)?\\s*(=|:(?!:))(?![>=])',
-                    captures: {
-                        1: {
-                            name: 'variable.assignment.dolphindb'
-                        },
-                        2: {
-                            name: 'keyword.operator.assignment.dolphindb'
+                    },
+                    {
+                        match: '(?:(\\.)|(::))\\s*([A-Z][A-Z0-9_$]*\\b\\$*)',
+                        captures: {
+                            1: {
+                                name: 'punctuation.separator.property.period.dolphindb'
+                            },
+                            2: {
+                                name: 'keyword.operator.prototype.dolphindb'
+                            },
+                            3: {
+                                name: 'constant.other.property.dolphindb'
+                            }
+                        }
+                    },
+                    {
+                        match: '(?:(\\.)|(::))\\s*(\\$*[a-zA-Z_$][\\w$]*)',
+                        captures: {
+                            1: {
+                                name: 'punctuation.separator.property.period.dolphindb'
+                            },
+                            2: {
+                                name: 'keyword.operator.prototype.dolphindb'
+                            },
+                            3: {
+                                name: 'variable.other.property.dolphindb'
+                            }
+                        }
+                    },
+                    {
+                        match: '(?:(\\.)|(::))\\s*([0-9][\\w$]*)',
+                        captures: {
+                            1: {
+                                name: 'punctuation.separator.property.period.dolphindb'
+                            },
+                            2: {
+                                name: 'keyword.operator.prototype.dolphindb'
+                            },
+                            3: {
+                                name: 'invalid.illegal.identifier.dolphindb'
+                            }
                         }
                     }
-                }
-            ]
-        },
-        
-        property: {
-            patterns: [
-                {
-                    match: '(?:(\\.)|(::))\\s*([A-Z][A-Z0-9_$]*\\b\\$*)(?=\\s*\\??(\\.\\s*[a-zA-Z_$]\\w*|::))',
-                    captures: {
-                        1: {
-                            name: 'punctuation.separator.property.period.dolphindb'
-                        },
-                        2: {
-                            name: 'keyword.operator.prototype.dolphindb'
-                        },
-                        3: {
-                            name: 'constant.other.object.property.dolphindb'
-                        }
-                    }
-                },
-                {
-                    match: '(?:(\\.)|(::))\\s*(\\$*[a-zA-Z_$][\\w$]*)(?=\\s*\\??(\\.\\s*[a-zA-Z_$]\\w*|::))',
-                    captures: {
-                        1: {
-                            name: 'punctuation.separator.property.period.dolphindb'
-                        },
-                        2: {
-                            name: 'keyword.operator.prototype.dolphindb'
-                        },
-                        3: {
-                            name: 'variable.other.object.property.dolphindb'
-                        }
-                    }
-                },
-                {
-                    match: '(?:(\\.)|(::))\\s*([A-Z][A-Z0-9_$]*\\b\\$*)',
-                    captures: {
-                        1: {
-                            name: 'punctuation.separator.property.period.dolphindb'
-                        },
-                        2: {
-                            name: 'keyword.operator.prototype.dolphindb'
-                        },
-                        3: {
-                            name: 'constant.other.property.dolphindb'
-                        }
-                    }
-                },
-                {
-                    match: '(?:(\\.)|(::))\\s*(\\$*[a-zA-Z_$][\\w$]*)',
-                    captures: {
-                        1: {
-                            name: 'punctuation.separator.property.period.dolphindb'
-                        },
-                        2: {
-                            name: 'keyword.operator.prototype.dolphindb'
-                        },
-                        3: {
-                            name: 'variable.other.property.dolphindb'
-                        }
-                    }
-                },
-                {
-                    match: '(?:(\\.)|(::))\\s*([0-9][\\w$]*)',
-                    captures: {
-                        1: {
-                            name: 'punctuation.separator.property.period.dolphindb'
-                        },
-                        2: {
-                            name: 'keyword.operator.prototype.dolphindb'
-                        },
-                        3: {
-                            name: 'invalid.illegal.identifier.dolphindb'
-                        }
-                    }
-                }
-            ]
+                ]
+            }
         }
-    }
-} as Block
+    } as Block
+}
 
 
 interface Block {

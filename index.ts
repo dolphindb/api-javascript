@@ -1610,11 +1610,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         const data = (() => {
             switch (this.form) {
                 case DdbForm.scalar:
-                    // 如果类型为 string ， 则不进行格式化处理
+                    // 如果类型为 string, 则不进行格式化处理
                     if (this.type === DdbType.string)
                         return this.value
-                    
-                    return format(this.type, this.value, this.le, options)
+                    else
+                        return format(this.type, this.value, this.le, options)
                 
                 case DdbForm.vector:
                 case DdbForm.pair:
@@ -1845,9 +1845,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         })()
         
         // 如果类型为 string 则不需要加上类型名
-        if (this.type === DdbType.string)
-            return `${this.name ? `${inspect(this.name, options)}, ` : ''}'${data}'`
-        return `${options.colors ? type.blue : type}(${ this.name ? `${inspect(this.name, options)}, ` : '' }${data})`
+        if (this.form === DdbForm.scalar && this.type === DdbType.string)
+            return data
+        else
+            return `${options.colors ? type.blue : type}(${ this.name ? `${inspect(this.name, options)}, ` : '' }${data})`
     }
     
     

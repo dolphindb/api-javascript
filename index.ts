@@ -12,7 +12,7 @@ dayjs.extend(DayjsCustomParseFormat)
 import ipaddrjs from 'ipaddr.js'
 const { fromByteArray: buf2ipaddr } = ipaddrjs
 
-import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, WebSocket, Lock, genid, type WebSocketConnectionError } from 'xshell'
+import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocket, type WebSocketConnectionError } from 'xshell'
 
 import { t } from './i18n/index.js'
 
@@ -3351,11 +3351,11 @@ export class DDB {
     
     
     get connected () {
-        return !this.error && this.lwebsocket.resource?.readyState === WebSocket.OPEN
+        return !this.error && this.lwebsocket.resource?.readyState === WebSocketOpen
     }
     
     get errored () {
-        return Boolean(this.error || (this.lwebsocket.resource && this.lwebsocket.resource.readyState !== WebSocket.OPEN))
+        return Boolean(this.error || (this.lwebsocket.resource && this.lwebsocket.resource.readyState !== WebSocketOpen))
     }
     
     
@@ -3589,7 +3589,7 @@ export class DDB {
         if (resource) {
             const { readyState } = resource
             
-            if (readyState !== WebSocket.CLOSED && readyState !== WebSocket.CLOSING)
+            if (readyState !== WebSocketClosed && readyState !== WebSocketClosing)
                 // 这里不获取 lock，直接关闭连接
                 resource.close(1000)
         }

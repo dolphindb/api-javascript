@@ -3330,8 +3330,7 @@ export class DDB {
     
     /** 在 websocket 收到的第一个 error 时，  
         在 connect_websocket 的 on_error 回调中构造 DdbConnectionError 并保存到 DDB 对象上，  
-        这个 error 的错误信息最准确  
-        this.errored 为 true 时建议 throw this.error || new DdbConnectionError(this) */
+        这个 error 的错误信息最准确 */
     error: DdbConnectionError
     
     /** DdbMessage listeners */
@@ -3346,10 +3345,6 @@ export class DDB {
     
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocket.OPEN
-    }
-    
-    get errored () {
-        return Boolean(this.error || (this.lwebsocket.resource && this.lwebsocket.resource.readyState !== WebSocket.OPEN))
     }
     
     
@@ -3428,11 +3423,15 @@ export class DDB {
         2. The session is stateful, and the previous state cannot be restored even after reconnection
         3. After disconnection, all previous ddb.call, ddb.eval should throw a connection error */
     async connect () {
-        if (this.errored)
-            throw this.error || new DdbConnectionError(this)
-        
         if (this.connected)
             return
+        
+        if (this.error)
+            throw this.error
+        
+        const { resource: websocket } = this.lwebsocket
+        if (websocket && (websocket.readyState === WebSocket.CLOSING || websocket.readyState === WebSocket.CLOSED))
+            throw this.error = new DdbConnectionError(this)
         
         return this.pconnect ??= new Promise<void>(async (resolve, reject) => {
             this.on_error = () => {
@@ -3681,8 +3680,8 @@ export class DDB {
         
         return this.lwebsocket.request(async websocket => {
             // 独占资源后先检查状态
-            if (this.errored || !this.connected)
-                throw this.error || new DdbConnectionError(this)
+            if (this.error)
+                throw this.error
             
             const args = DdbObj.to_ddbobjs(_args)
             

@@ -3420,7 +3420,7 @@ export class DDB {
     }
     
     
-    /** 调用后会确保和数据库的连接是正常的 (this.connected === true && this.errored === false)，否则抛出错误  
+    /** 调用后会确保和数据库的连接是正常的 (this.connected === true)，否则抛出错误  
         这个方法是幂等的，首次调用建立实际的 WebSocket 连接到 URL 对应的 DolphinDB，然后执行自动登录，  
         如果是流数据连接，还会调用 publishTable 订阅流表  
         后续调用检查上面的条件  
@@ -3429,7 +3429,7 @@ export class DDB {
         2. session 是有状态的，重连也无法恢复之前的状态
         3. 断线后所有之前的 ddb.call, ddb.eval 都应该抛出连接错误
         
-        After calling, it will ensure that the connection with the database is normal (this.connected === true && this.errored === false), otherwise an error will be thrown  
+        After calling, it will ensure that the connection with the database is normal (this.connected === true), otherwise an error will be thrown  
         This method is idempotent, the first call establishes an actual WebSocket connection to the DolphinDB corresponding to the URL, and subsequent calls check the above conditions  
         After the connection is disconnected, it is forbidden to call connect again to reconnect the original ddb object. You should use new DDB() to create a new connection object because:  
         1. The on_error callback is bound to a certain websocket, and it is inconvenient to unbind and rebind

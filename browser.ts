@@ -3153,10 +3153,10 @@ export interface StreamingParams {
     table: string
     action?: string
     
-    handler (message: StreamingData): any
+    handler (message: StreamingMessage): any
 }
 
-export interface StreamingData extends StreamingParams {
+export interface StreamingMessage extends StreamingParams {
     /** server 发送消息的时间 (nano seconds since epoch)   The time the server sent the message (nano seconds since epoch)  
         std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint
@@ -3310,7 +3310,7 @@ export class DDB {
     sql = SqlStandard.DolphinDB
     
     /** 是否为流数据连接，非流数据这个字段恒为 null  Whether it is a streaming data connection, this field is always null for non-streaming data */
-    streaming = null as StreamingData
+    streaming = null as StreamingParams
     
     /** 是否打印每个 rpc 的信息用于调试 */
     verbose = false
@@ -3394,7 +3394,7 @@ export class DDB {
             this.sql = options.sql
         
         if (options.streaming !== undefined)
-            this.streaming = options.streaming as StreamingData
+            this.streaming = options.streaming
     }
     
     
@@ -4035,11 +4035,7 @@ export class DDB {
     
     /** 内部的流订阅方法  Internal stream subscription method */
     async subscribe () {
-        console.log(
-            t('订阅流表成功') + ', colnames:',
-            
-            // string[3](['time', 'stock', 'price'])
-            this.streaming.colnames = (await this.call<DdbVectorStringObj>('publishTable', [
+        const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
                 new DdbInt(0),
                 this.streaming.table,
@@ -4047,10 +4043,17 @@ export class DDB {
                 // new DdbInt(-1),  // offset
                 // filter
                 // allow exists
-            ], { skip_connection_check: true })).value
+            ], { skip_connection_check: true }
         )
         
-        this.streaming.window = {
+        console.log(
+            t('订阅流表成功') + ', colnames:',
+            
+            // string[3](['time', 'stock', 'price'])
+            colnames
+        )
+        
+        let win: StreamingMessage['window'] = {
             offset: 0,
             rows: 0,
             segments: [ ],
@@ -4058,29 +4061,18 @@ export class DDB {
         
         // 先准备好收到 websocket message 的 callback
         this.on_message = buffer => {
-            // 复制一份，避免 handler 中异步直接使用传入的 streaming 这个对象时属性发生变化
-            let streaming = { ...this.streaming, error: null }
-            
             try {
                 const dv = new DataView(buffer)
                 const buf = new Uint8Array(buffer)
                 
-                streaming.time = dv.getBigInt64(1, this.le)
-                
-                streaming.id = dv.getBigInt64(9, this.le)
-                
                 const i_topic_end = buf.indexOf(0, 17)
                 
-                streaming.topic = this.dec.decode(
-                    buf.subarray(17, i_topic_end)
-                )
-                
                 // 是 column 片段组成的 any vector
-                const data = streaming.data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                const data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                 
-                let { window: win } = streaming
+                const { rows } = data.value[0]
                 
-                win.rows += streaming.rows = data.value[0].rows
+                win.rows += rows
                 
                 win.segments.push(data)
                 
@@ -4097,15 +4089,22 @@ export class DDB {
                     
                     win.rows = winsize_
                 }
+                
+                this.streaming.handler({
+                    ...this.streaming,
+                    id: dv.getBigInt64(9, this.le),
+                    time: dv.getBigInt64(1, this.le),
+                    rows,
+                    topic: this.dec.decode(buf.subarray(17, i_topic_end)),
+                    colnames,
+                    data,
+                    window: win,
+                })
             } catch (error) {
                 // 将 error 交给 handler 处理
-                streaming.error = error
+                this.streaming.handler({ ...this.streaming, error } as StreamingMessage)
             }
-            
-            this.streaming.handler(streaming)
         }
-        
-        return this.streaming
     }
 }
 

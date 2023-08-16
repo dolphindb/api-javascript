@@ -1,4 +1,6 @@
-import { assert, inspect, set_inspect_options, WebSocketConnectionError } from 'xshell'
+import { deepEqual } from 'assert/strict'
+
+import { assert, defer, inspect, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.js'
 import { DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, DdbDurationUnit, type DdbVectorObj, type DdbTableObj } from './index.js'
@@ -216,18 +218,26 @@ async function test_streaming (ddb: DDB) {
         '}\n'
     )
     
-    let rows = 0
-    let resolve: Function
-    let promise = new Promise(_resolve => resolve = _resolve)
+    let total_rows = 0
+    
+    let promise = defer<void>()
     
     let sddb = new DDB(url, {
         streaming: {
             table: 'prices',
-            handler (message) {
-                //  console.log(message)
-                 rows += message.rows
-                 if (rows === 50)
-                     resolve()
+            handler ({ rows, error, colnames, data, time, id, window }) {
+                assert(!error)
+                
+                deepEqual(colnames, ['time', 'stock', 'price'])
+                assert(data.rows === 3)
+                assert(id)
+                assert(time)
+                assert(window.rows)
+                
+                total_rows += rows
+                
+                if (total_rows === 50)
+                    promise.resolve()
             },
         }
     })

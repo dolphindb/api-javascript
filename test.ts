@@ -225,10 +225,20 @@ async function test_streaming (ddb: DDB) {
     let sddb = new DDB(url, {
         streaming: {
             table: 'prices',
-            handler ({ rows, error, colnames, data, time, id, window }) {
-                assert(!error)
+            handler ({ rows, error, colnames, data, time, id, window, schema }) {
+                if (error)
+                    throw error
+                
+                if (total_rows === 0 && schema) {
+                    console.log('流订阅返回了 table schema')
+                    console.log(schema)
+                }
+                
+                // console.log(data)
                 
                 deepEqual(colnames, ['time', 'stock', 'price'])
+                
+                assert(data.form === DdbForm.vector)
                 assert(data.rows === 3)
                 assert(id)
                 assert(time)

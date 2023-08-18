@@ -3171,6 +3171,9 @@ export interface StreamingMessage extends StreamingParams {
     
     colnames: string[]
     
+    /** 最新的 server 有可能先推一个 table schema 过来 */
+    schema?: DdbTableObj
+    
     /** 订阅主题，即一个订阅的名称。  Subscription topic, which is the name of a subscription.
         它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔  
         It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/` */
@@ -4073,6 +4076,8 @@ export class DDB {
             segments: [ ],
         }
         
+        let schema: DdbTableObj
+        
         // 先准备好收到 websocket message 的 callback
         this.on_message = buffer => {
             try {
@@ -4081,8 +4086,13 @@ export class DDB {
                 
                 const i_topic_end = buf.indexOf(0, 17)
                 
-                // 是 column 片段组成的 any vector
+                // 首个 message 可能是 table schema, 后续消息是 column 片段组成的 any vector
                 const data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                
+                if (data.form === DdbForm.table) {
+                    schema = data
+                    return
+                }
                 
                 const { rows } = data.value[0]
                 
@@ -4111,6 +4121,7 @@ export class DDB {
                     rows,
                     topic: this.dec.decode(buf.subarray(17, i_topic_end)),
                     colnames,
+                    schema,
                     data,
                     window: win,
                 })

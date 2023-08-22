@@ -3054,7 +3054,7 @@ export function nanotimestamp2str (nanotimestamp: bigint | null, format = 'YYYY.
     const remainder = nanotimestamp % 1000000000n
     const borrow = remainder < 0n
     
-    const ms = Number(nanotimestamp / 1000000n)
+    const ms = Number((nanotimestamp - remainder + (borrow ? -1000000000n : 0n)) / 1000000n)
     
     return (
         dayjs(

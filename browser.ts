@@ -3219,14 +3219,17 @@ export class DdbConnectionError extends Error {
     
     override cause?: WebSocketConnectionError
     
-    ddb: DDB
+    url: string
     
+    // 这里不保留 ddb 的引用，会导致无法序列化
     
-    constructor (ddb: DDB, error?: WebSocketConnectionError) {
-        super(error?.message || `${ddb.url} ${t('连接出错了，可能由于网络原因连接已被关闭，或服务器断开连接')}`, { cause: error })
+    constructor (url: string, error?: WebSocketConnectionError) {
+        super(error?.message || `${url} ${t('连接出错了，可能由于网络原因连接已被关闭，或服务器断开连接')}`, { cause: error })
+        
+        this.url = url
+        
         if (error)
             this.cause = error
-        this.ddb = ddb
     }
 }
 
@@ -3234,17 +3237,22 @@ export class DdbConnectionError extends Error {
 export class DdbDatabaseError extends Error {
     override name = 'DdbDatabaseError'
     
-    ddb: DDB
+    url: string
+    
+    // 这里不保留 ddb 的引用，会导致无法序列化
+    
+    id: number
     
     type: DdbRpcType
     
     options: DdbRpcOptions
     
-    constructor (message: string, ddb: DDB, type: DdbRpcType, options: DdbRpcOptions) {
+    constructor (message: string, url: string, type: DdbRpcType, options: DdbRpcOptions, id: number) {
         super(message)
-        this.ddb = ddb
+        this.url = url
         this.type = type
         this.options = options
+        this.id = id
     }
 }
 
@@ -3434,7 +3442,7 @@ export class DDB {
         
         const { resource: websocket } = this.lwebsocket
         if (websocket && (websocket.readyState === WebSocket.CLOSING || websocket.readyState === WebSocket.CLOSED))
-            throw this.error = new DdbConnectionError(this)
+            throw this.error = new DdbConnectionError(this.url)
         
         return this.pconnect ??= new Promise<void>(async (resolve, reject) => {
             this.on_error = () => {
@@ -3444,25 +3452,19 @@ export class DDB {
             try {
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
                 this.lwebsocket.resource = await connect_websocket(this.url, {
-                    protocols: (() => {
-                        if (this.streaming)
-                            return 'streaming'
-                        
-                        if (this.python)
-                            return 'python'
-                    })(),
+                    protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
                     
                     on_message: (buffer: ArrayBuffer, websocket) => {
                         this.on_message(buffer, websocket)
                     },
                     
                     on_error: error => {
-                        this.error ??= new DdbConnectionError(this, error)
+                        this.error ??= new DdbConnectionError(this.url, error)
                         this.on_error()
                     }
                 })
             } catch (error) {
-                this.error ??= new DdbConnectionError(this, error)
+                this.error ??= new DdbConnectionError(this.url, error)
                 reject(this.error)
                 return
             }
@@ -3607,7 +3609,9 @@ export class DDB {
                 将这个 flag 设为 true 跳过连接状态检查 */
     async rpc <TResult extends DdbObj = DdbObj> (type: DdbRpcType, options: DdbRpcOptions) {
         // 保留调用栈信息
-        let error = new DdbDatabaseError('', this, type, options)
+        const id = genid() % 1000
+        
+        let error = new DdbDatabaseError('', this.url, type, options, id)
         
         if (!options.skip_connection_check)
             await this.connect()
@@ -3688,7 +3692,6 @@ export class DDB {
             
             const args = DdbObj.to_ddbobjs(_args)
             
-            const id = genid() % 1000
             const rpc_id = ` (id = ${id})`
             
             const command = this.enc.encode(

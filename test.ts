@@ -137,7 +137,7 @@ async function test_error (ddb: DDB) {
     assert(database_error instanceof DdbDatabaseError)
     assert(database_error.message === `throw ${error_message.quote('double')} => ${error_message}`)
     assert(database_error.name === 'DdbDatabaseError')
-    assert(database_error.ddb === ddb)
+    assert(database_error.url === ddb.url)
     assert(database_error.type === 'script')
     assert(database_error.options.script === error_script)
     assert(database_error.stack.includes('test_error'))
@@ -155,7 +155,7 @@ async function test_error (ddb: DDB) {
     
     assert(connection_error)
     assert(connection_error instanceof DdbConnectionError)
-    assert(connection_error.ddb === ddbtest)
+    assert(connection_error.url === ddbtest.url)
     
     
     // --- 首次连接失败也会抛出 DdbConnectionError

@@ -635,11 +635,11 @@ function get_tm_language (python = false) {
             function_name: {
                 patterns: [
                     {
-                        match: '[a-zA-Z_\u4e00-\u9fa5$][\\w$]*',
+                        match: '[a-zA-Z_\\u4e00-\\u9fa5][\\w\\u4e00-\\u9fa5]*',
                         name: 'entity.name.function.dolphindb'
                     },
                     {
-                        match: '\\d[\\w$]*',
+                        match: '\\d[\\w]*',
                         name: 'invalid.illegal.identifier.dolphindb'
                     }
                 ]

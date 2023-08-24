@@ -307,6 +307,8 @@ export const constants = [
 ] as const
 
 
+const func_name_pattern = '[^\\d\\W]\\w*!?'
+
 
 function get_tm_language (python = false) {
     return {
@@ -608,34 +610,40 @@ function get_tm_language (python = false) {
             function_call: {
                 patterns: [
                     {
-                        begin: '(@)?([\\w$]+!?)\\s*(?=\\()',
+                        begin: `(@)?(${func_name_pattern})\\s*(?=\\()`,
                         beginCaptures: {
-                            1: {
-                                name: 'variable.other.readwrite.instance.dolphindb'
-                            },
-                            2: {
-                                patterns: [
-                                    {
-                                        include: '#function_name'
-                                    }
-                                ]
-                            }
+                            1: { name: 'variable.other.readwrite.instance.dolphindb' },
+                            2: { patterns: [{ include: '#function_name' }] }
                         },
                         end: '(?<=\\))',
                         name: 'meta.function-call.dolphindb',
-                        patterns: [
-                            {
-                                include: '#arguments'
-                            }
-                        ]
+                        patterns: [{ include: '#arguments' }]
                     }
                 ]
             },
             
+            
+            method_call: {
+                patterns: [
+                    {
+                        begin: `(?:(\\.)|(::))\\s*(${func_name_pattern})(?=\\()`,
+                        beginCaptures: {
+                            1: { name: 'punctuation.separator.method.period.dolphindb' },
+                            2: { name: 'keyword.operator.prototype.dolphindb' },
+                            3: { patterns: [{ include: '#function_name' }] }
+                        },
+                        end: '(?<=\\))',
+                        name: 'meta.method-call.dolphindb',
+                        patterns: [{ include: '#arguments' }]
+                    }
+                ]
+            },
+            
+            
             function_name: {
                 patterns: [
                     {
-                        match: '[a-zA-Z_\\u4e00-\\u9fa5][\\w\\u4e00-\\u9fa5]*',
+                        match: func_name_pattern,
                         name: 'entity.name.function.dolphindb'
                     },
                     {
@@ -785,48 +793,6 @@ function get_tm_language (python = false) {
                 ]
             },
             
-            method_call: {
-                patterns: [
-                    {
-                        begin: '(?:(\\.)|(::))\\s*([\\w$]+!?)(?=\\()',
-                        beginCaptures: {
-                            1: {
-                                name: 'punctuation.separator.method.period.dolphindb'
-                            },
-                            2: {
-                                name: 'keyword.operator.prototype.dolphindb'
-                            },
-                            3: {
-                                patterns: [
-                                    {
-                                        include: '#method_name'
-                                    }
-                                ]
-                            }
-                        },
-                        end: '(?<=\\))',
-                        name: 'meta.method-call.dolphindb',
-                        patterns: [
-                            {
-                                include: '#arguments'
-                            }
-                        ]
-                    }
-                ]
-            },
-            
-            method_name: {
-                patterns: [
-                    {
-                        match: '[a-zA-Z_$][\\w$]*',
-                        name: 'entity.name.function.dolphindb'
-                    },
-                    {
-                        match: '\\d[\\w$]*',
-                        name: 'invalid.illegal.identifier.dolphindb'
-                    }
-                ]
-            },
             
             operator: {
                 patterns: [

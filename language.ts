@@ -307,9 +307,6 @@ export const constants = [
 ] as const
 
 
-const func_name_pattern = '[^\\d\\W]\\w*!?'
-
-
 function get_tm_language (python = false) {
     return {
         $schema: 'https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json',
@@ -610,7 +607,7 @@ function get_tm_language (python = false) {
             function_call: {
                 patterns: [
                     {
-                        begin: `(@)?(${func_name_pattern})\\s*(?=\\()`,
+                        begin: '(@)?(\\w*!?)\\s*(?=\\()',
                         beginCaptures: {
                             1: { name: 'variable.other.readwrite.instance.dolphindb' },
                             2: { patterns: [{ include: '#function_name' }] }
@@ -626,7 +623,7 @@ function get_tm_language (python = false) {
             method_call: {
                 patterns: [
                     {
-                        begin: `(?:(\\.)|(::))\\s*(${func_name_pattern})(?=\\()`,
+                        begin: '(?:(\\.)|(::))\\s*(\\w*!?)(?=\\()',
                         beginCaptures: {
                             1: { name: 'punctuation.separator.method.period.dolphindb' },
                             2: { name: 'keyword.operator.prototype.dolphindb' },
@@ -643,7 +640,7 @@ function get_tm_language (python = false) {
             function_name: {
                 patterns: [
                     {
-                        match: func_name_pattern,
+                        match: '[^\\d\\W]\\w*!?',
                         name: 'entity.name.function.dolphindb'
                     },
                     {

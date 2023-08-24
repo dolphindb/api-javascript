@@ -635,7 +635,7 @@ function get_tm_language (python = false) {
             function_name: {
                 patterns: [
                     {
-                        match: '[a-zA-Z_$][\\w$]*',
+                        match: '[a-zA-Z_\u4e00-\u9fa5$][\\w$]*',
                         name: 'entity.name.function.dolphindb'
                     },
                     {

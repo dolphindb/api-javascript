@@ -3773,47 +3773,44 @@ export class DDB {
                     reject(this.error)
                 }
                 
-                const on_message = (buffer: ArrayBuffer) => {
-                    try {
-                        const buf = new Uint8Array(buffer)
-                        
-                        if (this.print_message_buffer)
-                            console.log(typed_array_to_buffer(buf))
-                        
-                        const message = this.parse_message(buf, error)
-                        
-                        listener?.(message, this)
-                        for (const listener of _listeners)
-                            listener(message, this)
-                        
-                        const { type, data } = message
-                        
-                        switch (type) {
-                            case 'print':
-                                if (this.print_message)
-                                    console.log(data)
-                                break
-                            
-                            case 'object':
-                                resolve(data as TResult)
-                                break
-                            
-                            case 'error':
-                                reject(data)
-                                break
-                        }
-                    } catch (error) {
-                        // 这里的错误并非 websocket 错误，而是 rpc 错误
-                        reject(error)
-                    }
-                }
-                
                 this.on_message = buffer => {
-                    if (first_message) {
-                        on_message(buffer)
-                        first_message = false
-                    } else 
-                        on_more_messages ? on_more_messages(buffer) : on_message(buffer)    
+                    if (first_message || !on_more_messages)
+                        try {
+                            const buf = new Uint8Array(buffer)
+                            
+                            if (this.print_message_buffer)
+                                console.log(typed_array_to_buffer(buf))
+                            
+                            const message = this.parse_message(buf, error)
+                            
+                            listener?.(message, this)
+                            for (const listener of _listeners)
+                                listener(message, this)
+                            
+                            const { type, data } = message
+                            
+                            switch (type) {
+                                case 'print':
+                                    if (this.print_message)
+                                        console.log(data)
+                                    break
+                                
+                                case 'object':
+                                    first_message = false
+                                    resolve(data as TResult)
+                                    break
+                                
+                                case 'error':
+                                    first_message = false
+                                    reject(data)
+                                    break
+                            }
+                        } catch (error) {
+                            // 这里的错误并非 websocket 错误，而是 rpc 错误
+                            reject(error)
+                        }
+                    else
+                        on_more_messages(buffer)
                 }
                 
                 websocket.send(
@@ -3909,7 +3906,7 @@ export class DDB {
             listener?: DdbMessageListener
             parse_object?: boolean
             skip_connection_check?: boolean
-            on_more_messages?: (buffer: ArrayBuffer) => void
+            on_more_messages?: DdbRpcOptions['on_more_messages']
         } = { }
     ) {
         if (node) {
@@ -4078,59 +4075,6 @@ export class DDB {
         
         let schema: DdbTableObj
         
-        // 先准备好收到 websocket message 的 callback
-        const on_more_messages = (buffer: ArrayBuffer) => {
-            try {
-                const dv = new DataView(buffer)
-                const buf = new Uint8Array(buffer)
-                
-                const i_topic_end = buf.indexOf(0, 17)
-                
-                // 首个 message 可能是 table schema, 后续消息是 column 片段组成的 any vector
-                const data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
-                
-                if (data.form === DdbForm.table) {
-                    schema = data
-                    return
-                }
-                
-                const { rows } = data.value[0]
-                
-                win.rows += rows
-                
-                win.segments.push(data)
-                
-                if (win.rows >= winsize * 2 && win.segments.length >= 2) {
-                    let winsize_ = 0
-                    let i = win.segments.length - 1
-                    // 往前移动至首个累计 winsize_ 超过 winsize 的位置
-                    for (  ;  winsize_ < winsize;  i--)
-                        winsize_ += win.segments[i].value[0].rows
-                    
-                    win.segments = win.segments.slice(i)
-                    
-                    win.offset += win.rows - winsize_
-                    
-                    win.rows = winsize_
-                }
-                
-                this.streaming.handler({
-                    ...this.streaming,
-                    id: dv.getBigInt64(9, this.le),
-                    time: dv.getBigInt64(1, this.le),
-                    rows,
-                    topic: this.dec.decode(buf.subarray(17, i_topic_end)),
-                    colnames,
-                    schema,
-                    data,
-                    window: win,
-                })
-            } catch (error) {
-                // 将 error 交给 handler 处理
-                this.streaming.handler({ ...this.streaming, error } as StreamingMessage)
-            }
-        }
-        
         const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
                 new DdbInt(0),
@@ -4139,7 +4083,62 @@ export class DDB {
                 // new DdbInt(-1),  // offset
                 // filter
                 // allow exists
-            ], { skip_connection_check: true, on_more_messages }
+            ], {
+                skip_connection_check: true,
+                
+                // 先准备好收到 websocket message 的 callback
+                on_more_messages: buffer => {
+                    try {
+                        const dv = new DataView(buffer)
+                        const buf = new Uint8Array(buffer)
+                        
+                        const i_topic_end = buf.indexOf(0, 17)
+                        
+                        // 首个 message 可能是 table schema, 后续消息是 column 片段组成的 any vector
+                        const data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                        
+                        if (data.form === DdbForm.table) {
+                            schema = data
+                            return
+                        }
+                        
+                        const { rows } = data.value[0]
+                        
+                        win.rows += rows
+                        
+                        win.segments.push(data)
+                        
+                        if (win.rows >= winsize * 2 && win.segments.length >= 2) {
+                            let winsize_ = 0
+                            let i = win.segments.length - 1
+                            // 往前移动至首个累计 winsize_ 超过 winsize 的位置
+                            for (  ;  winsize_ < winsize;  i--)
+                                winsize_ += win.segments[i].value[0].rows
+                            
+                            win.segments = win.segments.slice(i)
+                            
+                            win.offset += win.rows - winsize_
+                            
+                            win.rows = winsize_
+                        }
+                        
+                        this.streaming.handler({
+                            ...this.streaming,
+                            id: dv.getBigInt64(9, this.le),
+                            time: dv.getBigInt64(1, this.le),
+                            rows,
+                            topic: this.dec.decode(buf.subarray(17, i_topic_end)),
+                            colnames,
+                            schema,
+                            data,
+                            window: win,
+                        })
+                    } catch (error) {
+                        // 将 error 交给 handler 处理
+                        this.streaming.handler({ ...this.streaming, error } as StreamingMessage)
+                    }
+                }
+            }
         )
         
         console.log(

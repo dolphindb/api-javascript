@@ -3216,6 +3216,7 @@ export interface DdbRpcOptions {
     listener?: DdbMessageListener
     parse_object?: boolean
     skip_connection_check?: boolean
+    on_more_messages?: (buffer: ArrayBuffer) => void
 }
 
 
@@ -3636,6 +3637,7 @@ export class DDB {
             vars = [ ],
             urgent,
             listener,
+            on_more_messages,
         } = options
         
         
@@ -3764,12 +3766,14 @@ export class DDB {
             
             // 使用资源发送请求并等待请求完成
             const result = await new Promise<TResult>((resolve, reject) => {
+                let first_message = true
+                
                 this.on_error = () => {
                     // 这里一定有了 this.error, 不需要再 || new DdbConnectionError(this)
                     reject(this.error)
                 }
                 
-                this.on_message = buffer => {
+                const on_message = (buffer: ArrayBuffer) => {
                     try {
                         const buf = new Uint8Array(buffer)
                         
@@ -3802,6 +3806,14 @@ export class DDB {
                         // 这里的错误并非 websocket 错误，而是 rpc 错误
                         reject(error)
                     }
+                }
+                
+                this.on_message = buffer => {
+                    if (first_message) {
+                        on_message(buffer)
+                        first_message = false
+                    } else 
+                        on_more_messages ? on_more_messages(buffer) : on_message(buffer)    
                 }
                 
                 websocket.send(
@@ -3886,7 +3898,8 @@ export class DDB {
             add_node_alias,
             listener,
             parse_object,
-            skip_connection_check
+            skip_connection_check,
+            on_more_messages
         }: {
             urgent?: boolean
             node?: string
@@ -3896,6 +3909,7 @@ export class DDB {
             listener?: DdbMessageListener
             parse_object?: boolean
             skip_connection_check?: boolean
+            on_more_messages?: (buffer: ArrayBuffer) => void
         } = { }
     ) {
         if (node) {
@@ -3933,7 +3947,8 @@ export class DDB {
             urgent,
             listener,
             parse_object,
-            skip_connection_check
+            skip_connection_check,
+            on_more_messages
         })
     }
     
@@ -4055,24 +4070,6 @@ export class DDB {
     
     /** 内部的流订阅方法  Internal stream subscription method */
     async subscribe () {
-        const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
-                'localhost',
-                new DdbInt(0),
-                this.streaming.table,
-                (this.streaming.action ||= `api_js_${new Date().getTime()}`),
-                // new DdbInt(-1),  // offset
-                // filter
-                // allow exists
-            ], { skip_connection_check: true }
-        )
-        
-        console.log(
-            t('订阅流表成功') + ', colnames:',
-            
-            // string[3](['time', 'stock', 'price'])
-            colnames
-        )
-        
         let win: StreamingMessage['window'] = {
             offset: 0,
             rows: 0,
@@ -4082,7 +4079,7 @@ export class DDB {
         let schema: DdbTableObj
         
         // 先准备好收到 websocket message 的 callback
-        this.on_message = buffer => {
+        const on_more_messages = (buffer: ArrayBuffer) => {
             try {
                 const dv = new DataView(buffer)
                 const buf = new Uint8Array(buffer)
@@ -4133,6 +4130,24 @@ export class DDB {
                 this.streaming.handler({ ...this.streaming, error } as StreamingMessage)
             }
         }
+        
+        const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
+                'localhost',
+                new DdbInt(0),
+                this.streaming.table,
+                (this.streaming.action ||= `api_js_${new Date().getTime()}`),
+                // new DdbInt(-1),  // offset
+                // filter
+                // allow exists
+            ], { skip_connection_check: true, on_more_messages }
+        )
+        
+        console.log(
+            t('订阅流表成功') + ', colnames:',
+            
+            // string[3](['time', 'stock', 'price'])
+            colnames
+        )
     }
     
     

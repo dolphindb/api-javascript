@@ -76,5 +76,8 @@
     },
     "vector<{{type}}> 暂时不支持解析": {
         "en": "cannot parse vector<{{type}}>"
+    },
+    "流数据订阅后一定先返回 schema": {
+        "en": "After subscribing to streaming data, the schema must be returned first."
     }
 }

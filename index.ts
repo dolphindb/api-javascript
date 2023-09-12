@@ -3216,7 +3216,7 @@ export interface DdbRpcOptions {
     listener?: DdbMessageListener
     parse_object?: boolean
     skip_connection_check?: boolean
-    on_more_messages?: (buffer: ArrayBuffer) => void
+    on_more_messages?: (buffer: Uint8Array) => void
 }
 
 
@@ -3423,7 +3423,7 @@ export class DDB {
     }
     
     
-    private on_message (buffer: ArrayBuffer, websocket: WebSocket) {
+    private on_message (buffer: Uint8Array, websocket: WebSocket) {
         throw new Error(t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
     }
     
@@ -3469,7 +3469,7 @@ export class DDB {
                     protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
                     
                     on_message: (buffer: ArrayBuffer, websocket) => {
-                        this.on_message(buffer, websocket)
+                        this.on_message(new Uint8Array(buffer), websocket)
                     },
                     
                     on_error: error => {
@@ -3776,12 +3776,10 @@ export class DDB {
                 this.on_message = buffer => {
                     if (first_message || !on_more_messages)
                         try {
-                            const buf = new Uint8Array(buffer)
-                            
                             if (this.print_message_buffer)
-                                console.log(typed_array_to_buffer(buf))
+                                console.log(typed_array_to_buffer(buffer))
                             
-                            const message = this.parse_message(buf, error)
+                            const message = this.parse_message(buffer, error)
                             
                             listener?.(message, this)
                             for (const listener of _listeners)
@@ -4089,13 +4087,12 @@ export class DDB {
                 // 先准备好收到 websocket message 的 callback
                 on_more_messages: buffer => {
                     try {
-                        const dv = new DataView(buffer)
-                        const buf = new Uint8Array(buffer)
+                        const dv = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
                         
-                        const i_topic_end = buf.indexOf(0, 17)
+                        const i_topic_end = buffer.indexOf(0, 17)
                         
                         // 首个 message 可能是 table schema, 后续消息是 column 片段组成的 any vector
-                        const data = DdbObj.parse(buf.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                        const data = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                         
                         if (data.form === DdbForm.table) {
                             schema = data
@@ -4127,7 +4124,7 @@ export class DDB {
                             id: dv.getBigInt64(9, this.le),
                             time: dv.getBigInt64(1, this.le),
                             rows,
-                            topic: this.dec.decode(buf.subarray(17, i_topic_end)),
+                            topic: this.dec.decode(buffer.subarray(17, i_topic_end)),
                             colnames,
                             schema,
                             data,

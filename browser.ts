@@ -3760,7 +3760,7 @@ export class DDB {
                 }
                 
                 this.on_message = buffer => {
-                    if (first_message || !on_more_messages)
+                    if (!on_more_messages || first_message)
                         try {
                             if (this.print_message_buffer)
                                 console.log(buffer)
@@ -4077,13 +4077,15 @@ export class DDB {
                         
                         const i_topic_end = buffer.indexOf(0, 17)
                         
-                        // 首个 message 可能是 table schema, 后续消息是 column 片段组成的 any vector
+                        // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
                         const data = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                         
                         if (data.form === DdbForm.table) {
                             schema = data
                             return
                         }
+                        
+                        assert(schema, t('流数据订阅后一定先返回 schema'))
                         
                         const { rows } = data.value[0]
                         
@@ -4120,7 +4122,7 @@ export class DDB {
                         // 将 error 交给 handler 处理
                         this.streaming.handler({ ...this.streaming, error } as StreamingMessage)
                     }
-                } 
+                }
             }
         )
         

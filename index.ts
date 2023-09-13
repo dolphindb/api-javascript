@@ -1937,6 +1937,50 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         break
                     }
                     
+                    case DdbType.char:
+                        row[name] = values[i] === nulls.int8 ? null : values[i]
+                        break
+        
+                    case DdbType.short:
+                        row[name] = values[i] === nulls.int16 ? null : values[i]
+                        break    
+                    
+                    case DdbType.int:
+                    case DdbType.date:
+                    case DdbType.month:
+                    case DdbType.time:
+                    case DdbType.minute:
+                    case DdbType.second:
+                    case DdbType.datetime:
+                    case DdbType.datehour:
+                        row[name] = values[i] === nulls.int32 ? null : values[i]
+                        break
+                    
+                    case DdbType.long:
+                    case DdbType.timestamp:
+                    case DdbType.nanotime:
+                    case DdbType.nanotimestamp:
+                        row[name] = values[i] === nulls.int64 ? null : values[i]
+                        break
+                        
+                    case DdbType.int128:
+                        row[name] = values[i] === nulls.int128 ? null : values[i]
+                        break
+        
+                    case DdbType.float:
+                        row[name] = values[i] === nulls.float32 ? null : values[i]
+                        break
+        
+                    case DdbType.double:
+                        row[name] = values[i] === nulls.double ? null : values[i]
+                        break
+        
+                    case DdbType.decimal32: 
+                    case DdbType.decimal64:
+                    case DdbType.decimal128: 
+                        row[name] = is_decimal_null_value(type, values[i]) ? null : values[i]
+                        break
+                       
                     case DdbType.ipaddr:
                         row[name] = (values as Uint8Array).subarray(16 * i, 16 * (i + 1))
                         break
@@ -1948,7 +1992,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     }
                     
                     default:
-                        row[name] = Object.values(nulls).includes(values[i]) ? null : values[i]
+                        row[name] = values[i]
                 }
             }
             rows[i] = row

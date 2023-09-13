@@ -1940,7 +1940,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     }
                     
                     default:
-                        row[name] = values[i]
+                        row[name] = Object.values(nulls).includes(values[i]) ? null : values[i]
                 }
             }
             rows[i] = row

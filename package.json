@@ -1,7 +1,7 @@
 {
     "name": "dolphindb",
     "description": "DolphinDB JavaScript API",
-    "version": "2.0.1024",
+    "version": "2.0.1025",
     "type": "module",
     "main": "./index.js",
     "browser": "./browser.js",
@@ -13,7 +13,7 @@
         "scan": "i18n-scan --input \"**/*.{ts,tsx}\""
     },
     "engines": {
-        "node": ">=19.8.1"
+        "node": ">=20.6.1"
     },
     "author": "Hongfei Shen <hongfei.shen@dolphindb.com> (https://dolphindb.net/hongfeishen)",
     "publisher": "Hongfei Shen",
@@ -44,6 +44,6 @@
         "dayjs": "^1.11.9",
         "ipaddr.js": "^2.1.0",
         "tslib": "^2.6.2",
-        "xshell": "^1.0.58"
+        "xshell": "^1.0.59"
     }
 }

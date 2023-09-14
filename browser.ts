@@ -1909,6 +1909,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
+    /** 将 table 转换为 rows，空值转换为 null */
     to_rows <T extends Record<string, any> = Record<string, any>> () {
         assert(this.form === DdbForm.table, t('form 必须是 DdbForm.table, 否则不能 to_rows'))
         
@@ -1958,21 +1959,21 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     case DdbType.int128:
                         row[name] = values[i] === nulls.int128 ? null : values[i]
                         break
-        
+                    
                     case DdbType.float:
                         row[name] = values[i] === nulls.float32 ? null : values[i]
                         break
-        
+                    
                     case DdbType.double:
                         row[name] = values[i] === nulls.double ? null : values[i]
                         break
-        
+                    
                     case DdbType.decimal32: 
                     case DdbType.decimal64:
                     case DdbType.decimal128: 
                         row[name] = is_decimal_null_value(type, values[i]) ? null : values[i]
                         break
-                       
+                    
                     case DdbType.ipaddr:
                         row[name] = (values as Uint8Array).subarray(16 * i, 16 * (i + 1))
                         break

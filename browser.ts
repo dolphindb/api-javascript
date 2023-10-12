@@ -13,7 +13,7 @@ import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.bro
 import { t } from './i18n/index.js'
 
 import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './data-types/decimal-128.js'
-import { BigInt128Array } from './shared/bigint-128-array.js'
+import type { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value } from './shared/utils/decimal-type.js'
 
 import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'

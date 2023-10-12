@@ -2335,6 +2335,8 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         
         let offset = 0
         
+        options = { ...options, nullstr: true }
+        
         for (const { lengths, data, rows } of obj.value as DdbArrayVectorValue) {
             let acc_len = 0
             
@@ -2361,16 +2363,17 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                         case DdbType.decimal128:
                             const x = data[acc_len + i]
                             
-                            if (is_decimal_null_value(type_, x)) {
-                                items[i] = ''
-                                break
+                            let str: string
+                            
+                            if (is_decimal_null_value(type_, x)) 
+                                str = 'null'
+                            else {
+                                const { scale } = obj.value as DdbArrayVectorValue
+                            
+                                const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                            
+                                str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
                             }
-                            
-                            const { scale } = obj.value as DdbArrayVectorValue
-                            
-                            const s = String(x < 0 ? -x : x).padStart(scale, '0')
-                            
-                            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
                             
                             items[i] = options.colors ? green(str) : str
                             break

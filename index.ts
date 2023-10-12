@@ -2368,7 +2368,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                             const x = data[acc_len + i]
                             
                             if (is_decimal_null_value(type_, x)) {
-                                items[i] = ''
+                                items[i] = null
                                 break
                             }
                             

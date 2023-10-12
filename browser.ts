@@ -2335,6 +2335,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         
         let offset = 0
         
+        // array vector 中每一项如果为 null 都展示，避免多个逗号堆在一起的情况
         options = { ...options, nullstr: true }
         
         for (const { lengths, data, rows } of obj.value as DdbArrayVectorValue) {
@@ -2363,19 +2364,20 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                         case DdbType.decimal128:
                             const x = data[acc_len + i]
                             
-                            let str: string
                             
-                            if (is_decimal_null_value(type_, x)) 
-                                str = 'null'
+                            if (is_decimal_null_value(type_, x))
+                                items[i] = options.colors ? grey('null') : 'null'
                             else {
                                 const { scale } = obj.value as DdbArrayVectorValue
                             
                                 const s = String(x < 0 ? -x : x).padStart(scale, '0')
-                            
-                                str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                                
+                                const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                                
+                                if (options.colors)
+                                    items[i] = green(str)
                             }
                             
-                            items[i] = options.colors ? green(str) : str
                             break
                         
                         case DdbType.complex:

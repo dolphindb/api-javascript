@@ -2341,6 +2341,8 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         
         let offset = 0
         
+        const nullstr = inspect(null, options)
+        
         for (const { lengths, data, rows } of obj.value as DdbArrayVectorValue) {
             let acc_len = 0
             
@@ -2368,7 +2370,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                             const x = data[acc_len + i]
                             
                             if (is_decimal_null_value(type_, x)) {
-                                items[i] = null
+                                items[i] = nullstr
                                 break
                             }
                             

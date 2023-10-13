@@ -1646,18 +1646,18 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         case DdbType.decimal128:
                                             const x = data[acc_len + i]
                                             
-                                            if (is_decimal_null_value(type_, x)) {
+                                            if (is_decimal_null_value(type_, x))
                                                 items[i] = ''
-                                                break
+                                            else {
+                                                const { scale } = this.value as DdbArrayVectorValue
+                                                
+                                                const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                                                
+                                                const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                                                
+                                                items[i] = options.colors ? green(str) : str
                                             }
                                             
-                                            const { scale } = this.value as DdbArrayVectorValue
-                                            
-                                            const s = String(x < 0 ? -x : x).padStart(scale, '0')
-                                            
-                                            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
-                                            
-                                            items[i] = options.colors ? green(str) : str
                                             break
                                         
                                         case DdbType.complex:
@@ -2363,7 +2363,6 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                         case DdbType.decimal64:
                         case DdbType.decimal128:
                             const x = data[acc_len + i]
-                            
                             
                             if (is_decimal_null_value(type_, x))
                                 items[i] = options.colors ? grey('null') : 'null'

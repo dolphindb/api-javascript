@@ -2369,18 +2369,18 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                         case DdbType.decimal128:
                             const x = data[acc_len + i]
                             
-                            if (is_decimal_null_value(type_, x)) {
+                            if (is_decimal_null_value(type_, x))
                                 items[i] = nullstr
-                                break
+                            else {
+                                const { scale } = obj.value as DdbArrayVectorValue
+                                
+                                const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                                
+                                const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                                
+                                items[i] = options.colors ? str.green : str
                             }
                             
-                            const { scale } = obj.value as DdbArrayVectorValue
-                            
-                            const s = String(x < 0 ? -x : x).padStart(scale, '0')
-                            
-                            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
-                            
-                            items[i] = options.colors ? str.green : str
                             break
                         
                         case DdbType.complex:

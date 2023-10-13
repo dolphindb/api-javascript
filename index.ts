@@ -1668,7 +1668,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         case DdbType.decimal128:
                                             const x = data[acc_len + i]
                                             
-                                            if (is_decimal_null_value(type_, x)) 
+                                            if (is_decimal_null_value(type_, x))
                                                 items[i] = nullstr
                                             else {
                                                 const { scale } = this.value as DdbArrayVectorValue

@@ -1645,6 +1645,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         
                         const limit = 10
                         
+                        const nullstr = inspect(null, options)
+                        
                         let array_items = new Array(
                             Math.min(limit, this.rows)
                         )
@@ -1666,20 +1668,19 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         case DdbType.decimal128:
                                             const x = data[acc_len + i]
                                             
-                                            if (is_decimal_null_value(type_, x)) {
-                                                items[i] = ''
-                                                break
+                                            if (is_decimal_null_value(type_, x)) 
+                                                items[i] = nullstr
+                                            else {
+                                                const { scale } = this.value as DdbArrayVectorValue
+                                            
+                                                const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                                                
+                                                const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                                                
+                                                items[i] = options.colors ? str.green : str
                                             }
                                             
-                                            const { scale } = this.value as DdbArrayVectorValue
-                                            
-                                            const s = String(x < 0 ? -x : x).padStart(scale, '0')
-                                            
-                                            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
-                                            
-                                            items[i] = options.colors ? str.green : str
                                             break
-                                        
                                         case DdbType.complex:
                                         case DdbType.point: {
                                             const index = acc_len + i

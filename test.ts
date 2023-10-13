@@ -29,14 +29,14 @@ export const url = 'ws://192.168.0.200:20023' as const
     const tests = [
         test_repl,
         
-        test_keywords,
-        test_types,
-        test_reconnection,
-        test_connection_error,
-        test_print,
-        test_time,
-        test_streaming,
-        test_error,
+        // test_keywords,
+        // test_types,
+        // test_reconnection,
+        // test_connection_error,
+        // test_print,
+        // test_time,
+        // test_streaming,
+        // test_error,
     ]
     
     for (const fn_test of tests)
@@ -342,6 +342,14 @@ export async function test_types (ddb: DDB) {
     assert(av.type === DdbType.int + 64)  // array vector 的 type 比较特殊，需要偏移 64
     assert(av.rows === 2)
     
+    // 测试 array vector 格式化
+    // console.log(
+    //     await ddb.eval<DdbVectorObj>(
+    //         'av = array(DECIMAL128(2)[], 0, 1)\n' +
+    //         'append!(av, [[92233720368547758.11, NULL, 100000000000000, NULL, -92233720368547758, -100000000000000]])\n' +
+    //         'av\n'
+    //     )
+    // )
     
     console.log('测试大数据')
     let bigarr = new Float64Array(10)

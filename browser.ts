@@ -2373,8 +2373,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                                 
                                 const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
                                 
-                                if (options.colors)
-                                    items[i] = green(str)
+                                items[i] = options.colors ? green(str) : str
                             }
                             
                             break

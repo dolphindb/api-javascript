@@ -3199,13 +3199,20 @@ export function int1282str (buffer: Uint8Array, le = true) {
 
 export interface StreamingParams {
     table: string
+    
     action?: string
+    
     filters?: {
-        column?: string
+        /** https://docs.dolphindb.cn/zh/help/FunctionsandCommands/FunctionReferences/s/subscribeTable.html#:~:text=%E8%BF%9E%E6%8E%A5%E6%96%B0%E7%9A%84%20leader%E3%80%82-,filter%20%E5%8F%82%E6%95%B0%E9%9C%80%E8%A6%81%E9%85%8D%E5%90%88,-setStreamTableFilterColumn%20%E5%87%BD%E6%95%B0%E4%B8%80%E8%B5%B7 */
+        column?: DdbObj
+        
+        /** 过滤条件的 DolphinDB 表达式 https://dolphindb1.atlassian.net/wiki/spaces/dev/pages/760840447/WebSocketConsole */
         expression?: string
     }
+    
     handler (message: StreamingMessage): any
 }
+
 
 export interface StreamingMessage extends StreamingParams {
     /** server 发送消息的时间 (nano seconds since epoch)   The time the server sent the message (nano seconds since epoch)  
@@ -3505,18 +3512,19 @@ export class DDB {
                 let url = new URL(this.url)
                 if (this.streaming?.filters?.expression)
                     url.searchParams.set('filter', this.streaming.filters.expression.trim())
+                
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
                 this.lwebsocket.resource = await connect_websocket(url, {
-                        protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
-                        
-                        on_message: (buffer: ArrayBuffer, websocket) => {
-                            this.on_message(new Uint8Array(buffer), websocket)
-                        },
-                        
-                        on_error: error => {
-                            this.error ??= new DdbConnectionError(this.url, error)
-                            this.on_error()
-                        }
+                    protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
+                    
+                    on_message: (buffer: ArrayBuffer, websocket) => {
+                        this.on_message(new Uint8Array(buffer), websocket)
+                    },
+                    
+                    on_error: error => {
+                        this.error ??= new DdbConnectionError(this.url, error)
+                        this.on_error()
+                    }
                 })
             } catch (error) {
                 this.error ??= new DdbConnectionError(this.url, error)

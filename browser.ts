@@ -3504,7 +3504,7 @@ export class DDB {
             try {
                 let url = new URL(this.url)
                 if (this.streaming?.filters?.expression)
-                    url.searchParams.append('filter', this.streaming.filters.expression.trim())
+                    url.searchParams.set('filter', this.streaming.filters.expression.trim())
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
                 this.lwebsocket.resource = await connect_websocket(url, {
                         protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,

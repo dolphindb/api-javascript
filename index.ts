@@ -3518,7 +3518,7 @@ export class DDB {
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
                 this.lwebsocket.resource = await connect_websocket(
                     this.streaming?.filters?.expression 
-                        ? this.url + '/?filter=' + encodeURIComponent(this.streaming.filters.expression.trim()).replaceAll('%20', '+') 
+                        ? this.url + '/?' + new URLSearchParams({ filter: this.streaming.filters.expression.trim() }) 
                         : this.url,
                     {
                         protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,

@@ -4120,6 +4120,7 @@ export class DDB {
         }
         
         let schema: DdbTableObj
+        let first_message = true
         
         const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
@@ -4142,8 +4143,9 @@ export class DDB {
                         // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
                         const data = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                         
-                        if (data.form === DdbForm.table) {
+                        if (first_message) {
                             schema = data
+                            first_message = false
                             return
                         }
                         

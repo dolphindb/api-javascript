@@ -3200,7 +3200,10 @@ export function int1282str (buffer: Uint8Array, le = true) {
 export interface StreamingParams {
     table: string
     action?: string
-    
+    filters?: {
+        column?: string
+        expression?: string
+    }
     handler (message: StreamingMessage): any
 }
 
@@ -3500,18 +3503,23 @@ export class DDB {
             
             try {
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
-                this.lwebsocket.resource = await connect_websocket(this.url, {
-                    protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
-                    
-                    on_message: (buffer: ArrayBuffer, websocket) => {
-                        this.on_message(new Uint8Array(buffer), websocket)
-                    },
-                    
-                    on_error: error => {
-                        this.error ??= new DdbConnectionError(this.url, error)
-                        this.on_error()
+                this.lwebsocket.resource = await connect_websocket(
+                    this.streaming?.filters?.expression 
+                        ? this.url + '/?filter=' + encodeURIComponent(this.streaming.filters.expression.trim()).replaceAll('%20', '+') 
+                        : this.url,
+                    {
+                        protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
+                        
+                        on_message: (buffer: ArrayBuffer, websocket) => {
+                            this.on_message(new Uint8Array(buffer), websocket)
+                        },
+                        
+                        on_error: error => {
+                            this.error ??= new DdbConnectionError(this.url, error)
+                            this.on_error()
+                        }
                     }
-                })
+                )
             } catch (error) {
                 this.error ??= new DdbConnectionError(this.url, error)
                 reject(this.error)

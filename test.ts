@@ -6,7 +6,7 @@ import { keywords } from './language.js'
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
-    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj
+    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbVoid
 } from './index.js'
 
 
@@ -33,14 +33,14 @@ export const url = 'ws://192.168.0.200:20023' as const
     const tests = [
         test_repl,
         
-        // test_keywords,
-        // test_types,
-        // test_reconnection,
-        // test_connection_error,
-        // test_print,
-        // test_time,
-        // test_streaming,
-        // test_error,
+        test_keywords,
+        test_types,
+        test_reconnection,
+        test_connection_error,
+        test_print,
+        test_time,
+        test_streaming,
+        test_error,
     ]
     
     for (const fn_test of tests)

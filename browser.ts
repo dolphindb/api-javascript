@@ -4120,14 +4120,14 @@ export class DDB {
         }
         
         let schema: DdbTableObj
-        
+        const column_filter = this.streaming.filters.column
         const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
                 new DdbInt(0),
                 this.streaming.table,
                 (this.streaming.action ||= `api_js_${new Date().getTime()}`),
-                // new DdbInt(-1),  // offset
-                // filter
+                new DdbVoid(),  // offset
+                column_filter ? column_filter : new DdbVoid()// filter
                 // allow exists
             ], { 
                 skip_connection_check: true, 

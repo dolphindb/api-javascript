@@ -1216,7 +1216,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 case DdbForm.scalar:
                     switch (type) {
                         case DdbType.void:
-                            return [Uint8Array.of(1)]
+                            // Server 实现中区分了 explicitNull
+                            // Void::serialize()
+                            //     isNothing() ? 0 : 1;
+                            return [Uint8Array.of(0)]
                         
                         case DdbType.bool:
                             return [
@@ -4134,6 +4137,7 @@ export class DDB {
         }
         
         let schema: DdbTableObj
+        let first_message = true
         
         const column_filter = this.streaming.filters.column
         const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
@@ -4157,8 +4161,9 @@ export class DDB {
                         // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
                         const data = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                         
-                        if (data.form === DdbForm.table) {
+                        if (first_message) {
                             schema = data
+                            first_message = false
                             return
                         }
                         

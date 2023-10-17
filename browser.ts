@@ -4122,22 +4122,19 @@ export class DDB {
         let schema: DdbTableObj
         
         const column_filter = this.streaming?.filters?.column
-        const params = [
-            'localhost',
-            new DdbInt(0),
-            this.streaming.table,
-            (this.streaming.action ||= `api_js_${new Date().getTime()}`)
-        ]
-        const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable',
-            column_filter
-                ? [
-                    ...params,
-                    new DdbVoid(),  // offset
-                    column_filter ? column_filter : new DdbVoid()// filter
-                    // allow exists
-                ]
-                : params 
-            , { 
+        const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
+                'localhost',
+                new DdbInt(0),
+                this.streaming.table,
+                (this.streaming.action ||= `api_js_${new Date().getTime()}`),
+                ...column_filter 
+                    ? [
+                        new DdbVoid(),  // offset
+                        column_filter ? column_filter : new DdbVoid()// filter
+                        // allow exists
+                    ] : [ ]
+            ], 
+            { 
                 skip_connection_check: true, 
                 
                 // 先准备好收到 websocket message 的 callback

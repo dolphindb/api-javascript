@@ -2048,6 +2048,9 @@ export interface InspectOptions {
     
     /** `false` 决定 string, symbol, char 类型是否加引号 */
     quote?: boolean
+    
+    /** `true` 决定格式化后的数据是否有千分位 */
+    useGrouping?: boolean
 }
 
 
@@ -2057,6 +2060,8 @@ let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 
 
 let _decimals = 20
 
+let _useGrouping = true
+
 /** 缓存，为了优化性能，通常 options.decimals 都是不变的  Cache, in order to optimize performance, usually options.decimals are unchanged */
 let _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
@@ -2065,15 +2070,20 @@ let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short',
 
 /** 根据 DdbType 格式化单个元素 (value) 为字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { decimals, nullstr = false, colors = false, quote = false } = options
+    const { decimals, nullstr = false, colors = false, quote = false, useGrouping = true } = options
     
+    if (_useGrouping !== useGrouping) {
+        _useGrouping = useGrouping
+        default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping })   
+    }
+        
     const formatter = (() => {
         if (decimals === undefined || decimals === null)
             return default_formatter
         
         if (decimals !== _decimals) {
             _decimals = decimals
-            _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals })
+            _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals, useGrouping })
         }
         
         return _formatter

@@ -4147,22 +4147,18 @@ export class DDB {
         }
         
         let schema: DdbTableObj
-        let first_message = true
         
-        const column_filter = this.streaming?.filters?.column
         const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
                 new DdbInt(0),
                 this.streaming.table,
                 (this.streaming.action ||= `api_js_${new Date().getTime()}`),
-                ...column_filter 
-                    ? [
-                        new DdbVoid(),  // offset
-                        column_filter ? column_filter : new DdbVoid()// filter
-                        // allow exists
-                    ] : [ ]
-            ], 
-            { 
+                ... this.streaming?.filters?.column ? [
+                    new DdbVoid(),  // offset
+                    this.streaming.filters.column // filter
+                ] : [ ]
+            ],
+            {
                 skip_connection_check: true, 
                 
                 // 先准备好收到 websocket message 的 callback
@@ -4175,13 +4171,10 @@ export class DDB {
                         // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
                         const data = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                         
-                        if (first_message) {
+                        if (!schema) {
                             schema = data
-                            first_message = false
                             return
                         }
-                        
-                        assert(schema, t('流数据订阅后一定先返回 schema'))
                         
                         const { rows } = data.value[0]
                         

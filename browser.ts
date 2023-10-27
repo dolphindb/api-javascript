@@ -2074,7 +2074,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     
     if (_useGrouping !== useGrouping) {
         _useGrouping = useGrouping
-        default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping })   
+        default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping })
+        _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping })
     }
         
     const formatter = (() => {

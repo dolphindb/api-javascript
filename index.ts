@@ -2053,7 +2053,7 @@ export interface InspectOptions extends UtilInspectOptions {
     decimals?: number
     
     /** `true` 决定格式化后的数据是否有千分位 */
-    useGrouping?: boolean
+    grouping?: boolean
 }
 
 
@@ -2063,7 +2063,7 @@ let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 
 
 let _decimals = 20
 
-let _useGrouping = true
+let _grouping = true
 
 /** 缓存，为了优化性能，通常 options.decimals 都是不变的 */
 let _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
@@ -2073,12 +2073,12 @@ let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short',
 
 /** 根据 DdbType 格式化单个元素 (value) 为字符串，空值返回 'null' 字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { decimals, useGrouping = true } = options
+    const { decimals, grouping = true } = options
     
-    if (_useGrouping !== useGrouping) {
-        _useGrouping = useGrouping
-        default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping })
-        _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping })
+    if (_grouping !== grouping) {
+        _grouping = grouping
+        default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping: grouping })
+        _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals, useGrouping: grouping })
     }
     
     const formatter = (() => {
@@ -2087,7 +2087,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         if (decimals !== _decimals) {
             _decimals = decimals
-            _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals, useGrouping })
+            _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals, useGrouping: grouping })
         }
         
         return _formatter

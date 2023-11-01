@@ -2073,21 +2073,23 @@ let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short',
 
 /** 根据 DdbType 格式化单个元素 (value) 为字符串，空值返回 'null' 字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { decimals = _decimals, grouping = true } = options
-    
     const formatter = (() => {
+        const { grouping = true } = options
+        let { decimals } = options
+        decimals ??= _decimals
+        
         if (decimals !== _decimals || grouping !== _grouping) {
             _decimals = decimals
             _grouping = grouping
             default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping: grouping })
-            _formatter = new Intl.NumberFormat('en-US', { 
-                maximumFractionDigits: decimals ?? _decimals, 
-                minimumFractionDigits: decimals ?? _decimals, 
-                useGrouping: grouping 
+            _formatter = new Intl.NumberFormat('en-US', {
+                maximumFractionDigits: decimals,
+                minimumFractionDigits: decimals,
+                useGrouping: grouping
             })
         }
         
-        return (decimals === undefined || decimals === null) ? default_formatter : _formatter
+        return _formatter
     })()
     
     switch (type) {

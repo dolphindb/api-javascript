@@ -2070,24 +2070,21 @@ let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short',
 
 /** 根据 DdbType 格式化单个元素 (value) 为字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { decimals, nullstr = false, colors = false, quote = false, grouping = true } = options
-    
-    if (_grouping !== grouping) {
-        _grouping = grouping
-        default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping: grouping })
-        _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals || _decimals, minimumFractionDigits: decimals || _decimals, useGrouping: grouping })
-    }
+    const { decimals = _decimals, nullstr = false, colors = false, quote = false, grouping = true } = options
         
     const formatter = (() => {
-        if (decimals === undefined || decimals === null)
-            return default_formatter
-        
-        if (decimals !== _decimals) {
+        if (decimals !== _decimals || grouping !== _grouping) {
             _decimals = decimals
-            _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: decimals, minimumFractionDigits: decimals, useGrouping: grouping })
+            _grouping = grouping
+            default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping: grouping })
+            _formatter = new Intl.NumberFormat('en-US', { 
+                maximumFractionDigits: decimals ?? _decimals, 
+                minimumFractionDigits: decimals ?? _decimals, 
+                useGrouping: grouping 
+            })
         }
         
-        return _formatter
+        return (decimals === undefined || decimals === null) ? default_formatter : _formatter
     })()
     
     function get_nullstr () {

@@ -2073,8 +2073,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     const { nullstr = false, colors = false, quote = false, grouping = true } = options
     
     const formatter = (() => {
-        let { decimals } = options
-        decimals ??= _decimals
+        const decimals = options.decimals ?? _decimals
         
         if (decimals !== _decimals || grouping !== _grouping) {
             _decimals = decimals
@@ -2087,7 +2086,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             })
         }
         
-        return _formatter
+        return options.decimals === undefined || options.decimals === null ? default_formatter : _formatter
     })()
     
     function get_nullstr () {

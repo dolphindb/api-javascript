@@ -2075,8 +2075,7 @@ let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short',
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
     const formatter = (() => {
         const { grouping = true } = options
-        let { decimals } = options
-        decimals ??= _decimals
+        const decimals = options.decimals ?? _decimals
         
         if (decimals !== _decimals || grouping !== _grouping) {
             _decimals = decimals
@@ -2089,7 +2088,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             })
         }
         
-        return _formatter
+        return options.decimals === undefined || options.decimals === null ? default_formatter : _formatter
     })()
     
     switch (type) {

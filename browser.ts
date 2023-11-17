@@ -4159,7 +4159,7 @@ export class DDB {
                         
                         if (data.type === DdbType.string && (data.value as unknown as string).startsWith('error.filter:')) {
                             this.disconnect()
-                            throw new Error((data.value as unknown as string).slice((data.value as unknown as string).indexOf(':') + 1))
+                            throw new Error((/:(.*)/.exec((data.value as unknown as string)))[1])
                         }
                         
                         if (!schema) {

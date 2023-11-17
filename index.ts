@@ -4170,14 +4170,14 @@ export class DDB {
                         // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
                         const data = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                         
+                        if (data.type === DdbType.string && (data.value as unknown as string).startsWith('error.filter:')) {
+                            this.disconnect()
+                            throw new Error((data.value as unknown as string).slice((data.value as unknown as string).indexOf(':') + 1))
+                        }
+                        
                         if (!schema) {
                             schema = data
                             return
-                        }
-                        
-                        if (data.form === DdbForm.scalar && typeof data.value === 'string' && (data.value as string).startsWith('error.')) {
-                            this.disconnect()
-                            throw new Error((data.value as string).slice(13))
                         }
                         
                         const { rows } = data.value[0]

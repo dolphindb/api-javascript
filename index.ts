@@ -4175,6 +4175,11 @@ export class DDB {
                             return
                         }
                         
+                        if (data.form === DdbForm.scalar && typeof data.value === 'string' && (data.value as string).startsWith('error.')) {
+                            this.disconnect()
+                            throw new Error((data.value as string).slice(13))
+                        }
+                        
                         const { rows } = data.value[0]
                         
                         win.rows += rows

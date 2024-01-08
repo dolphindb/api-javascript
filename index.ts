@@ -21,6 +21,7 @@ import { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value } from './shared/utils/decimal-type.js'
 
 import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'
+import { to_exchange_str } from './shared/utils/duration-code.js'
 export * from './shared/constants.js'
 
 export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
@@ -2307,7 +2308,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.duration: {
             const { data, unit } = value as DdbDurationValue
-            const str = `${data}${DdbDurationUnit[unit]}`
+            const str = `${data}${DdbDurationUnit[unit] ?? to_exchange_str(unit)}`
             return options.colors ? str.magenta : str
         }
         

@@ -18,10 +18,9 @@ import { t } from './i18n/index.js'
 
 import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './data-types/decimal-128.js'
 import { BigInt128Array } from './shared/bigint-128-array.js'
-import { is_decimal_type, is_decimal_null_value } from './shared/utils.js'
+import { is_decimal_type, is_decimal_null_value, get_duration_unit } from './shared/utils.js'
 
 import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'
-import { parse_duration_code } from './shared/utils.js'
 export * from './shared/constants.js'
 
 export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
@@ -2308,7 +2307,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.duration: {
             const { data, unit } = value as DdbDurationValue
-            const str = `${data}${DdbDurationUnit[unit] ?? parse_duration_code(unit)}`
+            const str = `${data}${DdbDurationUnit[unit] ?? get_duration_unit(unit)}`
             return options.colors ? str.magenta : str
         }
         

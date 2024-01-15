@@ -14,7 +14,7 @@ export function is_decimal_null_value (type: DdbType, value: number | bigint) {
     )
 }
 
-export function parse_duration_code (code: number) {
+export function get_duration_unit (code: number) {
     let str = String.fromCharCode((code >> 24) & 255)
     str += String.fromCharCode((code >> 16) & 255)
     str += String.fromCharCode((code >> 8) & 255)

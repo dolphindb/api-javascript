@@ -24,25 +24,27 @@ https://www.npmjs.com/package/dolphindb
 - Use WebSocket to communicate with DolphinDB database, exchange data in binary format, and support real-time push of streaming data
 - Support running in browser environment and Node.js environment
 - Use TypedArray such as Int32Array in JavaScript to process binary data, with high performance
-- A single call supports serialized upload of up to 2GB of data, and the amount of downloaded data is not limited
+- Support serialized upload of up to 2GB of data with a single call, and the amount of downloaded data is not limited
 
 ## Installation
-```bash
-# 1. Install the latest version of Node.js and browser on the machine
 
-# 2. Create a new project (skip this step if you already have a project)
-mkdir dolphindb-example
-cd dolphindb-example
-npm init --yes
-# Open the package.json file with an editor, add the line "type": "module", below "main": "./index.js",
-# This enables the use of ECMAScript modules, and in the code behind you can use import { DDB } from 'dolphindb' to import npm packages
+1. Install the latest version of Node.js and browser.
+2. (Optional) Create a new project (skip this step if there's an existing project):
 
-# 3. Install npm packages in your project
-npm install dolphindb
-```
+    ```bash
+    mkdir dolphindb-example
+    cd dolphindb-example
+    npm init --yes
+    ```
+3. Open the package.json file with an editor, and add the line `"type": "module"`, below `"main": "./index.js"`. This enables the ECMAScript modules. In the following code, you can use `import { DDB } from 'dolphindb'` to import npm packages.
+4. Install npm packages in your project.
+
+    ```bash
+    npm install dolphindb
+    ```
 
 ## Usage
-### 0. Initialize and connect to DolphinDB
+### Initializing and connecting to DolphinDB
 #### NPM
 ```ts
 import { DDB } from 'dolphindb'
@@ -70,9 +72,9 @@ await ddb.connect()
 </script>
 ```
 
-Code completion, function prompt data:  
-https://cdn.dolphindb.cn/assets/docs.zh.json  
-https://cdn.dolphindb.cn/assets/docs.en.json
+Data for code completion and function prompts:
+- https://cdn.dolphindb.cn/assets/docs.zh.json  
+- https://cdn.dolphindb.cn/assets/docs.en.json
 
 #### DDB options
 ```ts
@@ -102,7 +104,7 @@ let ddbsecure = new DDB('wss://dolphindb.com', {
 ```
 
 
-### 1. Call Functions
+### Calling functions
 #### Example
 ```ts
 import { DdbInt } from 'dolphindb'
@@ -113,19 +115,21 @@ const result = await ddb.call('add', [new DdbInt(1), new DdbInt(1)])
 console.log(result.value === 2)  // true
 ```
 
-#### The DolphinDB JavaScript API uses DdbObj objects to represent data types in DolphinDB
-In the above example, two parameters 1 (corresponding to the int type in DolphinDB) are uploaded to the DolphinDB database as parameters of the add function, then the result of the function call is received.
+#### Using DdbObj objects to represent data types in DolphinDB
+
+In the preceding example, two parameters (`new DdbInt(1)`, corresponding to the INT type in DolphinDB) are uploaded to the DolphinDB database as parameters of the add function, then the result of the function call is received.
 
 `<DdbInt>` is used by TypeScript to infer the type of the return value
 
 - result is a `DdbInt`, which is also a `DdbObj<number>`
 - result.form is a `DdbForm.scalar`
 - result.type is a `DdbType.int`
-- result.value is native `number` in JavaScript (the value range and precision of int can be accurately represented by JavaScript number)
+- result.value is data of `number` type in JavaScript (the value range and precision of INT can be accurately represented by JavaScript `number` type)
 
 It is recommended to first understand the concepts related to TypedArray in JavaScript, you can refer to:  
-https://stackoverflow.com/questions/42416783/where-to-use-arraybuffer-vs-typed-array-in-javascript  
-https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray  
+
+- https://stackoverflow.com/questions/42416783/where-to-use-arraybuffer-vs-typed-array-in-javascript  
+- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray  
 
 
 ```ts
@@ -220,7 +224,10 @@ enum DdbType {
 }
 ```
 
-##### If there is no shortcut class, you can also specify form and type to manually create a DdbObj object
+##### Specifying form and type to manually create a DdbObj object
+
+If there is no shortcut class, you can also specify form and type to manually create a DdbObj object:
+
 ```ts
 // Created by the DdbDateTime shortcut class
 new DdbDateTime(1644573600)
@@ -257,7 +264,10 @@ const obj = new DdbSetInt(
 )
 ```
 
-##### NULL object in the form of scalar, the value corresponding to DdbObj is null in JavaScript
+##### NULL object in the form of scalar
+
+For the NULL object in the form of scalar, the value corresponding to DdbObj is null in JavaScript：
+
 ```ts
 ;(await ddb.eval('double()')).value === null
 
@@ -267,7 +277,7 @@ new DdbDouble(null)
 ```
 
 
-#### `call` Method Declaration
+#### `call` method declaration
 ```ts
 async call <T extends DdbObj> (
     /** function name */
@@ -297,7 +307,7 @@ async call <T extends DdbObj> (
 ```
 
 
-### 2. Execute Script
+### Executing the script
 #### Example
 ```ts
 const result = await ddb.eval(
@@ -314,7 +324,7 @@ const result = await ddb.eval(
 console.log(result.value === 2n)  // true
 ```
 
-In the above example, a script is uploaded through a string to the DolphinDB database for execution, and the execution result of the last statement `foo(1l, 1l)` is received.
+In the preceding example, a script is uploaded through a string to the DolphinDB database for execution, and the execution result of the last statement `foo(1l, 1l)` is received.
 
 `<DdbLong>` is used by TypeScript to infer the type of the return value
 
@@ -325,7 +335,8 @@ In the above example, a script is uploaded through a string to the DolphinDB dat
 
 As long as the WebSocket connection is not disconnected, the custom function `foo` will always exist in the subsequent session and can be reused, for example, you can use `await ddb.call<DdbInt>('foo', [new DdbInt(1), new DdbInt(1)])` to call this custom function
 
-#### `eval` Method Declaration
+#### `eval` Method declaration
+
 ```ts
 async eval <T extends DdbObj> (
     /** the script to execute */
@@ -340,7 +351,7 @@ async eval <T extends DdbObj> (
 ```
 
 
-### 3. Upload Variables
+### Uploading variables
 #### Example
 ```ts
 import { DdbVectorDouble } from 'dolphindb'
@@ -351,11 +362,11 @@ a.fill(1.0)
 ddb.upload(['bar1', 'bar2'], [new DdbVectorDouble(a), new DdbVectorDouble(a)])
 ```
 
-In the above example, two variables `bar1`, `bar2` are uploaded, and the variable value is a double vector of length 10000
+In the preceding example, two variables, `bar1` and `bar2`, are uploaded, and the variable value is a double vector of length 10000
 
-As long as the WebSocket connection is not disconnected, the variables `bar1`, `bar2` will always exist in the subsequent session and can be reused
+As long as the WebSocket connection is on, variables `bar1` and `bar2` will always exist in subsequent session and can be reused
 
-#### `upload` Method Declaration
+#### `upload` method declaration
 ```ts
 async upload (
     /** variable names */
@@ -367,7 +378,7 @@ async upload (
 ```
 
 
-### 4. Some Examples
+### Examples
 ```ts
 import { nulls, DdbInt, timestamp2str, DdbVectorSymbol, DdbTable, DdbVectorDouble } from 'dolphindb'
 
@@ -402,7 +413,8 @@ new DdbTable(
 )
 ```
 
-### 5. Streaming Data
+### Streaming data
+
 ```ts
 // New Streaming Data Connection Configuration
 let sddb = new DDB('ws://192.168.0.43:8800', {
@@ -474,6 +486,7 @@ export interface StreamingData extends StreamingParams {
 
 
 ### Development
+
 ```shell
 # Install the latest version of nodejs
 # https://nodejs.org/en/download/current/

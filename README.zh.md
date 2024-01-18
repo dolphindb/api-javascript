@@ -27,23 +27,24 @@ https://www.npmjs.com/package/dolphindb
 - 单次调用支持最大 2 GB 数据的序列化上传，下载数据量不受限制
 
 ## 安装
-```bash
-# 1. 在机器上安装最新版的 Node.js 及浏览器
 
-# 2. 创建新项目
-mkdir dolphindb-example
-cd dolphindb-example
-npm init --yes
-# 用编辑器打开 package.json 文件，在 "main": "./index.js", 下面加入一行 "type": "module",
-# 这样能够启用 ECMAScript modules，在后面代码中可以使用 import { DDB } from 'dolphindb' 导入 npm 包
-
-# 3. 在项目中安装 npm 包
-npm install dolphindb
-```
+1. 在机器上安装最新版的 Node.js 及浏览器。
+2. （可选）使用以下命令创建新项目。如果已有项目，可跳过此步。
+    ```bash
+    mkdir dolphindb-example
+    cd dolphindb-example
+    npm init --yes
+    ```
+3. 用编辑器打开 package.json 文件，在 `"main": "./index.js"` 下方加入一行 "type": "module", 这样能够启用 ECMAScript modules，在后面代码中可以使用 `import { DDB } from 'dolphindb'` 导入 npm 包。
+4. 在项目中安装 npm 包。
+    ```bash
+    npm install dolphindb
+    ```
 
 ## 用法
-### 0. 初始化并连接到 DolphinDB
+### 初始化并连接到 DolphinDB
 #### NPM
+
 ```ts
 import { DDB } from 'dolphindb'
 // 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = await import('dolphindb')
@@ -60,6 +61,7 @@ await ddb.connect()
 ```
 
 #### CDN
+
 ```html
 <script type="module">
     import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
@@ -71,11 +73,12 @@ await ddb.connect()
 ```
 
 代码补全、函数提示数据:  
-https://cdn.dolphindb.cn/assets/docs.zh.json  
-https://cdn.dolphindb.cn/assets/docs.en.json
+- https://cdn.dolphindb.cn/assets/docs.zh.json  
+- https://cdn.dolphindb.cn/assets/docs.en.json
 
 
 #### DDB 选项
+
 ```ts
 let ddb = new DDB('ws://127.0.0.1:8848', {
     // 是否在建立连接后自动登录，默认 `true`
@@ -100,7 +103,7 @@ let ddb = new DDB('ws://127.0.0.1:8848', {
 ```
 
 
-### 1. 调用函数
+### 调用函数
 #### 例子
 ```ts
 import { DdbInt } from 'dolphindb'
@@ -111,7 +114,8 @@ const result = await ddb.call('add', [new DdbInt(1), new DdbInt(1)])
 console.log(result.value === 2)  // true
 ```
 
-#### DolphinDB JavaScript API 用 DdbObj 对象来表示 DolphinDB 中的数据类型
+##### 用 DdbObj 对象来表示 DolphinDB 中的数据类型
+
 上面例子中，上传了两个参数 1 (对应 DolphinDB 中的 int 类型) 到 DolphinDB 数据库，作为 add 函数的参数，并接收函数调用的结果 result
 
 `<DdbInt>` 用于 TypeScript 推断返回值的类型
@@ -217,7 +221,10 @@ enum DdbType {
 }
 ```
 
-##### 没有快捷类的类型，也可以指定 form 和 type 手动创建 DdbObj 对象
+##### 无快捷类的类型
+
+对于没有快捷类的类型，可指定 form 和 type 手动创建 DdbObj 对象
+
 ```ts
 // 通过 DdbDateTime 快捷类创建
 new DdbDateTime(1644573600)
@@ -254,7 +261,10 @@ const obj = new DdbSetInt(
 )
 ```
 
-##### scalar 形式的 NULL 对象, 对应 DdbObj 的 value 为 JavaScript 中的 null
+#### scalar 形式的 NULL 对象
+
+scalar 形式的 NULL 对象，其对应 DdbObj 的 value 为 JavaScript 中的 null：
+
 ```ts
 ;(await ddb.eval('double()')).value === null
 
@@ -294,7 +304,7 @@ async call <T extends DdbObj> (
 ```
 
 
-### 2. 执行脚本
+### 执行脚本
 #### 例子
 ```ts
 const result = await ddb.eval(
@@ -337,7 +347,7 @@ async eval <T extends DdbObj> (
 ```
 
 
-### 3. 上传变量
+### 上传变量
 #### 例子
 ```ts
 import { DdbVectorDouble } from 'dolphindb'
@@ -364,7 +374,8 @@ async upload (
 ```
 
 
-### 4. 一些例子
+### 其他例子
+
 ```ts
 import { nulls, DdbInt, timestamp2str, DdbVectorSymbol, DdbTable, DdbVectorDouble } from 'dolphindb'
 
@@ -400,7 +411,8 @@ new DdbTable(
 ```
 
 
-### 5. 流数据
+### 流数据
+
 ```ts
 // 新建流数据连接配置
 let sddb = new DDB('ws://192.168.0.43:8800', {
@@ -471,7 +483,8 @@ export interface StreamingData extends StreamingParams {
 ```
 
 
-### 开发
+### 开发方法
+
 ```shell
 # 安装最新版的 nodejs
 # https://nodejs.org/en/download/current/

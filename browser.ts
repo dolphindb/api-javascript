@@ -1546,7 +1546,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 return [value as Float64Array]
             
             case DdbType.duration:
-                return (value as []).map(({ data, unit }) => Int32Array.of(data, unit))
+                let bufs = new Int32Array(length * 2)
+                for (let i = 0;  i < length;  i++) {
+                    bufs[2 * i] = (value as any[])[i].data
+                    bufs[2 * i + 1] = (value as any[])[i].unit
+                }
+                return [bufs]
             
             case DdbType.any: {
                 // [1, 2, 'a', 'aaa']

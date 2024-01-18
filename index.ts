@@ -1560,7 +1560,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 return [value as Float64Array]
             
             case DdbType.duration:
-                return Array.from(value as []).map(({ data, unit }) => Int32Array.of(data, unit))
+                return (value as []).map(({ data, unit }) => Int32Array.of(data, unit))
             
             case DdbType.any: {
                 // [1, 2, 'a', 'aaa']

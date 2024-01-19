@@ -21,7 +21,7 @@
     "homepage": "https://github.com/dolphindb/api-javascript",
     "repository": {
         "type": "git",
-        "url": "https://github.com/dolphindb/api-javascript.git"
+        "url": "git+https://github.com/dolphindb/api-javascript.git"
     },
     "bugs": {
         "url": "https://github.com/dolphindb/api-javascript/issues"

@@ -251,6 +251,7 @@ export const constants = [
     'TASK_GROUP_MEM_LIMIT',
     'TEST_EXEC',
     'VIEW_EXEC',
+    'VIEW_OWNER',
     'QUERY_RESULT_MEM_LIMIT',
     
     

@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version: 2.0.1102
+
+### Feature Enhancement
+
+Add constant VIEW_OWNER and highlight 
+
 ## Version: 2.0.1101
 
 ### Feature Enhancement

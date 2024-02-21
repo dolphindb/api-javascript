@@ -6,7 +6,7 @@ import { keywords } from './language.js'
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
-    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbVoid
+    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp
 } from './index.js'
 
 
@@ -354,6 +354,16 @@ export async function test_types (ddb: DDB) {
     //         'av\n'
     //     )
     // )
+    
+    // 测试 Invalid Date
+    await ddb.upload(['x'], [new DdbTimeStamp(10000000000000000n)])
+    
+    assert(
+        inspect(
+            await ddb.eval('x'), 
+            { colors: false }
+        ) === 'timestamp(Invalid Date)'
+    )
     
     console.log('测试大数据')
     let bigarr = new Float64Array(10)

@@ -21,4 +21,3 @@ export function get_duration_unit (code: number) {
     str += String.fromCharCode(code & 255)
     return str
 }
-

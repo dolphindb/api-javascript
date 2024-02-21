@@ -2100,6 +2100,30 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         return options.decimals === undefined || options.decimals === null ? default_formatter : _formatter
     })()
     
+    
+    function format_time (
+        formatter: (value: number | bigint) => string,
+        _null: number | bigint
+    ) {
+        if (value === null || value === _null)
+            return inspect(null, options)
+        
+        let str: string
+        
+        // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
+        try {
+            str = formatter(value as number | bigint)
+        } catch (error) {
+            if (error instanceof RangeError)
+                str = 'Invalid Date'
+            else
+                throw error
+        }
+        
+        return options.colors ? str.magenta : str
+    }
+    
+    
     switch (type) {
         case DdbType.bool:
             return inspect(
@@ -2152,85 +2176,31 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                     default_formatter.format(value as bigint)
         
         case DdbType.date:
-            return (value === null || value === nulls.int32) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    date2str(value as number).magenta
-                :
-                    date2str(value as number)
+            return format_time(date2str, nulls.int32)
         
         case DdbType.month:
-            return (value === null || value === nulls.int32) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    month2str(value as number).magenta
-                :
-                    month2str(value as number)
+            return format_time(month2str, nulls.int32)
         
         case DdbType.time:
-            return (value === null || value === nulls.int32) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    time2str(value as number).magenta
-                :
-                    time2str(value as number)
+            return format_time(time2str, nulls.int32)
         
         case DdbType.minute:
-            return (value === null || value === nulls.int32) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    minute2str(value as number).magenta
-                :
-                    minute2str(value as number)
+            return format_time(minute2str, nulls.int32)
         
         case DdbType.second:
-            return (value === null || value === nulls.int32) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    second2str(value as number).magenta
-                :
-                    second2str(value as number)
+            return format_time(second2str, nulls.int32)
         
         case DdbType.datetime:
-            return (value === null || value === nulls.int32) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    datetime2str(value as number).magenta
-                :
-                    datetime2str(value as number)
+            return format_time(datetime2str, nulls.int32)
         
         case DdbType.timestamp:
-            return (value === null || value === nulls.int64) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    timestamp2str(value as bigint).magenta
-                :
-                    timestamp2str(value as bigint)
+            return format_time(timestamp2str, nulls.int64)
         
         case DdbType.nanotime:
-            return (value === null || value === nulls.int64) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    nanotime2str(value as bigint).magenta
-                :
-                    nanotime2str(value as bigint)
+            return format_time(nanotime2str, nulls.int64)
         
         case DdbType.nanotimestamp:
-            return (value === null || value === nulls.int64) ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    nanotimestamp2str(value as bigint).magenta
-                :
-                    nanotimestamp2str(value as bigint)
+            return format_time(nanotimestamp2str, nulls.int64)
         
         case DdbType.float:
             return (value === null || value === nulls.float32) ?
@@ -2273,13 +2243,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             return inspect(value as string, options)
         
         case DdbType.datehour:
-            return (value === null || value === nulls.int32) ?
-                'null'
-            :
-                options.colors ?
-                    datehour2str(value as number).magenta
-                :
-                    datehour2str(value as number)
+            return format_time(datehour2str, nulls.int32)
         
         case DdbType.ipaddr:
             return options.colors ?
@@ -2991,6 +2955,7 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
         ).format(format)
 }
 
+/** _datetime_formatter.format 会在 date 为 Invalid Date 时抛出错误 */
 export function timestamp2ms (timestamp: bigint | null): number | null {
     if (timestamp === null || timestamp === nulls.int64)
         return null
@@ -3000,12 +2965,11 @@ export function timestamp2ms (timestamp: bigint | null): number | null {
 }
 
 
-/** format timestamp (bigint) to string 
+/** format timestamp (bigint) to string  
     - timestamp: bigint value
     - format?:  
         格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSS`  format string, default to `YYYY.MM.DD HH:mm:ss.SSS`  
-        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
-*/
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens */
 export function timestamp2str (timestamp: bigint | null, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     return (timestamp === null || timestamp === nulls.int64) ?
         'null'
@@ -3042,8 +3006,7 @@ export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH')
     - format?:  
         对应传入字符串的格式串，默认是 `YYYY.MM.DD HH:mm:ss.SSS`  
         The format string corresponding to the incoming string, the default is `YYYY.MM.DD HH:mm:ss.SSS`  
-        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens
-*/
+        https://day.js.org/docs/en/parse/string-format#list-of-all-available-parsing-tokens */
 export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') {
     if (!str || str === 'null')
         return nulls.int64

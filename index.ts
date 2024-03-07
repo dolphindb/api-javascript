@@ -20,7 +20,7 @@ import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128Vec
 import { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value, get_duration_unit } from './shared/utils.js'
 
-import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'
+import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType } from './shared/constants.js'
 export * from './shared/constants.js'
 
 export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
@@ -1213,7 +1213,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 case DdbForm.scalar:
                     switch (type) {
                         case DdbType.void:
-                            // Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT
                             return [Uint8Array.of(Number(value))]
                         
                         case DdbType.bool:
@@ -2117,10 +2116,10 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     switch (type) {
         case DdbType.void:
             return inspect(
-                (value === 0 || value === 1) ?
-                    'NULL'
+                value === DdbVoidType.DFLT ?
+                    'DFLT'
                 :
-                    'DFLT',
+                    'NULL',
                 options
             )
         
@@ -2466,7 +2465,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 
 /** Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT */
 export class DdbVoid extends DdbObj<undefined> {
-    constructor (value = 0) {
+    constructor (value = DdbVoidType.UNDEFINED) {
         super({
             form: DdbForm.scalar,
             type: DdbType.void,
@@ -4124,7 +4123,7 @@ export class DDB {
                 this.streaming.table,
                 (this.streaming.action ||= `api_js_${new Date().getTime()}`),
                 ... this.streaming?.filters?.column ? [
-                    new DdbVoid(2),  // offset
+                    new DdbVoid(DdbVoidType.DFLT),  // offset
                     this.streaming.filters.column // filter
                 ] : [ ]
             ],

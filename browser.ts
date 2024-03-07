@@ -16,7 +16,7 @@ import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128Vec
 import type { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value, get_duration_unit } from './shared/utils.js'
 
-import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType } from './shared/constants.js'
+import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType } from './shared/constants.js'
 export * from './shared/constants.js'
 
 export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
@@ -1199,7 +1199,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 case DdbForm.scalar:
                     switch (type) {
                         case DdbType.void:
-                            // Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT
                             return [Uint8Array.of(Number(value))]
                         
                         case DdbType.bool:
@@ -2088,8 +2087,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         return options.decimals === undefined || options.decimals === null ? default_formatter : _formatter
     })()
     
-    function get_nullstr (value = 0) {
-        const str = value === 2 ? 'DFLT' : 'NULL'
+    function get_nullstr (value = DdbVoidType.UNDEFINED) {
+        const str = value === DdbVoidType.DFLT ? 'DFLT' : 'NULL'
         return nullstr ?
             colors ? grey(str) : str
         :
@@ -2462,9 +2461,8 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 }
 
 
-/** Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT */
 export class DdbVoid extends DdbObj<undefined> {
-    constructor (value = 0) {
+    constructor (value = DdbVoidType.UNDEFINED) {
         super({
             form: DdbForm.scalar,
             type: DdbType.void,
@@ -4114,7 +4112,7 @@ export class DDB {
                 this.streaming.table,
                 (this.streaming.action ||= `api_js_${new Date().getTime()}`),
                 ... this.streaming?.filters?.column ? [
-                    new DdbVoid(2),  // offset
+                    new DdbVoid(DdbVoidType.DFLT),  // offset
                     this.streaming.filters.column // filter
                 ] : [ ]
             ],

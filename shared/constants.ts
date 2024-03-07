@@ -124,3 +124,11 @@ export enum DdbChartType {
     trend = 7,
     kline = 8,
 }
+
+
+// Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT
+export enum DdbVoidType {
+    UNDEFINED = 0,
+    NULL = 1,
+    DFLT = 2
+}

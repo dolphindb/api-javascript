@@ -152,6 +152,7 @@ export const keywords = [
 
 
 export const constants = [
+    'DFLT',
     'NULL',
     'true',
     'false',

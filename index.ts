@@ -546,10 +546,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     static parse_scalar (buf: Uint8Array, le: boolean, type: DdbType): [number, DdbScalarValue] {
         switch (type) {
-            case DdbType.void:
-                return [1, null]
-            
-            
             case DdbType.bool: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getInt8(0)
@@ -557,6 +553,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             
+            case DdbType.void:
             case DdbType.char: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const value = dv.getInt8(0)
@@ -1216,10 +1213,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 case DdbForm.scalar:
                     switch (type) {
                         case DdbType.void:
-                            // Server 实现中区分了 explicitNull
-                            // Void::serialize()
-                            //     isNothing() ? 0 : 1;
-                            return [Uint8Array.of(0)]
+                            // Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT
+                            return [Uint8Array.of(Number(value))]
                         
                         case DdbType.bool:
                             return [
@@ -1483,12 +1478,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     ): ArrayBufferView[] {
         switch (type) {
             case DdbType.void:
-                return [ ]
-            
             case DdbType.bool:
-                return [value as Int8Array]
-            
-            
             case DdbType.char:
                 return [value as Int8Array]
             
@@ -2125,6 +2115,15 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     
     
     switch (type) {
+        case DdbType.void:
+            return inspect(
+                (value === 0 || value === 1) ?
+                    'NULL'
+                :
+                    'DFLT',
+                options
+            )
+        
         case DdbType.bool:
             return inspect(
                 (value === null || value === nulls.int8) ?
@@ -2465,13 +2464,13 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 }
 
 
-
+/** Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT */
 export class DdbVoid extends DdbObj<undefined> {
-    constructor () {
+    constructor (value = 0) {
         super({
             form: DdbForm.scalar,
             type: DdbType.void,
-            value: null,
+            value,
         })
     }
 }
@@ -4125,7 +4124,7 @@ export class DDB {
                 this.streaming.table,
                 (this.streaming.action ||= `api_js_${new Date().getTime()}`),
                 ... this.streaming?.filters?.column ? [
-                    new DdbVoid(),  // offset
+                    new DdbVoid(2),  // offset
                     this.streaming.filters.column // filter
                 ] : [ ]
             ],

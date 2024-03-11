@@ -1463,6 +1463,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     ): ArrayBufferView[] {
         switch (type) {
             case DdbType.void:
+                return [ ]
+            
             case DdbType.bool:
             case DdbType.char:
                 return [value as Int8Array]
@@ -2087,8 +2089,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         return options.decimals === undefined || options.decimals === null ? default_formatter : _formatter
     })()
     
-    function get_nullstr (value = DdbVoidType.UNDEFINED) {
-        const str = value === DdbVoidType.DFLT ? 'DFLT' : 'NULL'
+    function get_nullstr () {
+        const str = value === DdbVoidType.default ? 'default' : 'null'
         return nullstr ?
             colors ? grey(str) : str
         :
@@ -2120,7 +2122,8 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     
     switch (type) {
         case DdbType.void:
-            return get_nullstr(Number(value))
+            return get_nullstr()
+        
         case DdbType.bool:
             if (value === null || value === nulls.int8)
                 return get_nullstr()
@@ -2461,8 +2464,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 }
 
 
+
 export class DdbVoid extends DdbObj<undefined> {
-    constructor (value = DdbVoidType.UNDEFINED) {
+    constructor (value = DdbVoidType.undefined) {
         super({
             form: DdbForm.scalar,
             type: DdbType.void,
@@ -4112,7 +4116,7 @@ export class DDB {
                 this.streaming.table,
                 (this.streaming.action ||= `api_js_${new Date().getTime()}`),
                 ... this.streaming?.filters?.column ? [
-                    new DdbVoid(DdbVoidType.DFLT),  // offset
+                    new DdbVoid(),  // offset
                     this.streaming.filters.column // filter
                 ] : [ ]
             ],

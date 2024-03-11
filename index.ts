@@ -1477,6 +1477,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     ): ArrayBufferView[] {
         switch (type) {
             case DdbType.void:
+                return [ ]
+            
             case DdbType.bool:
             case DdbType.char:
                 return [value as Int8Array]
@@ -2114,14 +2116,11 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     
     
     switch (type) {
-        case DdbType.void:
-            return inspect(
-                value === DdbVoidType.DFLT ?
-                    'DFLT'
-                :
-                    'NULL',
-                options
-            )
+        case DdbType.void: {
+            const str = value === DdbVoidType.default ? 'default' : 'null'
+            
+            return options.colors ? str.grey : str
+        }
         
         case DdbType.bool:
             return inspect(
@@ -2463,9 +2462,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 }
 
 
-/** Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT */
+
 export class DdbVoid extends DdbObj<undefined> {
-    constructor (value = DdbVoidType.UNDEFINED) {
+    constructor (value = DdbVoidType.undefined) {
         super({
             form: DdbForm.scalar,
             type: DdbType.void,
@@ -4123,7 +4122,7 @@ export class DDB {
                 this.streaming.table,
                 (this.streaming.action ||= `api_js_${new Date().getTime()}`),
                 ... this.streaming?.filters?.column ? [
-                    new DdbVoid(DdbVoidType.DFLT),  // offset
+                    new DdbVoid(),  // offset
                     this.streaming.filters.column // filter
                 ] : [ ]
             ],

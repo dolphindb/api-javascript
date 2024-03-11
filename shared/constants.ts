@@ -126,9 +126,11 @@ export enum DdbChartType {
 }
 
 
-// Server 实现中区分了 0: NULL(undefined), 1: NULL(null), 2: DFLT
+// server 实现中区分了 0: NULL (nothing), 1: NULL (null), 2: DFLT (default)
+// Void::serialize()
+//     (isNothing() ? 0 : 1) + (isDefault_ ? 2 : 0);
 export enum DdbVoidType {
-    UNDEFINED = 0,
-    NULL = 1,
-    DFLT = 2
+    undefined = 0,
+    null = 1,
+    default = 2
 }

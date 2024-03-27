@@ -26,6 +26,8 @@ const sql_keywords = [
     'drop table',
     'drop database',
     
+    'use catalog',
+    
     'delete',
     
     'transaction',

@@ -11,6 +11,5 @@
         "source.organizeImports": false
     },
     "git.pruneOnFetch": true,
-    "git-graph.dialog.fetchRemote.prune": true,
-    "eslint.experimental.useFlatConfig": true
+    "git-graph.dialog.fetchRemote.prune": true
 }

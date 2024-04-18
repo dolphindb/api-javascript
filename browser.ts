@@ -308,6 +308,15 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 for (let i = 0;  i < cols;  i++) {
                     const type = buf_data[i_start] as DdbType
                     
+                    if (type === DdbType.compress)
+                        throw new Error(t(
+                            '{{form}}<{{type}}> 暂时不支持解析', 
+                            { 
+                                type: String(DdbType[type] || type),
+                                form: String(DdbForm[form]) 
+                            }
+                        ))
+                    
                     let col = this.parse_vector(
                         buf_data.subarray(i_start + 2),
                         le,
@@ -1181,8 +1190,17 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 return [8 * length, durations]
             }
             
+            case DdbType.compress:
+                return [length,buf]
+                
             default:
-                throw new Error(t('vector<{{type}}> 暂时不支持解析', { type: String(DdbType[type] || type) }))
+                throw new Error(t(
+                    '{{form}}<{{type}}> 暂时不支持解析', 
+                    { 
+                        type: String(DdbType[type] || type),
+                        form: String(DdbForm[DdbForm.vector]) 
+                    }
+                ))
         }
     }
     

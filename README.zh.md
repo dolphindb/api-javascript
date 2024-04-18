@@ -26,58 +26,81 @@ https://www.npmjs.com/package/dolphindb
 - 使用了 JavaScript 中的 Int32Array 等 TypedArray 处理二进制数据，性能较高
 - 单次调用支持最大 2 GB 数据的序列化上传，下载数据量不受限制
 
-## 安装
+## 用法
+### 初始化并连接到 DolphinDB
 
-1. 在机器上安装最新版的 Node.js 及浏览器。
-2. （可选）使用以下命令创建新项目。如果已有项目，可跳过此步。
+#### 方法一：在浏览器中直接使用构建好的 CDN 版本
+
+保存以下内容到 `example.html` 文件，用浏览器打开即可运行，F12 打开调试控制台可以看到日志
+
+```html
+<!doctype html>
+<html>
+    <head>
+        <title>DolphinDB</title>
+        <meta charset='utf-8' />
+    </head>
+    <body>
+        <script type="module">
+            import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
+            
+            let ddb = new DDB('ws://127.0.0.1:8848')
+            
+            await ddb.connect()
+            
+            console.log(
+                await ddb.eval('1 + 1')
+            )
+        </script>
+    </body>
+</html>
+```
+
+#### 方法二：在项目中安装 npm 包并导入
+
+##### 1. 安装
+
+1.1. 在机器上安装最新版的 Node.js 及浏览器。
+    - windows: https://nodejs.org/en/download/current/
+    - linux: https://github.com/nodesource/distributions?tab=readme-ov-file#debian-and-ubuntu-based-distributions
+1.2. （可选）使用以下命令创建新项目。如果已有项目，可跳过此步。
     ```bash
     mkdir dolphindb-example
     cd dolphindb-example
     npm init --yes
     ```
-3. 用编辑器打开 package.json 文件，在 `"main": "./index.js"` 下方加入一行 "type": "module", 这样能够启用 ECMAScript modules，在后面代码中可以使用 `import { DDB } from 'dolphindb'` 导入 npm 包。
-4. 在项目中安装 npm 包。
+1.3. 用编辑器打开 package.json 文件，在 `"main": "./index.js"` 下方加入一行 "type": "module", 这样能够启用 ECMAScript modules，在后面代码中可以使用 `import { DDB } from 'dolphindb'` 导入 npm 包。
+1.4. 在项目中安装 npm 包。
     ```bash
     npm install dolphindb
     ```
 
-## 用法
-### 初始化并连接到 DolphinDB
-#### NPM
+##### 2. 使用
 
 ```ts
-import { DDB } from 'dolphindb'
-// 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = await import('dolphindb')
-// 在浏览器中使用: import { DDB } from 'dolphindb/browser.js'
+// 2.1 在浏览器环境中用下面的方法导入
+import { DDB } from 'dolphindb/browser.js'
 
-// 使用 WebSocket URL 初始化连接到 DolphinDB 的实例（不建立实际的网络连接）
+// 2.1 在 Node.js 环境中用下面的方法导入
+// import { DDB } from 'dolphindb'
+// 已有的使用 CommonJS 模块的项目的导入方法为 const { DDB } = await import('dolphindb')
+
+// 2.2 使用 WebSocket URL 初始化连接到 DolphinDB 的实例（不建立实际的网络连接）
 let ddb = new DDB('ws://127.0.0.1:8848')
 
 // 使用 HTTPS 加密
 // let ddb = new DDB('wss://dolphindb.com')
 
-// 建立到 DolphinDB 的连接（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
+// 2.3 建立到 DolphinDB 的连接（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
 await ddb.connect()
 ```
 
-#### CDN
-
-```html
-<script type="module">
-    import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
-    
-    let ddb = new DDB('ws://127.0.0.1:8848')
-    
-    await ddb.connect()
-</script>
-```
-
-代码补全、函数提示数据:  
+#### 代码补全、函数提示数据
 - https://cdn.dolphindb.cn/assets/docs.zh.json  
 - https://cdn.dolphindb.cn/assets/docs.en.json
 
 
-#### DDB 选项
+#### DDB 连接选项
 
 ```ts
 let ddb = new DDB('ws://127.0.0.1:8848', {
@@ -486,8 +509,7 @@ export interface StreamingData extends StreamingParams {
 ### 开发方法
 
 ```shell
-# 安装最新版的 nodejs
-# https://nodejs.org/en/download/current/
+# 安装最新版的 nodejs (见上文)
 
 # 安装 pnpm 包管理器
 corepack enable

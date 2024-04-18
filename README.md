@@ -26,57 +26,81 @@ https://www.npmjs.com/package/dolphindb
 - Use TypedArray such as Int32Array in JavaScript to process binary data, with high performance
 - Support serialized upload of up to 2GB of data with a single call, and the amount of downloaded data is not limited
 
-## Installation
-
-1. Install the latest version of Node.js and browser.
-2. (Optional) Create a new project (skip this step if there's an existing project):
-
-    ```bash
-    mkdir dolphindb-example
-    cd dolphindb-example
-    npm init --yes
-    ```
-3. Open the package.json file with an editor, and add the line `"type": "module"`, below `"main": "./index.js"`. This enables the ECMAScript modules. In the following code, you can use `import { DDB } from 'dolphindb'` to import npm packages.
-4. Install npm packages in your project.
-
-    ```bash
-    npm install dolphindb
-    ```
-
 ## Usage
-### Initializing and connecting to DolphinDB
-#### NPM
-```ts
-import { DDB } from 'dolphindb'
-// The import method for existing projects using CommonJS modules is const { DDB } = await import('dolphindb')
-// Use in browser: import { DDB } from 'dolphindb/browser.js'
+### Initialize and connect to DolphinDB
 
-// Initially connect to an instance of DolphinDB using the WebSocket URL (without establishing an actual network connection)
+#### Method 1: Use the built CDN version directly in the browser
+
+Save the following content to the `example.html` file, open it with a browser and run it. F12 opens the debugging console to see the log.
+
+```html
+<!doctype html>
+<html>
+     <head>
+         <title>DolphinDB</title>
+         <meta charset='utf-8' />
+     </head>
+     <body>
+         <script type="module">
+             import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
+            
+             let ddb = new DDB('ws://127.0.0.1:8848')
+            
+             await ddb.connect()
+            
+             console.log(
+                 await ddb.eval('1 + 1')
+             )
+         </script>
+     </body>
+</html>
+```
+
+#### Method 2: Install the npm package in the project and import it
+
+##### 1. Installation
+
+1.1. Install the latest version of Node.js and browser on the machine.
+     - windows: https://nodejs.org/en/download/current/
+     - linux: https://github.com/nodesource/distributions?tab=readme-ov-file#debian-and-ubuntu-based-distributions
+1.2. (Optional) Create a new project using the following command. If you already have a project, you can skip this step.
+     ```bash
+     mkdir dolphindb-example
+     cd dolphindb-example
+     npm init --yes
+     ```
+1.3. Open the package.json file with an editor and add a line "type": "module" below `"main": "./index.js"`. This will enable ECMAScript modules. You can use `import { DDB } from 'dolphindb'` to import npm package.
+1.4. Install the npm package in the project.
+     ```bash
+     npm install dolphindb
+     ```
+
+##### 2. Use
+
+```ts
+// 2.1 Use the following method to import in the browser environment
+import { DDB } from 'dolphindb/browser.js'
+
+// 2.1 Use the following method to import in Node.js environment
+// import { DDB } from 'dolphindb'
+// The import method for existing projects using CommonJS modules is const { DDB } = await import('dolphindb')
+
+// 2.2 Use the WebSocket URL to initialize the connection to the DolphinDB instance (without establishing an actual network connection)
 let ddb = new DDB('ws://127.0.0.1:8848')
 
-// Encrypt with HTTPS
+// Use HTTPS encryption
 // let ddb = new DDB('wss://dolphindb.com')
 
-// Establish a connection to DolphinDB (requires DolphinDB database version at least 1.30.16 or 2.00.4)
+// 2.3 Establish a connection to DolphinDB (requires DolphinDB database version to be no less than 1.30.16 or 2.00.4)
 await ddb.connect()
 ```
 
-#### CDN
-```html
-<script type="module">
-    import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
-    
-    let ddb = new DDB('ws://127.0.0.1:8848')
-    
-    await ddb.connect()
-</script>
-```
-
-Data for code completion and function prompts:
-- https://cdn.dolphindb.cn/assets/docs.zh.json  
+#### Code completion, function prompt data
+- https://cdn.dolphindb.cn/assets/docs.zh.json
 - https://cdn.dolphindb.cn/assets/docs.en.json
 
-#### DDB options
+
+#### DDB Connection Options
 ```ts
 let ddb = new DDB('ws://127.0.0.1:8848')
 

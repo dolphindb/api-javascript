@@ -134,3 +134,6 @@ export enum DdbVoidType {
     null = 1,
     default = 2
 }
+
+
+export const dictables = new Set([DdbType.any, DdbType.string, DdbType.double, DdbType.float, DdbType.int, DdbType.long])

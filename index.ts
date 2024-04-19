@@ -20,7 +20,7 @@ import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128Vec
 import { BigInt128Array } from './shared/bigint-128-array.js'
 import { is_decimal_type, is_decimal_null_value, get_duration_unit } from './shared/utils.js'
 
-import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType } from './shared/constants.js'
+import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, dictables } from './shared/constants.js'
 export * from './shared/constants.js'
 
 export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
@@ -2009,8 +2009,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     /** 将 dict<string, any> 自动转换为 js object (Record<string, any>)  Automatically convert dict<string, any> to js object (Record<string, any>)
         - options?:
-            - strip?: `false` 是否将 DdbObj 中的 value 直接提取、剥离出来作为 js object 的 value (丢弃 DdbObj 中的其余信息，只保留 value)  
-                Whether to directly extract and strip the value in DdbObj as the value of js object (discard the rest of the information in DdbObj, only keep the value)
+            - strip?: `false` 是否将 dict<string, any> 中的 value 直接提取、剥离出来作为 js object 的 value (丢弃 DdbObj 中的其余信息，只保留 value)  
             - deep?: `false` 是否递归转换  
                 Whether to convert recursively
     */
@@ -2028,17 +2027,22 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         const [{ value: keys, type: key_type }, { value: values, type: value_type }] = this.value as DdbDictValue
         
-        assert(key_type === DdbType.string && value_type === DdbType.any, t('当前只支持自动转换 dict<string, any> 为 js object'))
+        assert(key_type === DdbType.string && dictables.has(value_type), t('当前只支持自动转换 dict<string, any | ...dictables> 为 js object'))
         assert(!(deep && !strip), t('deep = true 时必须设置 strip = true'))
         
         let obj = { }
         
         for (let i = 0;  i < this.rows;  i++) {
-            let value: DdbObj = values[i]
-            if (deep && value.form === DdbForm.dict)
-                obj[keys[i]] = value.to_dict({ strip, deep })
-            else
-                obj[keys[i]] = strip ? value.value : value
+            const key = keys[i]
+            
+            if (value_type === DdbType.any) {
+                let value: DdbObj = values[i]
+                if (deep && value.form === DdbForm.dict)
+                    obj[key] = value.to_dict({ strip, deep })
+                else
+                    obj[key] = strip ? value.value : value
+            } else
+                obj[key] = values[i]
         }
         
         return obj as T

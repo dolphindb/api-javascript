@@ -1544,6 +1544,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.uuid:
             case DdbType.ipaddr:
             case DdbType.int128:
+            case DdbType.compress:
                 return [value as Uint8Array]
             
             

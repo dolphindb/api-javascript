@@ -327,7 +327,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             '{{form}}<{{type}}> 暂时不支持解析', 
                             { 
                                 type: String(DdbType[type] || type),
-                                form: String(DdbForm[form]) 
+                                form: 'table' 
                             }
                         ))
                     
@@ -1205,14 +1205,22 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             case DdbType.compress:
-                return [length,buf]
+                return [
+                    length,
+                    new Uint8Array(
+                        buf.buffer.slice(
+                            buf.byteOffset,
+                            buf.byteOffset + length
+                        )
+                    )
+                ]
                 
             default:
                 throw new Error(t(
                     '{{form}}<{{type}}> 暂时不支持解析', 
                     { 
                         type: String(DdbType[type] || type),
-                        form: String(DdbForm[DdbForm.vector]) 
+                        form: 'vector' 
                     }
                 ))
         }
@@ -1550,6 +1558,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.uuid:
             case DdbType.ipaddr:
             case DdbType.int128:
+            case DdbType.compress:
                 return [value as Uint8Array]
             
             

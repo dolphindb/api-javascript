@@ -11,8 +11,8 @@
     "this.form 必须是 DdbForm.dict, 否则不能调用 to_dict 转换为 js object": {
         "en": "this.form must be DdbForm.dict, otherwise to_dict cannot be called to convert to js object"
     },
-    "当前只支持自动转换 dict<string, any> 为 js object": {
-        "en": "currently api only supports automatic conversion of dict<string, any> to js object"
+    "当前只支持自动转换 dict<string, any | ...dictables> 为 js object": {
+        "en": "currently api only supports automatic conversion of dict<string, any | ...dictables> to js object"
     },
     "deep = true 时必须设置 strip = true": {
         "en": "strip = true must be set when deep = true"

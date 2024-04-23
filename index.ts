@@ -1844,7 +1844,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         }
                         
                         default: {
-                            const limit = this.type===DdbType.compress ? 10 : 50 as const
+                            const limit = this.type === DdbType.compress ? 10 : 50 as const
                             
                             let items = new Array(
                                 Math.min(limit, (this.value as any[]).length)

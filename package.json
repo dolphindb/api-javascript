@@ -33,12 +33,12 @@
     ],
     "devDependencies": {
         "@types/node": "^20.12.7",
-        "eslint": "^9.0.0",
+        "eslint": "^9.1.1",
         "typescript": "^5.4.5"
     },
     "dependencies": {
         "dayjs": "^1.11.10",
-        "ipaddr.js": "^2.1.0",
+        "ipaddr.js": "^2.2.0",
         "tslib": "^2.6.2",
         "xshell": "^1.0.90"
     }

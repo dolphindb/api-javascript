@@ -2078,6 +2078,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
 
 
 export interface InspectOptions extends UtilInspectOptions {
+    /** `util.inspect.defaultOptions.colors` */
     colors?: boolean
     
     /** `null` decimal places 小数位数 */

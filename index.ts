@@ -325,10 +325,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     if (type === DdbType.compress)
                         throw new Error(t(
                             '{{form}}<{{type}}> 暂时不支持解析', 
-                            { 
-                                type: String(DdbType[type] || type),
-                                form: 'table' 
-                            }
+                            { form: 'table', type: 'compress' }
                         ))
                     
                     let col = this.parse_vector(
@@ -1214,13 +1211,13 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         )
                     )
                 ]
-                
+            
             default:
                 throw new Error(t(
                     '{{form}}<{{type}}> 暂时不支持解析', 
-                    { 
-                        type: String(DdbType[type] || type),
-                        form: 'vector' 
+                    {
+                        form: 'vector',
+                        type: String(DdbType[type] || type)
                     }
                 ))
         }

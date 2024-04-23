@@ -1960,7 +1960,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     case DdbType.char:
                         row[name] = values[i] === nulls.int8 ? null : values[i]
                         break
-        
+                    
                     case DdbType.short:
                         row[name] = values[i] === nulls.int16 ? null : values[i]
                         break    
@@ -1975,14 +1975,14 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     case DdbType.datehour:
                         row[name] = values[i] === nulls.int32 ? null : values[i]
                         break
-            
+                    
                     case DdbType.long:
                     case DdbType.timestamp:
                     case DdbType.nanotime:
                     case DdbType.nanotimestamp:
                         row[name] = values[i] === nulls.int64 ? null : values[i]
                         break
-                        
+                    
                     case DdbType.int128:
                         row[name] = values[i] === nulls.int128 ? null : values[i]
                         break
@@ -2083,7 +2083,7 @@ export interface InspectOptions {
 }
 
 
-/** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个  Integer must use this number formatter, InspectOptions.decimals also use this if not passed */
+/** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个 */
 let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
 
@@ -2091,13 +2091,13 @@ let _decimals = 20
 
 let _grouping = true
 
-/** 缓存，为了优化性能，通常 options.decimals 都是不变的  Cache, in order to optimize performance, usually options.decimals are unchanged */
+/** 缓存，为了优化性能，通常 options.decimals 都是不变的 */
 let _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
 /** 用来处理时差  To deal with jet lag */
 let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'UTC', hour12: false })
 
-/** 根据 DdbType 格式化单个元素 (value) 为字符串  Formats a single element (value) as a string according to DdbType, null returns a 'null' string */
+/** 根据 DdbType 格式化单个元素 (value) 为字符串 */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
     const { nullstr = false, colors = false, quote = false, grouping = true } = options
     
@@ -3185,8 +3185,7 @@ export function ipaddr2str (buffer: Uint8Array, le = true, ipv6?: boolean) {
     if (le)
         buf = buffer.slice().reverse()
     
-    const i_non_zero = buf.findIndex(x => 
-        x as any)
+    const i_non_zero = buf.findIndex(x => x as any)
     
     if (
         ipv6 || 
@@ -3887,7 +3886,7 @@ export class DDB {
             })
             
             if (this.verbose)
-                console.log(result.toString() + rpc_id)
+                console.log(result.toString({ quote: true, nullstr: true }) + rpc_id)
             
             return result
         })

@@ -1630,18 +1630,14 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     [inspect.custom] (depth: number, _options: InspectOptions, _inspect) {
-        const options = { nullstr: true, quote: true, ..._options }
+        const options = { nullstr: true, ..._options }
         
         const type = this.inspect_type()
         
         const data = (() => {
             switch (this.form) {
                 case DdbForm.scalar:
-                    // 如果类型为 string, 则不进行格式化处理
-                    if (this.type === DdbType.string)
-                        return this.value
-                    else
-                        return format(this.type, this.value, this.le, options)
+                    return format(this.type, this.value, this.le, options)
                 
                 case DdbForm.vector:
                 case DdbForm.pair:

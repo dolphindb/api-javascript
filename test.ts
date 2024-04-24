@@ -36,14 +36,14 @@ const ddb_options = fexists('T:/TEMP/', { print: false }) ? { proxy: MyProxy.wor
     const tests = [
         test_repl,
         
-        // test_keywords,
-        // test_types,
-        // test_reconnection,
-        // test_connection_error,
-        // test_print,
-        // test_time,
-        // test_streaming,
-        // test_error,
+        test_keywords,
+        test_types,
+        test_reconnection,
+        test_connection_error,
+        test_print,
+        test_time,
+        test_streaming,
+        test_error,
     ]
     
     for (const fn_test of tests)
@@ -453,5 +453,36 @@ export async function test_types (ddb: DDB) {
     await ddb.upload(['c'], [
         await ddb.eval<DdbDictObj>('dict(["a", "b", "c"], [compress([1, 2, 3]), 123, "bbb"])')
     ])
+}
+
+
+async function test_from_stdjson (ddb: DDB) {
+    console.log('测试 fromStdJson')
+    
+    console.log(
+        await ddb.call('fromStdJson', [JSON.stringify({
+            a: 1234,
+            b: 'aaa',
+            c: {
+                e: 1234,
+                f: 4321
+            },
+            f: 'blabla\n中文\u4e2d\u6587'
+        })])
+    )
+    
+    console.log(
+        await ddb.call('fromStdJson', [JSON.stringify(1234)])
+    )
+    
+    console.log(
+        await ddb.call('fromStdJson', [
+            JSON.stringify({
+                data: {
+                    code: 'select * from kline where secid == "230012"'
+                }
+            })
+        ])
+    )
 }
 

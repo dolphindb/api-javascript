@@ -1621,11 +1621,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         const data = (() => {
             switch (this.form) {
                 case DdbForm.scalar:
-                    // 如果类型为 string, 则不进行格式化处理
-                    if (this.type === DdbType.string)
-                        return this.value
-                    else
-                        return format(this.type, this.value, this.le, options)
+                    return format(this.type, this.value, this.le, options)
                 
                 case DdbForm.vector:
                 case DdbForm.pair:
@@ -2075,7 +2071,7 @@ export interface InspectOptions {
     /** `false` 决定 null 值如何返回. nullstr ? 'null' : '' */
     nullstr?: boolean
     
-    /** `false` 决定 string, symbol, char 类型是否加引号 */
+    /** `在 format 中默认为 false，在 toString 中默认为 true` 决定 string, symbol, char 类型是否加引号 */
     quote?: boolean
     
     /** `true` 决定格式化后的数据是否有千分位 */
@@ -3886,7 +3882,7 @@ export class DDB {
             })
             
             if (this.verbose)
-                console.log(result.toString({ quote: true, nullstr: true }) + rpc_id)
+                console.log(result.toString() + rpc_id)
             
             return result
         })

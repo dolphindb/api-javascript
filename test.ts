@@ -1,6 +1,6 @@
 import { deepEqual } from 'assert/strict'
 
-import { assert, defer, inspect, set_inspect_options, WebSocketConnectionError } from 'xshell'
+import { assert, defer, fexists, inspect, MyProxy, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.js'
 import {
@@ -15,7 +15,7 @@ set_inspect_options()
 
 // linux
 // export const url = 'ws://115.239.209.123:8892' as const
-export const url = 'ws://192.168.0.200:20023' as const
+const url = 'ws://192.168.0.200:20023' as const
 // export const url = 'ws://192.168.0.29:9002' as const
 
 // windows
@@ -24,11 +24,13 @@ export const url = 'ws://192.168.0.200:20023' as const
 // local 8848
 // export const url = 'ws://127.0.0.1:8848' as const
 
+const ddb_options = fexists('T:/TEMP/', { print: false }) ? { proxy: MyProxy.work } : { }
+
 
 ;(async function test () {
     console.log('--- 测试开始 ---'.green)
     
-    let ddb = new DDB(url)
+    let ddb = new DDB(url, ddb_options)
     
     const tests = [
         test_repl,
@@ -88,7 +90,7 @@ async function test_repl (ddb: DDB) {
 
 
 async function test_reconnection (ddb: DDB) {
-    let _ddb = new DDB(url)
+    let _ddb = new DDB(url, ddb_options)
     
     await _ddb.connect()
     _ddb.disconnect()
@@ -106,7 +108,7 @@ async function test_reconnection (ddb: DDB) {
 
 
 async function test_connection_error (ddb: DDB) {
-    let _ddb = new DDB(url)
+    let _ddb = new DDB(url, ddb_options)
     
     await _ddb.connect()
     _ddb.disconnect()
@@ -147,7 +149,7 @@ async function test_error (ddb: DDB) {
     assert(database_error.stack.includes('test_error'))
     
     
-    let ddbtest = new DDB(url)
+    let ddbtest = new DDB(url, ddb_options)
     let connection_error: DdbConnectionError
     try {
         await ddbtest.connect()
@@ -186,7 +188,7 @@ async function test_print (ddb: DDB) {
     
     console.log('测试 verbose 输出')
     
-    let vddb = new DDB(url, { verbose: true })
+    let vddb = new DDB(url, { ...ddb_options, verbose: true })
     
     await vddb.call('typestr', [
         new DdbVectorAny([
@@ -227,6 +229,7 @@ async function test_streaming (ddb: DDB) {
     let promise = defer<void>()
     
     let sddb = new DDB(url, {
+        ...ddb_options,
         streaming: {
             table: 'prices',
             handler ({ rows, error, colnames, data, time, id, window, schema }) {

@@ -3347,6 +3347,7 @@ export interface DdbOptions {
     sql?: SqlStandard
     streaming?: StreamingParams
     verbose?: boolean
+    proxy?: string
 }
 
 
@@ -3361,8 +3362,7 @@ export class DDB {
     
     
     /** DolphinDB WebSocket URL
-        e.g. `ws://127.0.0.1:8848/`, `wss://dolphindb.com`
-    */
+        e.g. `ws://127.0.0.1:8848/`, `wss://dolphindb.com` */
     url: string
     
     /** 为所有 websocket 操作加锁，包括设置 this.on_message, this.on_error, websocket.send */
@@ -3399,6 +3399,9 @@ export class DDB {
     
     /** 是否打印每个 rpc 的信息用于调试 */
     verbose = false
+    
+    /** websocket 连接所使用的 http 代理 */
+    proxy: string
     
     
     // --- 内部选项, 状态
@@ -3479,6 +3482,9 @@ export class DDB {
         
         if (options.streaming !== undefined)
             this.streaming = options.streaming
+        
+        if (options.proxy)
+            this.proxy = options.proxy
     }
     
     
@@ -3530,6 +3536,8 @@ export class DDB {
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
                 this.lwebsocket.resource = await connect_websocket(url, {
                     protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
+                    
+                    proxy: this.proxy,
                     
                     on_message: (buffer: ArrayBuffer, websocket) => {
                         this.on_message(new Uint8Array(buffer), websocket)

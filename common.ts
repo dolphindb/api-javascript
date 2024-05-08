@@ -1,3 +1,6 @@
+import type { BigInt128Array } from './bigint128array.js'
+
+
 export const nulls = {
     int8: -0x80,  // -128
     int16: -0x80_00,  // -32768
@@ -136,4 +139,88 @@ export enum DdbVoidType {
 }
 
 
+export interface DdbFunctionDefValue {
+    type: DdbFunctionType
+    name: string
+}
+
+export interface DdbDurationValue {
+    unit: DdbDurationUnit
+    
+    /** int32 */
+    data: number
+}
+
+
+export interface DdbDecimal32Value {
+    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
+    scale: number
+    
+    /** int32, 空值为 null  ddb null is js null */
+    data: number | null
+}
+
+export interface DdbDecimal64Value {
+    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
+    scale: number
+    
+    /** int64, 空值为 null  empty value is null */
+    data: bigint | null
+}
+
+export interface DdbDecimal32VectorValue {
+    scale: number
+    
+    data: Int32Array
+}
+
+export interface DdbDecimal64VectorValue {
+    scale: number
+    
+    data: BigInt64Array
+}
+
+export type DdbDurationVectorValue = DdbDurationValue[]
+
+export interface DdbSymbolExtendedValue {
+    base_id: number
+    base: string[]
+    data: Uint32Array
+}
+
+export interface DdbArrayVectorBlock {
+    unit: 1 | 2 | 4
+    rows: number
+    lengths: Uint8Array | Uint16Array | Uint32Array
+    data: Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array
+}
+
+export type DdbArrayVectorValue = DdbArrayVectorBlock[] & /* decimal 数据会有这个属性 */ { scale?: number }
+
+
+
 export const dictables = new Set([DdbType.any, DdbType.string, DdbType.double, DdbType.float, DdbType.int, DdbType.long])
+
+
+export function is_decimal_type (type: DdbType) {
+    return type === DdbType.decimal32 || type === DdbType.decimal64 || type === DdbType.decimal128
+}
+
+
+export function is_decimal_null_value (type: DdbType, value: number | bigint) {
+    return (
+        (value === nulls.int128 && type === DdbType.decimal128) ||
+        (value === nulls.int64 && type === DdbType.decimal64) ||
+        (value === nulls.int32 && type === DdbType.decimal32)
+    )
+}
+
+export function get_duration_unit (code: number) {
+    let str = String.fromCharCode((code >> 24) & 255)
+    str += String.fromCharCode((code >> 16) & 255)
+    str += String.fromCharCode((code >> 8) & 255)
+    str += String.fromCharCode(code & 255)
+    return str
+}
+
+

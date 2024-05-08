@@ -512,8 +512,7 @@ export interface StreamingData extends StreamingParams {
 # 安装最新版的 nodejs (见上文)
 
 # 安装 pnpm 包管理器
-corepack enable
-corepack prepare pnpm@latest --activate
+npm install -g pnpm
 
 git clone https://github.com/dolphindb/api-javascript.git
 

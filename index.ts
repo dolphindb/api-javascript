@@ -1,9 +1,4 @@
-// import { Socket, createServer as create_socket_server, Server as SocketServer } from 'net'
-// import { TLSSocket, connect as tls_connect } from 'tls'
-// import type { Duplex } from 'stream'
 import type { InspectOptions as UtilInspectOptions } from 'util'
-
-// import { table, getBorderCharacters, type TableUserConfig } from 'table'
 
 import dayjs from 'dayjs'
 import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
@@ -16,82 +11,26 @@ import { concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock
 
 import { t } from './i18n/index.js'
 
-import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './data-types/decimal-128.js'
-import { BigInt128Array } from './shared/bigint-128-array.js'
-import { is_decimal_type, is_decimal_null_value, get_duration_unit } from './shared/utils.js'
+import {
+    nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, dictables, 
+    is_decimal_type, is_decimal_null_value, get_duration_unit,
+    type DdbArrayVectorBlock, type DdbArrayVectorValue, type DdbDecimal32Value,
+    type DdbDecimal32VectorValue, type DdbDecimal64Value, type DdbDecimal64VectorValue,
+    type DdbDurationValue, type DdbDurationVectorValue, type DdbFunctionDefValue,
+    type DdbSymbolExtendedValue
+} from './common.js'
 
-import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, dictables } from './shared/constants.js'
-export * from './shared/constants.js'
+import { BigInt128Array, DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './bigint128array.js'
 
-export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
-
-
-// Simulate other TypedArray behavior in nodejs
-BigInt128Array.prototype[inspect.custom] = function () {
-    const values: bigint[] = [ ]
-    for (const value of this) 
-        values.push(value)
-    const value_str = values.length ? ` ${values.map(v => String(v) + 'n').join(', ')} ` : ''
-    return `${this[Symbol.toStringTag]}(${this.length}) [${value_str}]`
+export {
+    nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, 
+    is_decimal_type, is_decimal_null_value, get_duration_unit,
+    type DdbArrayVectorBlock, type DdbArrayVectorValue, type DdbDecimal32Value,
+    type DdbDecimal32VectorValue, type DdbDecimal64Value, type DdbDecimal64VectorValue,
+    type DdbDurationValue, type DdbDurationVectorValue, type DdbFunctionDefValue,
+    type DdbSymbolExtendedValue
 }
 
-export interface DdbFunctionDefValue {
-    type: DdbFunctionType
-    name: string
-}
-
-export interface DdbDurationValue {
-    unit: DdbDurationUnit
-    
-    /** int32 */
-    data: number
-}
-
-
-export interface DdbDecimal32Value {
-    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
-    scale: number
-    
-    /** int32, 空值为 null  ddb null is js null */
-    data: number | null
-}
-
-export interface DdbDecimal64Value {
-    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
-    scale: number
-    
-    /** int64, 空值为 null  empty value is null */
-    data: bigint | null
-}
-
-export interface DdbDecimal32VectorValue {
-    scale: number
-    
-    data: Int32Array
-}
-
-export interface DdbDecimal64VectorValue {
-    scale: number
-    
-    data: BigInt64Array
-}
-
-export type DdbDurationVectorValue = DdbDurationValue[]
-
-export interface DdbSymbolExtendedValue {
-    base_id: number
-    base: string[]
-    data: Uint32Array
-}
-
-export interface DdbArrayVectorBlock {
-    unit: 1 | 2 | 4
-    rows: number
-    lengths: Uint8Array | Uint16Array | Uint32Array
-    data: Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array
-}
-
-export type DdbArrayVectorValue = DdbArrayVectorBlock[] & /* decimal 数据会有这个属性 */ { scale?: number }
 
 export interface DdbMatrixValue {
     rows: DdbVectorObj
@@ -2327,6 +2266,16 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         default:
             return inspect(value, options)
     }
+}
+
+
+// Simulate other TypedArray behavior in nodejs
+BigInt128Array.prototype[inspect.custom] = function () {
+    const values: bigint[] = [ ]
+    for (const value of this) 
+        values.push(value)
+    const value_str = values.length ? ` ${values.map(v => String(v) + 'n').join(', ')} ` : ''
+    return `${this[Symbol.toStringTag]}(${this.length}) [${value_str}]`
 }
 
 

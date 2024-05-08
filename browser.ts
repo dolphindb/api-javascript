@@ -12,72 +12,26 @@ import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.bro
 
 import { t } from './i18n/index.js'
 
-import { DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './data-types/decimal-128.js'
-import type { BigInt128Array } from './shared/bigint-128-array.js'
-import { is_decimal_type, is_decimal_null_value, get_duration_unit } from './shared/utils.js'
+import {
+    nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, dictables, 
+    is_decimal_type, is_decimal_null_value, get_duration_unit,
+    type DdbArrayVectorBlock, type DdbArrayVectorValue, type DdbDecimal32Value,
+    type DdbDecimal32VectorValue, type DdbDecimal64Value, type DdbDecimal64VectorValue,
+    type DdbDurationValue, type DdbDurationVectorValue, type DdbFunctionDefValue,
+    type DdbSymbolExtendedValue, 
+} from './common.js'
 
-import { nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, dictables } from './shared/constants.js'
-export * from './shared/constants.js'
+import { BigInt128Array, DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './bigint128array.js'
 
-export type { DdbDecimal128Value, DdbDecimal128VectorValue } from './data-types/decimal-128.js'
-
-export interface DdbFunctionDefValue {
-    type: DdbFunctionType
-    name: string
+export {
+    nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, 
+    is_decimal_type, is_decimal_null_value, get_duration_unit,
+    type DdbArrayVectorBlock, type DdbArrayVectorValue, type DdbDecimal32Value,
+    type DdbDecimal32VectorValue, type DdbDecimal64Value, type DdbDecimal64VectorValue,
+    type DdbDurationValue, type DdbDurationVectorValue, type DdbFunctionDefValue,
+    type DdbSymbolExtendedValue
 }
 
-export interface DdbDurationValue {
-    unit: DdbDurationUnit
-    
-    /** int32 */
-    data: number
-}
-
-
-export interface DdbDecimal32Value {
-    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
-    scale: number
-    
-    /** int32, 空值为 null  ddb null is js null */
-    data: number | null
-}
-
-export interface DdbDecimal64Value {
-    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
-    scale: number
-    
-    /** int64, 空值为 null  empty value is null */
-    data: bigint | null
-}
-
-export interface DdbDecimal32VectorValue {
-    scale: number
-    
-    data: Int32Array
-}
-
-export interface DdbDecimal64VectorValue {
-    scale: number
-    
-    data: BigInt64Array
-}
-
-export type DdbDurationVectorValue = DdbDurationValue[]
-
-export interface DdbSymbolExtendedValue {
-    base_id: number
-    base: string[]
-    data: Uint32Array
-}
-
-export interface DdbArrayVectorBlock {
-    unit: 1 | 2 | 4
-    rows: number
-    lengths: Uint8Array | Uint16Array | Uint32Array
-    data: Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array
-}
-
-export type DdbArrayVectorValue = DdbArrayVectorBlock[] & /* decimal 数据会有这个属性 */ { scale?: number }
 
 export interface DdbMatrixValue {
     rows: DdbVectorObj
@@ -2383,7 +2337,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                                 items[i] = options.colors ? grey('null') : 'null'
                             else {
                                 const { scale } = obj.value as DdbArrayVectorValue
-                            
+                                
                                 const s = String(x < 0 ? -x : x).padStart(scale, '0')
                                 
                                 const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
@@ -3359,8 +3313,7 @@ export class DDB {
     
     
     /** DolphinDB WebSocket URL
-        e.g. `ws://127.0.0.1:8848/`, `wss://dolphindb.com`
-    */
+        e.g. `ws://127.0.0.1:8848/`, `wss://dolphindb.com` */
     url: string
     
     /** 为所有 websocket 操作加锁，包括设置 this.on_message, this.on_error, websocket.send */
@@ -3965,7 +3918,7 @@ export class DDB {
             listener?: DdbMessageListener
             parse_object?: boolean
             skip_connection_check?: boolean
-            on_more_messages?:  DdbRpcOptions['on_more_messages']
+            on_more_messages?: DdbRpcOptions['on_more_messages']
         } = { }
     ) {
         if (node) {

@@ -1,4 +1,4 @@
-import { getBigInt128, setBigInt128 } from './data-view-extends.js'
+import { nulls } from './common.js'
 
 
 /** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#security_requirements
@@ -184,3 +184,123 @@ Object.defineProperty(BigInt128Array.prototype, Symbol.toStringTag, {
     enumerable: false,
     value: 'BigInt128Array',
 })
+
+
+export interface DdbDecimal128Value {
+    /** int32, data 需要除以 10^scale 得到原值  data needs to be divided by 10^scale to get the original value */
+    scale: number
+    
+    /** int128, 空值为 null  empty value is null */
+    data: bigint | null
+}
+
+export interface DdbDecimal128VectorValue {
+    scale: number
+    
+    data: BigInt128Array
+}
+
+
+export const DdbDecimal128Serializor = {
+    /** 解析为标量 */
+    parse_as_scalar (buf: Uint8Array, le: boolean): [number, DdbDecimal128Value] {
+        const dv = new DataView(buf.buffer, buf.byteOffset)
+                
+        const data = getBigInt128(dv, 4, le)
+        
+        return [20, { scale: dv.getInt32(0, le), data: data === nulls.int128 ? null : data }]
+    },
+    
+    
+    /** 解析为仅由同类数据组成的 vector 的值 */
+    parse_as_same_type_vector_values (buf: Uint8Array, byte_offset: number, items_length: number): [number, BigInt128Array] {
+        const bytes_length = items_length * 16
+        const data = new BigInt128Array(buf.buffer.slice(buf.byteOffset + byte_offset, buf.byteOffset + byte_offset + bytes_length))
+        return [bytes_length, data]
+    },
+    
+    
+    /** 解析为 vector 中的单独项 */
+    parse_as_vector_items (buf: Uint8Array, length: number, le: boolean): [number, DdbDecimal128VectorValue] {
+        const dv = new DataView(
+            buf.buffer,
+            buf.byteOffset
+        )
+        
+        return [
+            4 + 16 * length,
+            {
+                scale: dv.getInt32(0, le),
+                data: new BigInt128Array(
+                    buf.buffer.slice(
+                        buf.byteOffset + 4,
+                        buf.byteOffset + 4 + 16 * length
+                    )
+                )
+            } as DdbDecimal128VectorValue
+        ]
+    },
+    
+    
+    /** 序列化 */
+    pack (value: DdbDecimal128Value): [Int32Array, BigInt128Array] {
+        const { scale, data } = value
+        return [Int32Array.of(scale), BigInt128Array.of(data === null ? nulls.int128 : data)]
+    }
+}
+
+
+// DataView Extends for bigint 128 operations
+export function getBigUint128 (dataView: DataView, byteOffset: number, littleEndian: boolean = true) {
+    let cursor = byteOffset + (littleEndian ? 15 : 0)
+    const end = byteOffset + (littleEndian ? -1 : 16)
+    const step = littleEndian ? -1 : 1
+    let value = 0n
+    
+    while (cursor !== end) {
+        value = value << 8n | BigInt(dataView.getUint8(cursor))
+        cursor += step
+    }
+    
+    return value
+}
+
+export function getBigInt128 (dataView: DataView, byteOffset: number, littleEndian: boolean = true) {
+    return BigInt.asIntN(128, getBigUint128(dataView, byteOffset, littleEndian))
+}
+
+
+export function setBigUint128 (dataView: DataView, byteOffset: number, value: bigint, littleEndian: boolean = true) {
+    let cursor = byteOffset + (littleEndian ? 0 : 15)
+    const end = byteOffset + (littleEndian ? 16 : -1)
+    const step = littleEndian ? 1 : -1
+    
+    while (cursor !== end) {
+        dataView.setUint8(cursor, Number(value & 0xffn))
+        value = value >> 8n
+        cursor += step
+    }
+}
+
+export function setBigInt128 (dataView: DataView, byteOffset: number, value: bigint, littleEndian: boolean = true) {
+    setBigUint128(dataView, byteOffset, value, littleEndian)
+}
+
+// 大端
+// const dataBE = new ArrayBuffer(16)
+// const dataViewBE = new DataView(dataBE)
+// setBigInt128(dataViewBE, 0, -34355n, false)
+// console.log(dataViewBE.buffer)
+// const bigInt128BE = getBigInt128(dataViewBE, 0, false)
+// const bigUint128BE = getBigUint128(dataViewBE, 0, false)
+// console.log(bigInt128BE.toString(), bigUint128BE.toString())
+
+// 小端
+// const dataLE = new ArrayBuffer(16)
+// const dataViewLE = new DataView(dataLE)
+// setBigInt128(dataViewLE, 0, -34355n, true)
+// console.log(dataViewLE.buffer)
+// const bigInt128LE = getBigInt128(dataViewLE, 0, true)
+// const bigUint128LE = getBigUint128(dataViewLE, 0, true)
+// console.log(bigInt128LE.toString(), bigUint128LE.toString())
+

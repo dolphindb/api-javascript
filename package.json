@@ -1,5 +1,5 @@
 {
-    "name": "dolphindb",
+    "name": "ddbapi",
     "description": "DolphinDB JavaScript API",
     "version": "3.0.3",
     "type": "module",
@@ -32,14 +32,14 @@
         "JavaScript"
     ],
     "devDependencies": {
-        "@types/node": "^20.12.7",
-        "eslint": "^9.1.1",
+        "@types/node": "^20.12.10",
+        "eslint": "^9.2.0",
         "typescript": "^5.4.5"
     },
     "dependencies": {
-        "dayjs": "^1.11.10",
+        "dayjs": "^1.11.11",
         "ipaddr.js": "^2.2.0",
         "tslib": "^2.6.2",
-        "xshell": "^1.0.91"
+        "xshell": "^1.0.96"
     }
 }

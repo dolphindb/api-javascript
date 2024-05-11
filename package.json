@@ -13,7 +13,7 @@
         "scan": "i18n-scan --input \"**/*.{ts,tsx}\""
     },
     "engines": {
-        "node": ">=20.7.3"
+        "node": ">=22.1.0"
     },
     "author": "Hongfei Shen <hongfei.shen@dolphindb.com> (https://dolphindb.net/hongfeishen)",
     "publisher": "Hongfei Shen",

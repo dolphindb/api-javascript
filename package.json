@@ -1,5 +1,5 @@
 {
-    "name": "ddbapi",
+    "name": "dolphindb",
     "description": "DolphinDB JavaScript API",
     "version": "3.0.20",
     "type": "module",

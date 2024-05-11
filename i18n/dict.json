@@ -79,5 +79,11 @@
     },
     "流数据订阅后一定先返回 schema": {
         "en": "After subscribing to streaming data, the schema must be returned first."
+    },
+    "{{form}} {{type}} 暂不支持 data()": {
+        "en": "{{form}} {{type}} does not support data() yet"
+    },
+    " 暂时不支持转换为 js 对象": {
+        "en": " conversion to js object is not supported at the moment"
     }
 }

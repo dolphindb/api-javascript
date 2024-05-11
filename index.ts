@@ -1411,10 +1411,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             default:
                 throw new Error(t(
                     '{{form}}<{{type}}> 暂时不支持解析', 
-                    {
-                        form: 'vector',
-                        type: String(DdbType[type] || type)
-                    }
+                    { form: 'vector', type: get_type_name(type) }
                 ))
         }
     }
@@ -1679,7 +1676,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 default:
-                    throw new Error(t('vector {{type}} 暂不支持序列化', { type: DdbType[type] || type }))
+                    throw new Error(t('vector {{type}} 暂不支持序列化', { type: get_type_name(type) }))
             }
         })()
         
@@ -1822,7 +1819,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             default:
-                throw new Error(t('vector {{type}} 暂不支持序列化', { type: String(DdbType[type] || type) }))
+                throw new Error(t('vector {{type}} 暂不支持序列化', { type: get_type_name(type) }))
         }
     }
     
@@ -1900,7 +1897,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             default:
-                throw new Error(t('{{form}} {{type}} 暂不支持 data()', { type: DdbType[type] || type }))
+                throw new Error(t('{{form}} {{type}} 暂不支持 data()', { form, type: get_type_name(type) }))
         }
     }
     
@@ -2347,6 +2344,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
 }
 
+
+/** 根据 DdbType 获取其名称，array vector type 自动在后面加上 [] */
+export function get_type_name (type: DdbType) {
+    return `${DdbType[type] || type}${ 64 <= type && type < 128 ? '[]' : '' }`
+}
 
 
 export function is_decimal_type (type: DdbType) {

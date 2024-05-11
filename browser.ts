@@ -12,30 +12,228 @@ import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.bro
 
 import { t } from './i18n/index.js'
 
-import {
-    nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, dictables, 
-    is_decimal_type, is_decimal_null_value, get_duration_unit,
-    type DdbArrayVectorBlock, type DdbArrayVectorValue, type DdbDecimal32Value,
-    type DdbDecimal32VectorValue, type DdbDecimal64Value, type DdbDecimal64VectorValue,
-    type DdbDurationValue, type DdbDurationVectorValue, type DdbFunctionDefValue,
-    type DdbSymbolExtendedValue, 
-} from './common.js'
 
-import { BigInt128Array, DdbDecimal128Serializor, type DdbDecimal128Value, type DdbDecimal128VectorValue } from './bigint128array.js'
+export const nulls = {
+    int8: -0x80,  // -128
+    int16: -0x80_00,  // -32768
+    int32: -0x80_00_00_00,  // -21_4748_3648
+    int64: -0x80_00_00_00_00_00_00_00n,  // -922_3372_0368_5477_5808
+    int128: -0x80_00_00_00_00_00_00_00_00_00_00_00_00_00_00_00n,  // -170_1411_8346_0469_2317_3168_7303_7158_8410_5728
+    float32: -3.4028234663852886e+38,
+    
+    /** -Number.MAX_VALUE */
+    double: -Number.MAX_VALUE,
+    
+    bytes16: Uint8Array.from(
+        new Array(16).fill(0)
+    )
+} as const
 
-export {
-    nulls, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, DdbVoidType, 
-    is_decimal_type, is_decimal_null_value, get_duration_unit,
-    type DdbArrayVectorBlock, type DdbArrayVectorValue, type DdbDecimal32Value,
-    type DdbDecimal32VectorValue, type DdbDecimal64Value, type DdbDecimal64VectorValue,
-    type DdbDurationValue, type DdbDurationVectorValue, type DdbFunctionDefValue,
-    type DdbSymbolExtendedValue
+
+export enum DdbForm {
+    scalar = 0,
+    vector = 1,
+    pair = 2,
+    matrix = 3,
+    set = 4,
+    dict = 5,
+    table = 6,
+    chart = 7,
+    
+    /** 节点内部通信可能会使用，调用函数执行脚本一般不会返回这种类型 */
+    chunk = 8,
+    
+    /** sysobj */
+    object = 9,
 }
 
 
+/** DolphinDB DataType  
+    对应的 array vector 类型为 64 + 基本类型
+    对应的 extended 类型为 128 + 基本类型 */
+export enum DdbType {
+    void = 0,
+    bool = 1,
+    char = 2,
+    short = 3,
+    int = 4,
+    long = 5,
+    date = 6,
+    month = 7,
+    time = 8,
+    minute = 9,
+    second = 10,
+    datetime = 11,
+    timestamp = 12,
+    nanotime = 13,
+    nanotimestamp = 14,
+    float = 15,
+    double = 16,
+    symbol = 17,
+    string = 18,
+    uuid = 19,
+    functiondef = 20,
+    handle = 21,
+    code = 22,
+    datasource = 23,
+    resource = 24,
+    any = 25,
+    compressed = 26,
+    dict = 27,
+    datehour = 28,
+    ipaddr = 30,
+    int128 = 31,
+    blob = 32,
+    complex = 34,
+    point = 35,
+    duration = 36,
+    
+    decimal32 = 37,
+    decimal64 = 38,
+    decimal128 = 39,
+    
+    object = 40,
+    pynone = 41,
+    
+    symbol_extended = 145,  // 128 + DdbType.symbol
+}
+
+
+export enum DdbFunctionType {
+    SystemFunc = 0,
+    SystemProc = 1,
+    OperatorFunc = 2,
+    UserDefinedFunc = 3,
+    PartialFunc = 4,
+    DynamicFunc = 5,
+    PiecewiseFunc = 6,
+    JitFunc = 7,
+    JitPartialFunc = 8,
+}
+
+
+export enum DdbDurationUnit {
+    ns = 0,
+    us = 1,
+    ms = 2,
+    s = 3,
+    m = 4,
+    H = 5,
+    d = 6,
+    w = 7,
+    M = 8,
+    y = 9,
+    B = 10
+}
+
+
+export enum DdbChartType {
+    area = 0,
+    bar = 1,
+    column = 2,
+    histogram = 3,
+    line = 4,
+    pie = 5,
+    scatter = 6,
+    trend = 7,
+    kline = 8,
+}
+
+
+// server 实现中区分了 0: NULL (nothing), 1: NULL (null), 2: DFLT (default)
+// Void::serialize()
+//     (isNothing() ? 0 : 1) + (isDefault_ ? 2 : 0);
+export enum DdbVoidType {
+    undefined = 0,
+    null = 1,
+    default = 2
+}
+
+
+export interface DdbFunctionDefValue {
+    type: DdbFunctionType
+    name: string
+}
+
+export interface DdbDurationValue {
+    unit: DdbDurationUnit
+    
+    /** int32 */
+    data: number
+}
+
+
+export interface DdbDecimal32Value {
+    /** int32, data 需要除以 10^scale 得到原值 */
+    scale: number
+    
+    /** int32, 空值为 null  ddb null is js null */
+    data: number | null
+}
+
+export interface DdbDecimal64Value {
+    /** int32, data 需要除以 10^scale 得到原值 */
+    scale: number
+    
+    /** int64, 空值为 null  empty value is null */
+    data: bigint | null
+}
+
+export interface DdbDecimal128Value {
+    /** int32, data 需要除以 10^scale 得到原值 */
+    scale: number
+    
+    /** int128, 空值为 null  empty value is null */
+    data: bigint | null
+}
+
+export interface DdbDecimal32VectorValue {
+    scale: number
+    
+    data: Int32Array
+}
+
+export interface DdbDecimal64VectorValue {
+    scale: number
+    
+    data: BigInt64Array
+}
+
+export interface DdbDecimal128VectorValue {
+    scale: number
+    
+    data: BigInt128Array
+}
+
+export type DdbDecimalVectorValue = DdbDecimal32VectorValue | DdbDecimal64VectorValue | DdbDecimal128VectorValue
+
+
+export type DdbDurationVectorValue = DdbDurationValue[]
+
+
+export interface DdbSymbolExtendedValue {
+    base_id: number
+    base: string[]
+    data: Uint32Array
+}
+
+
+export interface DdbArrayVectorBlock {
+    unit: 1 | 2 | 4
+    rows: number
+    lengths: Uint8Array | Uint16Array | Uint32Array
+    data: Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array
+}
+
+export type DdbArrayVectorValue = DdbArrayVectorBlock[] & /* decimal 数据会有这个属性 */ { scale?: number }
+
+
+export const dictables = new Set([DdbType.any, DdbType.string, DdbType.double, DdbType.float, DdbType.int, DdbType.long])
+
+
 export interface DdbMatrixValue {
-    rows: DdbVectorObj
-    cols: DdbVectorObj
+    rows: DdbVectorObj | null
+    cols: DdbVectorObj | null
     data: DdbVectorValue
 }
 
@@ -71,6 +269,7 @@ export interface DdbChartValue {
     
     data: DdbMatrixObj
 }
+
 
 export type DdbScalarValue = 
     null | boolean | number | bigint | string |
@@ -110,6 +309,45 @@ export type DdbMatrixObj <TValue extends DdbMatrixValue = DdbMatrixValue> = DdbO
 export type DdbChartObj = DdbObj<DdbChartValue>
 
 
+/** DdbObj.data() 返回的表格对象 */
+export interface DdbTableData <TRow = any> {
+    /** 表名 */
+    name: string
+    
+    /** 每一列的名称 */
+    columns: string[]
+    
+    /** 每一列的原始 ddb 数据类型 */
+    types: DdbType[]
+    
+    /** 表格数据，每一行的对象组成的数组 */
+    data: TRow[]
+}
+
+
+/** DdbObj.data() 返回的矩阵对象 */
+export interface DdbMatrixData {
+    /** 原始数据类型 */
+    type: DdbType
+    
+    /** 行数 */
+    nrows: number
+    
+    /** 列数 */
+    ncolumns: number
+    
+    /** 行名称 */
+    rows?: any[]
+    
+    /** 列名称 */
+    columns?: any[]
+    
+    /** 数据， data[0][1] 为第 0 行第 1 列数据 */
+    data: any[][]
+}
+
+
+
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
 export class DdbObj <TValue extends DdbValue = DdbValue> {
     static dec = new TextDecoder('utf-8')
@@ -143,15 +381,13 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     /** table name / column name */
     name?: string
     
-    /**
-        最低维、第 1 维
+    /** 最低维、第 1 维
         - vector: rows = n, cols = 1
         - pair:   rows = 2, cols = 1
         - matrix: rows = n, cols = m
         - set:    同 vector
         - dict:   包含 keys, values 向量
-        - table:  同 matrix
-    */
+        - table:  同 matrix */
     rows?: number
     
     /** 第 2 维 */
@@ -262,7 +498,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 for (let i = 0;  i < cols;  i++) {
                     const type = buf_data[i_start] as DdbType
                     
-                    if (type === DdbType.compress)
+                    if (type === DdbType.compressed)
                         throw new Error(t(
                             '{{form}}<{{type}}> 暂时不支持解析', 
                             { form: 'table', type: 'compress' }
@@ -634,7 +870,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             case DdbType.decimal128: {
-                return DdbDecimal128Serializor.parse_as_scalar(buf, le)
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                        
+                const data = get_big_int_128(dv, 4, le)
+                
+                return [20, { scale: dv.getInt32(0, le), data: data === nulls.int128 ? null : data }]
             }
             
             
@@ -645,8 +885,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     /** parse: rows, cols, items  
-        返回的 ddbobj.length 不包括 vector 的 type 和 form
-    */
+        返回的 ddbobj.length 不包括 vector 的 type 和 form */
     static parse_vector (buf: Uint8Array, le: boolean, type: DdbType): DdbVectorObj {
         const dv = new DataView(buf.buffer, buf.byteOffset)
         
@@ -654,7 +893,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         let i_items_start = 8
         
-        if (type < 64 || type >= 128) {
+        if (type < 64 || type >= 128) {  // 普通数组
             const [len_items, value] = this.parse_vector_items(
                 buf.subarray(i_items_start),
                 le,
@@ -671,156 +910,154 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 rows,
                 value,
             })
-        }
-        
-        
-        // array vector
-        
-        // av = array(INT[], 0, 3)
-        // append!(av, [1..4])
-        // append!(av, [1..70000])
-        // av
-        
-        // <Buffer 44 01  type = array vector, form = vector
-        // 02 00 00 00 74 11 01 00 rows = 2, cols = 70004 (0x011174)
-        
-        // block 0
-        // 01 00 block.rows = 1
-        // 04 block.unit = 4
-        // 00 reserved
-        // 04 00 00 00 block.lengths = [4]
-        // 01 00 00 00 02 00 00 00 03 00 00 00 04 00 00 00 block.data
-        
-        // block 1
-        // 01 00 block.rows = 1
-        // 04 block.unit = 4
-        // 00 reserved
-        // 70 11 01 00 block.lengths = [70000 (0x00011170)]
-        // 01 00 00 00 02 00 00 00 ... 279992 more bytes> block.data
-        
-        
-        // decimal array vector
-        
-        // a = array(DECIMAL32(2)[], 0, 10)
-        // append!(a, [
-        //     [1, 2, 3], 
-        //     [4, 5], 
-        //     [6, 7, 8],
-        //     [9, 10]
-        // ])
-        // print(a)
-        // a
-        
-        // [[1.00,2.00,3.00],[4.00,5.00],[6.00,7.00,8.00],[9.00,10.00]]
-        
-        // <Buffer 65 01 type = 101 = 64 + 37 (decimal32) , form = vector
-        // 04 00 00 00 0a 00 00 00 rows = 4, cols = 10
-        
-        // scale (只有 decimal32 才有)
-        // 02 00 00 00 scale = 2
-        
-        // block 0
-        // 04 00 block.rows = 4
-        // 01 block.unit = 1
-        // 00 reserved
-        // 03 02 03 02 block.lengths = [3, 2, 3, 2]
-        // 64 00 00 00 c8 00 00 00 2c 01 00 00 90 01 00 00 f4 01 00 00 58 02 00 00 bc 02 00 00 ... 12 more bytes> [100, 200, 300, ...]
-        
-        // block 1
-        // ...
-        
-        const type_ = type - 64
-        
-        const cols = dv.getUint32(4, le)
-        
-        let blocks: DdbArrayVectorValue = [ ]
-        
-        // decimal 会在所有 blocks 之前多一个 scale
-        if (is_decimal_type(type_)) {
-            blocks.scale = dv.getInt32(i_items_start, le)
-            i_items_start += 4
-        }
-        
-        let i_block_start = i_items_start
-        
-        // 解析一个 block
-        for (let i_row = 0;  i_row < rows;  ) {
-            /** 对应 array vector 中元素个数 */
-            const rows = dv.getUint16(i_block_start, le)
+        } else {  // array vector
+            // av = array(INT[], 0, 3)
+            // append!(av, [1..4])
+            // append!(av, [1..70000])
+            // av
             
-            /** 每个 length 占用的字节数 */
-            const unit = dv.getUint8(i_block_start + 2)
+            // <Buffer 44 01  type = array vector, form = vector
+            // 02 00 00 00 74 11 01 00 rows = 2, cols = 70004 (0x011174)
             
-            /** array vector 每个元素的子元素长度 */
-            let lengths: Uint32Array | Uint16Array | Uint8Array
+            // block 0
+            // 01 00 block.rows = 1
+            // 04 block.unit = 4
+            // 00 reserved
+            // 04 00 00 00 block.lengths = [4]
+            // 01 00 00 00 02 00 00 00 03 00 00 00 04 00 00 00 block.data
             
-            const i_lengths_start = i_block_start + 4
-            const i_data_start = i_lengths_start + rows * unit
+            // block 1
+            // 01 00 block.rows = 1
+            // 04 block.unit = 4
+            // 00 reserved
+            // 70 11 01 00 block.lengths = [70000 (0x00011170)]
+            // 01 00 00 00 02 00 00 00 ... 279992 more bytes> block.data
             
-            const lengths_buf = buf.slice(i_lengths_start, i_data_start)
             
-            switch (unit) {
-                case 1:
-                    lengths = lengths_buf
-                    break
-                
-                case 2:
-                    lengths = new Uint16Array(lengths_buf.buffer)
-                    break
-                
-                case 4:
-                    lengths = new Uint32Array(lengths_buf.buffer)
-                    break
-                
-                default:
-                    throw new Error(t('array vector 存在非法 unit: {{unit}}', { unit }))
+            // decimal array vector
+            
+            // a = array(DECIMAL32(2)[], 0, 10)
+            // append!(a, [
+            //     [1, 2, 3], 
+            //     [4, 5], 
+            //     [6, 7, 8],
+            //     [9, 10]
+            // ])
+            // print(a)
+            // a
+            
+            // [[1.00,2.00,3.00],[4.00,5.00],[6.00,7.00,8.00],[9.00,10.00]]
+            
+            // <Buffer 65 01 type = 101 = 64 + 37 (decimal32) , form = vector
+            // 04 00 00 00 0a 00 00 00 rows = 4, cols = 10
+            
+            // scale (只有 decimal32 才有)
+            // 02 00 00 00 scale = 2
+            
+            // block 0
+            // 04 00 block.rows = 4
+            // 01 block.unit = 1
+            // 00 reserved
+            // 03 02 03 02 block.lengths = [3, 2, 3, 2]
+            // 64 00 00 00 c8 00 00 00 2c 01 00 00 90 01 00 00 f4 01 00 00 58 02 00 00 bc 02 00 00 ... 12 more bytes> [100, 200, 300, ...]
+            
+            // block 1
+            // ...
+            
+            const type_ = type - 64
+            
+            const cols = dv.getUint32(4, le)
+            
+            let blocks: DdbArrayVectorValue = [ ]
+            
+            // decimal 会在所有 blocks 之前多一个 scale
+            if (is_decimal_type(type_)) {
+                blocks.scale = dv.getInt32(i_items_start, le)
+                i_items_start += 4
             }
             
-            let total_length = 0
-            for (const x of lengths)
-                total_length += x
+            let i_block_start = i_items_start
             
-            let len_items: number
-            let data: DdbVectorValue
-            
-            switch (type_) {
-                case DdbType.decimal32:
-                    len_items = total_length * 4
-                    data = new Int32Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
-                    break
-                case DdbType.decimal64:
-                    len_items = total_length * 8
-                    data = new BigInt64Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
-                    break
-                case DdbType.decimal128:
-                    [len_items, data] = DdbDecimal128Serializor.parse_as_same_type_vector_values(buf, i_data_start, total_length)
-                    break
-                default:
-                    [len_items, data] = this.parse_vector_items(buf.subarray(i_data_start), le, type - 64, total_length)
+            // 解析一个 block
+            for (let i_row = 0;  i_row < rows;  ) {
+                /** 对应 array vector 中元素个数 */
+                const rows = dv.getUint16(i_block_start, le)
+                
+                /** 每个 length 占用的字节数 */
+                const unit = dv.getUint8(i_block_start + 2)
+                
+                /** array vector 每个元素的子元素长度 */
+                let lengths: Uint32Array | Uint16Array | Uint8Array
+                
+                const i_lengths_start = i_block_start + 4
+                const i_data_start = i_lengths_start + rows * unit
+                
+                const lengths_buf = buf.slice(i_lengths_start, i_data_start)
+                
+                switch (unit) {
+                    case 1:
+                        lengths = lengths_buf
+                        break
+                    
+                    case 2:
+                        lengths = new Uint16Array(lengths_buf.buffer)
+                        break
+                    
+                    case 4:
+                        lengths = new Uint32Array(lengths_buf.buffer)
+                        break
+                    
+                    default:
+                        throw new Error(t('array vector 存在非法 unit: {{unit}}', { unit }))
+                }
+                
+                let total_length = 0
+                for (const x of lengths)
+                    total_length += x
+                
+                let len_items: number
+                let data: DdbVectorValue
+                
+                switch (type_) {
+                    case DdbType.decimal32:
+                        len_items = total_length * 4
+                        data = new Int32Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
+                        break
+                    case DdbType.decimal64:
+                        len_items = total_length * 8
+                        data = new BigInt64Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
+                        break
+                    case DdbType.decimal128:
+                        len_items = total_length * 16
+                        data = new BigInt128Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
+                        break
+                    default:
+                        [len_items, data] = this.parse_vector_items(buf.subarray(i_data_start), le, type - 64, total_length)
+                }
+                
+                blocks.push({
+                    unit,
+                    rows,
+                    lengths,
+                    data: data as Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array
+                })
+                
+                i_block_start = i_data_start + len_items
+                
+                i_row += rows
             }
             
-            blocks.push({
-                unit,
+            
+            return new this({
+                le,
+                form: DdbForm.vector,
+                type,
+                length: i_block_start,
+                cols,
                 rows,
-                lengths,
-                data: data as Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array
+                value: blocks
             })
-            
-            i_block_start = i_data_start + len_items
-            
-            i_row += rows
         }
-        
-        
-        return new this({
-            le,
-            form: DdbForm.vector,
-            type,
-            length: i_block_start,
-            cols,
-            rows,
-            value: blocks
-        })
     }
     
     
@@ -1111,8 +1348,25 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 ]
             }
             
-            case DdbType.decimal128:
-                return DdbDecimal128Serializor.parse_as_vector_items(buf, length, le)
+            case DdbType.decimal128: {
+                const dv = new DataView(
+                    buf.buffer,
+                    buf.byteOffset
+                )
+                
+                return [
+                    4 + 16 * length,
+                    {
+                        scale: dv.getInt32(0, le),
+                        data: new BigInt128Array(
+                            buf.buffer.slice(
+                                buf.byteOffset + 4,
+                                buf.byteOffset + 4 + 16 * length
+                            )
+                        )
+                    } as DdbDecimal128VectorValue
+                ]
+            }
             
             // 以下情况时, DdbType.duration 实际会返回一个 any vector
             // [2y, 1M, 3d, 7H, 11m, 12s, 15ms, 16us, 17ns]
@@ -1141,7 +1395,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 return [8 * length, durations]
             }
             
-            case DdbType.compress:
+            case DdbType.compressed:
                 return [
                     length,
                     new Uint8Array(
@@ -1316,8 +1570,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return [Int32Array.of(scale), BigInt64Array.of(data === null ? nulls.int64 : data)]
                         }
                         
-                        case DdbType.decimal128:
-                            return DdbDecimal128Serializor.pack(this.value as DdbDecimal128Value)
+                        case DdbType.decimal128: {
+                            const { scale, data } = value as DdbDecimal128Value
+                            return [Int32Array.of(scale), BigInt128Array.of(data === null ? nulls.int128 : data)]
+                        }
                         
                         default:
                             throw new Error(String(DdbType[type] || type) + t(' 暂时不支持序列化'))
@@ -1495,7 +1751,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.uuid:
             case DdbType.ipaddr:
             case DdbType.int128:
-            case DdbType.compress:
+            case DdbType.compressed:
                 return [value as Uint8Array]
             
             
@@ -1569,6 +1825,84 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
+    /** 将 DdbObj 转换为 js 原生数据类型 
+        - 标量对应 number, bigint 或者字符串
+        - 数组对应 js 原生数组
+        - 表格对应 DdbTableData
+        - 矩阵对应 DdbMatrixData
+        - 字典对应普通的 js 对象 Record<string, any> 
+        - 图对应 DdbChartValue */
+    data <TResult extends any[]> (this: DdbVectorObj): TResult
+    data <TResult = any> (this: DdbObj): TResult
+    data <TResult = any> (this: DdbObj): TResult {
+        const { form, type, value, le, rows, name } = this
+        
+        switch (form) {
+            case DdbForm.scalar:
+                return convert(type, value, le) as TResult
+            
+            case DdbForm.vector:
+            case DdbForm.pair:
+            case DdbForm.set: {
+                const data = converts(type, value as DdbVectorValue, rows, le)
+                return (form === DdbForm.set ? new Set(data) : data) as TResult
+            }
+            
+            case DdbForm.table: {
+                const cols = value as DdbVectorObj[]
+                const jscols = cols.map(col => col.data())
+                const keys = cols.map(({ name }) => name)
+                
+                return {
+                    name: name || '',
+                    columns: cols.map(({ name }) => name),
+                    types: cols.map(({ type }) => type),
+                    data: seq(rows, i =>
+                        zip_object(
+                            keys,
+                            seq(cols.length, j => jscols[j][i])
+                        ))
+                } satisfies DdbTableData as TResult
+            }
+            
+            case DdbForm.dict: {
+                const [keys, values] = value as DdbDictValue
+                
+                return zip_object(keys.data(), values.data()) as TResult
+            }
+            
+            case DdbForm.chart:
+                return value as DdbChartValue as TResult
+            
+            case DdbForm.matrix: {
+                const ncolumns = this.cols
+                const { rows: _rows, cols: _cols, data } = value as DdbMatrixValue
+                
+                const jsdata = converts(type, data, rows * ncolumns, le)
+                
+                return {
+                    type,
+                    
+                    nrows: rows,
+                    
+                    ncolumns,
+                    
+                    rows: _rows?.data(),
+                    
+                    columns: _cols?.data(),
+                    
+                    data: seq(rows, i => 
+                            seq(ncolumns, j => 
+                                jsdata[j * rows + i]))
+                } satisfies DdbMatrixData as TResult
+            }
+            
+            default:
+                throw new Error(t('{{form}} {{type}} 暂不支持 data()', { type: DdbType[type] || type }))
+        }
+    }
+    
+    
     toString (options: InspectOptions = { nullstr: true, quote: true }): string {
         const type = this.inspect_type()
         
@@ -1606,7 +1940,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         
                         const limit = 10
                         
-                        let array_items = new Array(Math.min(limit, this.rows))
+                        let array_items = new Array(
+                            Math.min(limit, this.rows)
+                        )
                         
                         let i_items = 0
                         
@@ -1614,7 +1950,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             let acc_len = 0
                             
                             for (const length of lengths) {
-                                let items = new Array(Math.min(limit, length))
+                                let items = new Array(
+                                    Math.min(limit, length)
+                                )
                                 
                                 for (let i = 0;  i < items.length;  i++)
                                     switch (type_) {
@@ -1767,13 +2105,13 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             let items = new Array(Math.min(limit, data.length))
                             
                             for (let i = 0;  i < items.length;  i++)
-                                items[i] = formati(this as DdbObj<DdbDecimal32VectorValue | DdbDecimal64VectorValue | DdbDecimal128VectorValue>, i, options)
+                                items[i] = formati(this as DdbObj<DdbDecimalVectorValue>, i, options)
                             
                             return format_array(items, data.length > limit)
                         }
                         
                         default: {
-                            const limit = this.type === DdbType.compress ? 5 : 50 as const
+                            const limit = this.type === DdbType.compressed ? 5 : 50 as const
                             
                             let items = new Array(
                                 Math.min(limit, (this.value as any[]).length)
@@ -1804,7 +2142,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         // 如果类型为 string 则不需要加上类型名
         if (this.form === DdbForm.scalar && this.type === DdbType.string)
-            return data as string
+            return data
         else
             return `${ options?.colors ? blue(type) : type }(${ this.name ? `'${this.name}', ` : '' }${data})`
     }
@@ -1875,6 +2213,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
+    /** @deprecated 用 data() */
     to_cols () {
         assert(this.form === DdbForm.table, t('form 必须是 DdbForm.table, 否则不能 to_cols'))
         
@@ -1886,7 +2225,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    /** 将 table 转换为 rows，空值转换为 null */
+    /** 将 table 转换为 rows，空值转换为 null 
+        @deprecated 用 data() */
     to_rows <T extends Record<string, any> = Record<string, any>> () {
         assert(this.form === DdbForm.table, t('form 必须是 DdbForm.table, 否则不能 to_rows'))
         
@@ -1972,12 +2312,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    /** 将 dict<string, any> 自动转换为 js object (Record<string, any>)  Automatically convert dict<string, any> to js object (Record<string, any>)
+    /** 将 dict<string, any> 自动转换为 js object (Record<string, any>)  Automatically convert dict<string, any> to js object (Record<string, any>)  
+        @deprecated 用 data()
         - options?:
             - strip?: `false` 是否将 dict<string, any> 中的 value 直接提取、剥离出来作为 js object 的 value (丢弃 DdbObj 中的其余信息，只保留 value)  
             - deep?: `false` 是否递归转换  
-                Whether to convert recursively
-    */
+                Whether to convert recursively */
     to_dict <T extends Record<string, DdbObj> = Record<string, DdbObj>> (): T
     to_dict <T extends Record<string, any> = Record<string, any>> (options: { strip: true }): T
     to_dict <T extends Record<string, any> = Record<string, any>> (options?: { strip?: boolean, deep?: boolean }): T
@@ -2012,6 +2352,29 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         return obj as T
     }
+}
+
+
+
+export function is_decimal_type (type: DdbType) {
+    return type === DdbType.decimal32 || type === DdbType.decimal64 || type === DdbType.decimal128
+}
+
+
+export function is_decimal_null_value (type: DdbType, value: number | bigint) {
+    return (
+        (value === nulls.int128 && type === DdbType.decimal128) ||
+        (value === nulls.int64 && type === DdbType.decimal64) ||
+        (value === nulls.int32 && type === DdbType.decimal32)
+    )
+}
+
+export function get_duration_unit (code: number) {
+    let str = String.fromCharCode((code >> 24) & 0xff)
+    str += String.fromCharCode((code >> 16) & 0xff)
+    str += String.fromCharCode((code >> 8) & 0xff)
+    str += String.fromCharCode(code & 0xff)
+    return str
 }
 
 
@@ -2289,7 +2652,64 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
 export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
     assert(index < obj.rows, 'index < obj.rows')
     
-    if (64 <= obj.type && obj.type < 128) {  // array vector
+    if (obj.type < 64 || obj.type >= 128)  // 普通数组
+        switch (obj.type) {
+            case DdbType.symbol_extended: {
+                const { base, data } = obj.value as DdbSymbolExtendedValue
+                return format(DdbType.string, base[data[index]], obj.le, options)
+            }
+            
+            case DdbType.void:
+                return format(obj.type, obj.value, obj.le, options)
+            
+            case DdbType.uuid:
+            case DdbType.int128:
+            case DdbType.ipaddr:
+                return format(
+                    obj.type,
+                    (obj.value as Uint8Array).subarray(16 * index, 16 * (index + 1)),
+                    obj.le,
+                    options
+                )
+            
+            case DdbType.blob: {
+                const value = obj.value[index] as Uint8Array
+                return value.length > 100 ?
+                        DdbObj.dec.decode(value.subarray(0, 98)) + '…'
+                    :
+                        DdbObj.dec.decode(value)
+            }
+            
+            case DdbType.complex:
+            case DdbType.point:
+                return format(
+                    obj.type,
+                    (obj.value as Float64Array).subarray(2 * index, 2 * (index + 1)),
+                    obj.le,
+                    options
+                )
+            
+            case DdbType.decimal32:
+            case DdbType.decimal64:
+            case DdbType.decimal128: {
+                const { scale, data } = obj.value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
+                
+                const x = data[index]
+                
+                if (is_decimal_null_value(obj.type, x))
+                    return ''
+                
+                const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                
+                const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                
+                return options.colors ? green(str) : str
+            }
+            
+            default:
+                return format(obj.type, obj.value[index], obj.le, options)
+        }
+    else {  // array vector
         // 因为 array vector 目前只支持：Logical, Integral（不包括 INT128, COMPRESS 类型）, Floating, Temporal
         // 都对应 TypedArray 中的一格，所以 lengths.length 等于 block 中的 row 的个数
         // av = array(INT[], 0, 5)
@@ -2383,65 +2803,211 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             }
         }
     }
-    
-    switch (obj.type) {
-        case DdbType.symbol_extended: {
-            const { base, data } = obj.value as DdbSymbolExtendedValue
-            return format(DdbType.string, base[data[index]], obj.le, options)
-        }
-        
+}
+
+
+export function convert (type: DdbType, value: DdbValue, le: boolean) {
+    switch (type) {
         case DdbType.void:
-            return format(obj.type, obj.value, obj.le, options)
+            return value === DdbVoidType.null ? null : undefined
         
-        case DdbType.uuid:
-        case DdbType.int128:
-        case DdbType.ipaddr:
-            return format(
-                obj.type,
-                (obj.value as Uint8Array).subarray(16 * index, 16 * (index + 1)),
-                obj.le,
-                options
-            )
+        case DdbType.char:
+            return value === null || value === nulls.int8 ? '' : String.fromCharCode(value as number)
         
-        case DdbType.blob: {
-            const value = obj.value[index] as Uint8Array
-            return value.length > 100 ?
-                    DdbObj.dec.decode(value.subarray(0, 98)) + '…'
-                :
-                    DdbObj.dec.decode(value)
-        }
+        case DdbType.bool:
+            return value === null || value === nulls.int8 ? null : Boolean(value)
+        
+        case DdbType.short:
+            return value === null || value === nulls.int16 ? null : value
+            
+        case DdbType.int:
+            return value === null || value === nulls.int32 ? null : value
+            
+        case DdbType.float:
+            return value === null || value === nulls.float32 ? null : value
+        
+        case DdbType.double:
+            return value === null || value === nulls.double ? null : value
+            
+        case DdbType.long:
+            return value === null || value === nulls.int64 ? null : value
+        
+        case DdbType.functiondef:
+            return (value as DdbFunctionDefValue).name
+        
+        case DdbType.string:
+        case DdbType.symbol:
+        case DdbType.code:
+        case DdbType.handle:
+        case DdbType.datasource:
+        case DdbType.resource:
+            
+        case DdbType.blob:
+            return value
         
         case DdbType.complex:
-        case DdbType.point:
-            return format(
-                obj.type,
-                (obj.value as Float64Array).subarray(2 * index, 2 * (index + 1)),
-                obj.le,
-                options
-            )
-        
-        case DdbType.decimal32:
-        case DdbType.decimal64:
-        case DdbType.decimal128: {
-            const { scale, data } = obj.value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
-            
-            const x = data[index]
-            
-            if (is_decimal_null_value(obj.type, x))
-                return ''
-            
-            const s = String(x < 0 ? -x : x).padStart(scale, '0')
-            
-            const str = (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
-            
-            return options.colors ? green(str) : str
+        case DdbType.point: {
+            const [x, y] = value as [number, number]
+            return [
+                x === null || x === nulls.double ? null : x,
+                y === null || y === nulls.double ? null : y,
+            ]
         }
         
+        
+        case DdbType.date:
+        case DdbType.month:
+        case DdbType.time:
+        case DdbType.minute:
+        case DdbType.second:
+        case DdbType.datetime:
+        case DdbType.datehour:
+        case DdbType.timestamp:
+        case DdbType.nanotime:
+        case DdbType.nanotimestamp:
+        case DdbType.duration:
+            
+        case DdbType.uuid:
+        case DdbType.ipaddr:
+        case DdbType.int128:
+        
+        // decimal 类型转换为固定位数小数的 string 不丢失精度，一般也是展示用
+        case DdbType.decimal32:
+        case DdbType.decimal64:
+        case DdbType.decimal128:
+            return format(type, value, le, { colors: false })
+        
         default:
-            return format(obj.type, obj.value[index], obj.le, options)
+            throw new Error(String(DdbType[type] || type) + t(' 暂时不支持转换为 js 对象'))
     }
 }
 
+
+/** 转换一个向量到 js 原生数组 */
+export function converts (type: DdbType, value: DdbVectorValue, rows: number, le: boolean): any[] {
+    if (type < 64 || type >= 128)
+        switch (type) {
+            // 可以直接用下标取值再转换的类型
+            case DdbType.bool:
+            case DdbType.char:
+            
+            case DdbType.short:
+            case DdbType.int:
+            case DdbType.float:
+            case DdbType.double:
+            case DdbType.long:
+            
+            case DdbType.date:
+            case DdbType.month:
+            case DdbType.time:
+            case DdbType.minute:
+            case DdbType.second:
+            case DdbType.datetime:
+            case DdbType.datehour:
+            case DdbType.timestamp:
+            case DdbType.nanotime:
+            case DdbType.nanotimestamp:
+            case DdbType.duration:
+                
+            case DdbType.string:
+            case DdbType.symbol:
+            case DdbType.code:
+            case DdbType.handle:
+            case DdbType.datasource:
+            case DdbType.resource:
+            case DdbType.functiondef:
+            
+            case DdbType.blob:
+                return Array.prototype.map.call(value, (x: number | bigint) => convert(type, x, le))
+                
+            
+            case DdbType.void:
+                return [ ]
+            
+            
+            case DdbType.symbol_extended: {
+                const { base, data } = value as DdbSymbolExtendedValue
+                return Array.prototype.map.call(data, (x: number) => base[x])
+            }
+            
+            case DdbType.complex:
+            case DdbType.point:
+                return seq(rows, i => [(value as Float64Array)[2 * i], (value as Float64Array)[2 * (i + 1)]])
+                
+                
+            case DdbType.uuid:
+            case DdbType.ipaddr:
+            case DdbType.int128:
+                return seq(rows, i => convert(
+                    type, 
+                    (value as Uint8Array).subarray(16 * i, 16 * (i + 1)), 
+                    le
+                ))
+            
+            case DdbType.decimal32:
+            case DdbType.decimal64:
+            case DdbType.decimal128: {
+                const { scale, data } = value as DdbDecimalVectorValue
+                
+                // todo: 用 Array.prototype.map.call 时对 BigInt128Array 这个代理对象无效？为什么只能通过下标访问？
+                return seq(rows, i => {
+                    const x: number | bigint = data[i]
+                    
+                    if (is_decimal_null_value(type, x))
+                        return ''
+                    
+                    const s = String(x < 0 ? -x : x).padStart(scale, '0')
+                    
+                    return (x < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
+                })
+            }
+            
+            case DdbType.any:
+                return (value as DdbObj[]).map(x => x.data())
+            
+            default:
+                throw new Error(String(DdbType[type] || type) + '[]' + t(' 暂时不支持转换为 js 对象'))
+        }
+    else { // array vector
+        const type_ = type - 64
+        
+        return (value as DdbArrayVectorValue).map(({ lengths, data, rows }) => {
+            let acc_len = 0
+            
+            return Array.prototype.map.call(lengths, (length: number) => {
+                const result = (() => {
+                    switch (type_) {
+                        case DdbType.decimal32:
+                        case DdbType.decimal64:
+                        case DdbType.decimal128:
+                            return converts(
+                                type_, 
+                                { scale: (value as DdbArrayVectorValue).scale, data: data.subarray(acc_len, acc_len + length) } as DdbDecimalVectorValue,
+                                length,
+                                le
+                            )
+                            
+                        case DdbType.complex:
+                        case DdbType.point:
+                            return converts(type_, data.subarray(acc_len, acc_len + 2 * length), length, le)
+                        
+                        case DdbType.uuid:
+                        case DdbType.int128:
+                        case DdbType.ipaddr:
+                            return converts(type_, data.subarray(acc_len, acc_len + 16 * length), length, le)
+                        
+                        default:
+                            return converts(type_, data.subarray(acc_len, acc_len + length), length, le)
+                    }
+                })()
+                
+                acc_len += length
+                
+                return result
+            })
+        }).flat()
+    }
+}
 
 
 export class DdbVoid extends DdbObj<undefined> {
@@ -3135,7 +3701,7 @@ export function ipaddr2str (buffer: Uint8Array, le = true, ipv6?: boolean) {
     if (le)
         buf = buffer.slice().reverse()
     
-    const i_non_zero = buf.findIndex(x => x as any)
+    const i_non_zero = buf.findIndex(x => x !== 0)
     
     if (
         ipv6 || 
@@ -3225,16 +3791,20 @@ export interface StreamingMessage extends StreamingParams {
 export const winsize = 10_0000 as const
 
 
+export interface DdbEvalOptions {
+    urgent?: boolean
+    listener?: DdbMessageListener
+    parse_object?: boolean
+}
+
+
 type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 
-export interface DdbRpcOptions {
+export interface DdbRpcOptions extends DdbEvalOptions {
     script?: string
     func?: string
     args?: (DdbObj | string | boolean)[]
     vars?: string[]
-    urgent?: boolean
-    listener?: DdbMessageListener
-    parse_object?: boolean
     skip_connection_check?: boolean
     on_more_messages?: (buffer: Uint8Array) => void
 }
@@ -3299,6 +3869,17 @@ export interface DdbOptions {
     sql?: SqlStandard
     streaming?: StreamingParams
     verbose?: boolean
+    proxy?: string
+}
+
+
+export interface DdbCallOptions extends DdbEvalOptions {
+    node?: string
+    nodes?: string[]
+    func_type?: DdbFunctionType
+    add_node_alias?: boolean
+    skip_connection_check?: boolean
+    on_more_messages?: DdbRpcOptions['on_more_messages']
 }
 
 
@@ -3361,8 +3942,6 @@ export class DDB {
     
     parse_object = true
     
-    pnode_run_defined = false
-    
     
     /** 在 websocket 收到的第一个 error 时，  
         在 connect_websocket 的 on_error 回调中构造 DdbConnectionError 并保存到 DDB 对象上，  
@@ -3377,6 +3956,9 @@ export class DDB {
     
     /** 首次定义 pnode_run 的 promise，保证并发调用 rpc 时只定义一次 pnode_run */
     ppnode_run: Promise<DdbVoid>
+    
+    /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
+    pinvoke: Promise<DdbVoid>
     
     
     get connected () {
@@ -3852,19 +4434,14 @@ export class DDB {
                 不做解析，以便后续转发、序列化  
                 Set parse_object during this rpc, and restore the original after the end.  
                 When it is false, the returned DdbObj only contains buffer and le without parsing,   
-                so as to facilitate subsequent forwarding and serialization  
-    */
+                so as to facilitate subsequent forwarding and serialization */
     async eval <T extends DdbObj> (
         script: string,
         {
             urgent,
             listener,
             parse_object,
-        }: {
-            urgent?: boolean
-            listener?: DdbMessageListener
-            parse_object?: boolean
-        } = { }
+        }: DdbEvalOptions = { }
     ) {
         return this.rpc<T>('script', { script, urgent, listener, parse_object })
     }
@@ -3909,17 +4486,7 @@ export class DDB {
             parse_object,
             skip_connection_check,
             on_more_messages
-        }: {
-            urgent?: boolean
-            node?: string
-            nodes?: string[]
-            func_type?: DdbFunctionType
-            add_node_alias?: boolean
-            listener?: DdbMessageListener
-            parse_object?: boolean
-            skip_connection_check?: boolean
-            on_more_messages?: DdbRpcOptions['on_more_messages']
-        } = { }
+        }: DdbCallOptions = { }
     ) {
         if (node) {
             assert(func_type in DdbFunctionType, t('指定 node 时必须设置 func_type'))
@@ -3959,6 +4526,58 @@ export class DDB {
             skip_connection_check,
             on_more_messages
         })
+    }
+    
+    
+    /** 调用 dolphindb 函数，传入 js 原生数组作为参数，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）  
+        - func: 函数名  
+        - args?: `[ ]` 调用参数，可以是 js 原生数组  
+        - options?: 调用选项  
+            - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
+            - node?: 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法)  
+            - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)  
+            - func_type?: 设置 node 参数且参数数组为空时必传，需指定函数类型，其它情况下不传  
+            - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
+    async invoke <TResult = any> (func: string, args?: any[], options?: DdbCallOptions) {
+        await (this.pinvoke ??= this.eval<DdbVoid>(
+            this.python ?
+                '\n' +
+                'def invoke (func_name, args_json):\n' +
+                '    args = fromStdJson(args_json)\n' +
+                '    if type(args) != ANY:\n' +
+                '        args = cast(args, ANY)\n' +
+                '    return unifiedCall(funcByName(func_name), args)\n'
+            :
+                '\n' +
+                'def invoke (func_name, args_json) {\n' +
+                '    args = fromStdJson(args_json)\n' +
+                '    if (type(args) != ANY)\n' +
+                '        args = cast(args, ANY)\n' +
+                '    return unifiedCall(funcByName(func_name), args)\n' +
+                '}\n'
+            , { urgent: true }
+        ))
+        
+        if (options?.node)
+            options.func_type = DdbFunctionType.UserDefinedFunc
+        
+        return (await this.call(
+            args?.length ? 'invoke' : func,
+            args?.length ? [func, JSON.stringify(args)] : undefined,
+            options
+        )).data<TResult>()
+    }
+    
+    
+    /** 执行 dolphindb 脚本，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）  
+        - script?: 执行的脚本  
+        - options?: 执行选项  
+            - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞  
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
+    async execute <TResult = any> (script: string, options?: DdbEvalOptions) {
+        return (await this.eval(script, options))
+            .data<TResult>()
     }
     
     
@@ -4193,3 +4812,243 @@ export interface DdbErrorMessage {
 
 export type DdbMessage = DdbPrintMessage | DdbObjectMessage | DdbErrorMessage
 
+
+
+/** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/SharedArrayBuffer#security_requirements
+    SharedArrayBuffer is disabled by default in most browsers as a security precaution to avoid Spectre attacks.
+    But it's still available in Node.js or some browsers. */
+const has_shared_array_buffer = typeof SharedArrayBuffer !== 'undefined'
+
+
+export class BigInt128Array {
+    static of (...items: bigint[]): BigInt128Array {
+        return new BigInt128Array(items)
+    }
+    
+    
+    static from (arrayLike: ArrayLike<bigint>): BigInt128Array
+    static from<U>(arrayLike: ArrayLike<U>, mapfn: (v: U, k: number) => bigint, thisArg?: any): BigInt128Array
+    static from<U>(arrayLike: ArrayLike<U>, mapfn?: (v: U, k: number) => bigint, thisArg?: any) {
+        if (mapfn) {
+            const array: bigint[] = [ ]
+            for (let i = 0;  i < arrayLike.length;  i++) 
+                array.push(mapfn.call(thisArg, arrayLike[i], i))
+            
+            return new BigInt128Array(array)
+        } else {
+            const v = new BigInt128Array(arrayLike.length)
+            v.set(arrayLike as ArrayLike<bigint>)
+        }
+    }
+    
+    
+    readonly BYTES_PER_ELEMENT: number = 16
+    readonly buffer: ArrayBufferLike
+    readonly byteLength: number
+    readonly byteOffset: number
+    
+    
+    constructor (length?: number)
+    constructor (array: Iterable<bigint>)
+    constructor (buffer: ArrayBufferLike, byteOffset?: number, length?: number)
+    constructor (fisrtArg: number | Iterable<bigint> | ArrayBufferLike, byteOffset?: number, length?: number) {
+        if (typeof fisrtArg === 'number') {
+            const length = fisrtArg
+            this.buffer = new ArrayBuffer(length * this.BYTES_PER_ELEMENT)
+            this.byteOffset = 0
+            this.byteLength = length * this.BYTES_PER_ELEMENT
+        } else if (fisrtArg instanceof ArrayBuffer || (has_shared_array_buffer && fisrtArg instanceof SharedArrayBuffer)) {
+            this.buffer = fisrtArg
+            this.byteOffset = byteOffset ?? 0
+            
+            let byteLength = 0
+            if (length !== undefined) {
+                byteLength = length * this.BYTES_PER_ELEMENT
+                if (byteLength + this.byteOffset > fisrtArg.byteLength) 
+                    throw new RangeError(`valid typed array length: ${length}`)
+            } else {
+                byteLength = fisrtArg.byteLength - this.byteOffset
+                if (byteLength % this.BYTES_PER_ELEMENT !== 0) 
+                    throw new RangeError('byte length of BigInt128Array should be a multiple of 16')
+            }
+            
+            this.byteLength = byteLength
+        } else {
+            const array: bigint[] = [ ]
+            for (const value of fisrtArg as Iterable<bigint>) 
+                array.push(value)
+            
+            this.buffer = new ArrayBuffer(array.length * this.BYTES_PER_ELEMENT)
+            this.byteOffset = 0
+            this.byteLength = array.length * this.BYTES_PER_ELEMENT
+            this.set(array)
+        }
+        
+        return new Proxy(this, {
+            get (target, key) {
+                if (typeof key === 'string') {
+                    const index = Number(key)
+                    // only positive integer index is allowed
+                    if (Number.isInteger(index) && index >= 0 && index < target.length) 
+                        return target.at(index)
+                }
+                
+                return Reflect.get(target, key)
+            },
+            
+            set (target, key, value) {
+                if (typeof key === 'string') {
+                    const index = Number(key)
+                    if (Number.isInteger(index) && index >= 0 && index < target.length) 
+                        target.set([value], index)
+                    
+                    // ignore invalid number index setter, and never set value to target
+                    return true
+                }
+                
+                return Reflect.set(target, key, value)
+            }
+        })
+    }
+    
+    
+    get length () {
+        return this.byteLength / this.BYTES_PER_ELEMENT
+    }
+    
+    
+    set (array: ArrayLike<bigint>, offset: number = 0) {
+        if (offset + array.length > this.length) 
+            throw new RangeError('offset is out of bounds')
+        
+        const dv = new DataView(this.buffer)
+        for (let i = 0;  i < array.length;  i++) {
+            const byteOffset = this.byteOffset + (offset + i) * this.BYTES_PER_ELEMENT
+            set_big_int_128(dv, byteOffset, array[i])
+        }
+    }
+    
+    
+    at (index: number) {
+        const length = this.length
+        
+        if (index < 0) 
+            index += length
+        
+        if (index >= length || index < 0)
+            return undefined
+        
+        const dv = new DataView(this.buffer)
+        return get_big_int_128(dv, this.byteOffset + index * this.BYTES_PER_ELEMENT)
+    }
+    
+    
+    subarray (begin: number = 0, end: number = this.length) {
+        const length = this.length
+        // subarray arguments should be the same behavior as other TypedArray
+        // https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/TypedArray/subarray#%E8%AF%B4%E6%98%8E
+        if (begin < 0)
+            begin += length
+        
+        if (end < 0)
+            end += length
+        
+        if (begin < 0)
+            begin = 0
+        else if (begin > length)
+            begin = length
+        
+        if (end < 0)
+            end = 0
+        else if (end > length)
+            end = length
+        
+        const newLength = Math.max(end - begin, 0)
+        return new BigInt128Array(this.buffer, this.byteOffset + begin * this.BYTES_PER_ELEMENT, newLength)
+    }
+    
+    
+    [Symbol.iterator] () {
+        let index = 0
+        const array = this
+        return {
+            next () {
+                if (index < array.length) 
+                    return { value: array.at(index++), done: false }
+                else 
+                    return { done: true }
+            },
+        }
+    }
+    
+    
+    toString () {
+        const values: bigint[] = [ ]
+        for (const value of this) 
+            values.push(value)
+        return values.join(',')
+    }
+}
+
+
+Object.defineProperty(BigInt128Array.prototype, Symbol.toStringTag, {
+    configurable: false,
+    writable: false,
+    enumerable: false,
+    value: 'BigInt128Array',
+})
+
+
+// DataView Extends for bigint 128 operations
+function get_big_uint_128 (dataview: DataView, byte_offset: number, le = true) {
+    let cursor = byte_offset + (le ? 15 : 0)
+    const end = byte_offset + (le ? -1 : 16)
+    const step = le ? -1 : 1
+    let value = 0n
+    
+    while (cursor !== end) {
+        value = value << 8n | BigInt(dataview.getUint8(cursor))
+        cursor += step
+    }
+    
+    return value
+}
+
+function get_big_int_128 (dataview: DataView, byte_offset: number, le = true) {
+    return BigInt.asIntN(128, get_big_uint_128(dataview, byte_offset, le))
+}
+
+
+function set_big_uint_128 (dataView: DataView, byte_offset: number, value: bigint, le = true) {
+    let cursor = byte_offset + (le ? 0 : 15)
+    const end = byte_offset + (le ? 16 : -1)
+    const step = le ? 1 : -1
+    
+    while (cursor !== end) {
+        dataView.setUint8(cursor, Number(value & 0xffn))
+        value = value >> 8n
+        cursor += step
+    }
+}
+
+function set_big_int_128 (dataview: DataView, byte_offset: number, value: bigint, le = true) {
+    set_big_uint_128(dataview, byte_offset, value, le)
+}
+
+// 大端
+// const dataBE = new ArrayBuffer(16)
+// const dataViewBE = new DataView(dataBE)
+// set_big_int_128(dataViewBE, 0, -34355n, false)
+// console.log(dataViewBE.buffer)
+// const bigInt128BE = get_big_int_128(dataViewBE, 0, false)
+// const bigUint128BE = get_big_uint_128(dataViewBE, 0, false)
+// console.log(bigInt128BE.toString(), bigUint128BE.toString())
+
+// 小端
+// const dataLE = new ArrayBuffer(16)
+// const dataViewLE = new DataView(dataLE)
+// set_big_int_128(dataViewLE, 0, -34355n, true)
+// console.log(dataViewLE.buffer)
+// const bigInt128LE = get_big_int_128(dataViewLE, 0, true)
+// const bigUint128LE = get_big_uint_128(dataViewLE, 0, true)
+// console.log(bigInt128LE.toString(), bigUint128LE.toString())

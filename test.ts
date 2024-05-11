@@ -6,8 +6,7 @@ import { keywords } from './language.js'
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
-    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp,
-    type DdbDictObj
+    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData
 } from './index.js'
 
 
@@ -44,6 +43,7 @@ const ddb_options = fexists('T:/TEMP/', { print: false }) ? { proxy: MyProxy.wor
         test_time,
         test_streaming,
         test_error,
+        test_invoke
     ]
     
     for (const fn_test of tests)
@@ -319,7 +319,7 @@ async function time2str_equal (ddb: DDB, timestr: string) {
 }
 
 
-export async function test_types (ddb: DDB) {
+async function test_types (ddb: DDB) {
     console.log('测试通过 ddb.call 调用 getNodeAlias 函数')
     console.log(await ddb.call('getNodeAlias'))
     
@@ -483,6 +483,64 @@ async function test_from_stdjson (ddb: DDB) {
                 }
             })
         ])
+    )
+}
+
+
+async function test_invoke (ddb: DDB) {
+    console.log('测试 invoke')
+    
+    await ddb.eval(
+        'def echo (data) {\n' +
+        // '	print(data)\n' +
+        '	return data\n' +
+        '}\n'
+    )
+    
+    const str = 'blabla\n中文"\u4e2d\u6587"\\\"\"'
+    
+    assert(
+        (await ddb.invoke('echo', [{
+            a: 1234,
+            b: 'aaa',
+            c: {
+                e: 1234,
+                f: 4321
+            },
+            f: str
+        }]))
+            .f === str
+    )
+    
+    await ddb.execute(
+        'cbool = true false false;\n' +
+        "cchar = 'a' 'b' 'c';\n" +
+        'cshort = 122h 32h 45h;\n' +
+        'cint = 1 4 9;\n' +
+        'clong = 17l 39l 72l;\n' +
+        'cdate = 2013.06.13 2015.07.12 2019.08.15;\n' +
+        'cmonth = 2011.08M 2014.02M 2019.07M;\n' +
+        'ctime = 04:15:51.921 09:27:16.095 11:32:28.387;\n' +
+        'cminute = 03:25m 08:12m 10:15m;\n' +
+        'csecond = 01:15:20 04:26:45 09:22:59;\n' +
+        'cdatetime = 1976.09.10 02:31:42 1987.12.13 11:58:31 1999.12.10 20:49:23;\n' +
+        'ctimestamp = 1997.07.20 21:45:16.339 2002.11.26 12:40:31.783 2008.08.10 23:54:27.629;\n' +
+        'cnanotime = 01:25:33.365869429 03:47:25.364828475 08:16:22.748395721;\n' +
+        'cnanotimestamp = 2005.09.23 13:30:35.468385940 2007.12.11 14:54:38.949792731 2009.09.30 16:39:51.973463623;\n' +
+        'cfloat = 7.5f 0.79f 8.27f;\n' +
+        'cdouble = 5.7 7.2 3.9;\n' +
+        'cstring = "hello" "hi" "here";\n' +
+        'cdatehour = datehour(2012.06.15 15:32:10.158 2012.06.15 17:30:10.008 2014.09.29 23:55:42.693);\n' +
+        'cblob = blob("dolphindb" "gaussdb" "goldendb")\n' +
+        'cdecimal32 = decimal32(12 17 135.2,2)\n' +
+        'cdecimal64 = decimal64(18 24 33.878,4)\n' +
+        'cdecimal128 = decimal128(18 24 33.878,18)\n'
+    )
+    
+    assert(
+        // await ddb.invoke<DdbTableData>('defs')
+        (await ddb.invoke<DdbTableData>('objs', [true]))
+            .columns.includes('shared')
     )
 }
 

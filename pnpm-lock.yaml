@@ -18,8 +18,8 @@ importers:
         specifier: ^2.6.2
         version: 2.6.2
       xshell:
-        specifier: ^1.0.97
-        version: 1.0.97
+        specifier: ^1.0.99
+        version: 1.0.99
     devDependencies:
       '@types/node':
         specifier: ^20.12.11
@@ -1086,8 +1086,8 @@ packages:
     engines: {node: '>=12'}
     hasBin: true
 
-  i18next@23.11.3:
-    resolution: {integrity: sha512-Pq/aSKowir7JM0rj+Wa23Kb6KKDUGno/HjG+wRQu0PxoTbpQ4N89MAT0rFGvXmLkRLNMb1BbBOKGozl01dabzg==}
+  i18next@23.11.4:
+    resolution: {integrity: sha512-CCUjtd5TfaCl+mLUzAA0uPSN+AVn4fP/kWCYt/hocPUwusTpMVczdrRyOBUwk6N05iH40qiKx6q1DoNJtBIwdg==}
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -1675,8 +1675,8 @@ packages:
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
-  react-object-model@1.2.4:
-    resolution: {integrity: sha512-Q0LxQ2dSbtQeWh7Ynq1Q/OpKU76vJPgpErOWaljt2ubVt6P7NA7GHADwLWcfV8oBC+UzTveBLIvcPWvu6a7+nQ==}
+  react-object-model@1.2.5:
+    resolution: {integrity: sha512-LJuHzUd9Hz5mdGBvKVntBLrA6PTkx32kisb8da12GeKu8xWJC4UUsXqfGUNIdb3Hhxb3hJJNIGT5uda+p5RJ/Q==}
     peerDependencies:
       react: ^18.2.0
 
@@ -2010,8 +2010,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  ua-parser-js@2.0.0-alpha.2:
-    resolution: {integrity: sha512-Vz+BJN/EFC1OaUv0eu5kPyX7HEZIO7Dv29jIK7rMuKjUB1qqq+Is/XIpu5iV5XDvoNl62dM7ay8DtzYjBDI0WA==}
+  ua-parser-js@2.0.0-beta.2:
+    resolution: {integrity: sha512-v1tudz3YJqB2lFtmhs/Wh2aPNsOatJBeCQp5s67rgx7UprG1pkOgzm8H1jXabaMZBXH9cWU3gePSgBTe3lFeRA==}
 
   unbox-primitive@1.0.2:
     resolution: {integrity: sha512-61pPlCD9h51VoreyJ0BReideM3MDKMKnh6+V9L08331ipq6Q8OFXZYiqP6n/tbHx4s5I9uRhcye6BrbkizkBDw==}
@@ -2019,8 +2019,8 @@ packages:
   undici-types@5.26.5:
     resolution: {integrity: sha512-JlCMO+ehdEIKqlFxk6IfVoAUVmgz7cU7zD/h9XZ0qzeosSHmUJVOzSQvvYSYWXkFXC+IfLKSIffhv0sVZup6pA==}
 
-  undici@6.16.0:
-    resolution: {integrity: sha512-HQfVddOTb5PJtfLnJ1Px8bNGyIg/z7WTj1hjUSna1Itsv59Oca9JdclIU08ToNqvWWXjFLRzc9rqjnpfw5UWcQ==}
+  undici@6.16.1:
+    resolution: {integrity: sha512-NeNiTT7ixpeiL1qOIU/xTVpHpVP0svmI6PwoCKaMGaI5AsHOaRdwqU/f7Fi9eyU4u03nd5U/BC8wmRMnS9nqoA==}
     engines: {node: '>=18.17'}
 
   unescape@1.0.1:
@@ -2142,8 +2142,8 @@ packages:
     resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
     engines: {node: '>=4.0'}
 
-  xshell@1.0.97:
-    resolution: {integrity: sha512-uJ+CaKyeWGS+ZQtG/UoFL7ussEYWAtzK2GzinRcesyQZlw9iNnJV4y87cdQ43fiXzzv7W/b0eya9wIGVEjXA5A==}
+  xshell@1.0.99:
+    resolution: {integrity: sha512-phBTe/1V8wrHSW04LjQ4i05PNaQHf3o6KTeKW25r47f1aV2dmWW3Jj8nz8cobntZL20JWpg7tC41Fi/z3NyKPw==}
     engines: {node: '>=21.3.0', vscode: '>=1.81.0'}
     hasBin: true
 
@@ -3478,7 +3478,7 @@ snapshots:
       eol: 0.9.1
       esprima-next: 5.8.4
       gulp-sort: 2.0.0
-      i18next: 23.11.3
+      i18next: 23.11.4
       lodash: 4.17.21
       parse5: 6.0.1
       sortobject: 4.16.0
@@ -3486,7 +3486,7 @@ snapshots:
       vinyl: 3.0.0
       vinyl-fs: 4.0.0
 
-  i18next@23.11.3:
+  i18next@23.11.4:
     dependencies:
       '@babel/runtime': 7.23.9
 
@@ -4021,16 +4021,16 @@ snapshots:
 
   queue-tick@1.0.1: {}
 
-  react-i18next@14.1.1(i18next@23.11.3)(react@18.3.1):
+  react-i18next@14.1.1(i18next@23.11.4)(react@18.3.1):
     dependencies:
       '@babel/runtime': 7.23.9
       html-parse-stringify: 3.0.1
-      i18next: 23.11.3
+      i18next: 23.11.4
       react: 18.3.1
 
   react-is@16.13.1: {}
 
-  react-object-model@1.2.4(react@18.3.1):
+  react-object-model@1.2.5(react@18.3.1):
     dependencies:
       react: 18.3.1
     optionalDependencies:
@@ -4425,7 +4425,7 @@ snapshots:
 
   typescript@5.4.5: {}
 
-  ua-parser-js@2.0.0-alpha.2: {}
+  ua-parser-js@2.0.0-beta.2: {}
 
   unbox-primitive@1.0.2:
     dependencies:
@@ -4436,7 +4436,7 @@ snapshots:
 
   undici-types@5.26.5: {}
 
-  undici@6.16.0: {}
+  undici@6.16.1: {}
 
   unescape@1.0.1:
     dependencies:
@@ -4602,7 +4602,7 @@ snapshots:
 
   xmlbuilder@11.0.1: {}
 
-  xshell@1.0.97:
+  xshell@1.0.99:
     dependencies:
       '@babel/core': 7.24.5
       '@babel/parser': 7.24.5
@@ -4628,7 +4628,7 @@ snapshots:
       gulp-sort: 2.0.0
       hash-string: 1.0.0
       https-proxy-agent: 7.0.4
-      i18next: 23.11.3
+      i18next: 23.11.4
       i18next-scanner: 4.4.0
       js-cookie: 3.0.5
       koa: 2.15.3
@@ -4638,16 +4638,16 @@ snapshots:
       mime-types: 2.1.35
       ora: 8.0.1
       react: 18.3.1
-      react-i18next: 14.1.1(i18next@23.11.3)(react@18.3.1)
-      react-object-model: 1.2.4(react@18.3.1)
+      react-i18next: 14.1.1(i18next@23.11.4)(react@18.3.1)
+      react-object-model: 1.2.5(react@18.3.1)
       resolve-path: 1.4.0
       strip-ansi: 7.1.0
       through2: 4.0.2
       tough-cookie: 4.1.4
       tslib: 2.6.2
       typescript: 5.4.5
-      ua-parser-js: 2.0.0-alpha.2
-      undici: 6.16.0
+      ua-parser-js: 2.0.0-beta.2
+      undici: 6.16.1
       vinyl: 3.0.0
       vinyl-fs: 4.0.0
       ws: 8.17.0

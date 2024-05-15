@@ -2931,10 +2931,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             case DdbType.decimal128: {
                 const { scale, data } = value as DdbDecimalVectorValue
                 
-                // todo: 用 Array.prototype.map.call 时对 BigInt128Array 这个代理对象无效？为什么只能通过下标访问？
-                return seq(rows, i => {
-                    const x: number | bigint = data[i]
-                    
+                return Array.prototype.map.call(data,(x: number | bigint) => {
                     if (is_decimal_null_value(type, x))
                         return ''
                     
@@ -4889,6 +4886,15 @@ export class BigInt128Array {
                 }
                 
                 return Reflect.set(target, key, value)
+            },
+            
+            has(target, key) {
+                // if (typeof key === 'string' && Array.from({ length:target.length }, (_, index) => index).includes(Number(key))) 
+                //     return true
+                if(typeof key === 'string' && Number(key) < target.length)
+                    return true
+                
+                return Reflect.has(target, key);
             }
         })
     }

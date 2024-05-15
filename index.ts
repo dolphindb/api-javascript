@@ -2931,7 +2931,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             case DdbType.decimal128: {
                 const { scale, data } = value as DdbDecimalVectorValue
                 
-                return Array.prototype.map.call(data,(x: number | bigint) => {
+                return Array.prototype.map.call(data, (x: number | bigint) => {
                     if (is_decimal_null_value(type, x))
                         return ''
                     
@@ -4888,13 +4888,14 @@ export class BigInt128Array {
                 return Reflect.set(target, key, value)
             },
             
-            has(target, key) {
-                // if (typeof key === 'string' && Array.from({ length:target.length }, (_, index) => index).includes(Number(key))) 
-                //     return true
-                if(typeof key === 'string' && Number(key) < target.length)
-                    return true
+            has (target, key) {
+                if (typeof key === 'string') {
+                    const index = Number(key)
+                    if (Number.isInteger(index) && index >= 0 && index < target.length)
+                        return true
+                }
                 
-                return Reflect.has(target, key);
+                return Reflect.has(target, key)
             }
         })
     }

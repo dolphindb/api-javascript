@@ -380,20 +380,22 @@ const result = await ddb.execute(
     'def foo (a, b) {\n' +
     '    return a + b\n' +
     '}\n' +
-    'foo(1, 1)\n'
+    'foo(1l, 1l)\n'
 )
 
 // TypeScript:
-// const result = await ddb.execute<number>(...)
+// const result = await ddb.execute<bigint>(...)
 
-console.log(result.value === 2)  // true
+console.log(result.value === 2n)  // true
 ```
 
-上面例子中，通过字符串上传了一段脚本到 DolphinDB 数据库执行，并接收最后一条语句 `foo(1, 1)` 执行结果 result
+上面例子中，通过字符串上传了一段脚本到 DolphinDB 数据库执行，并接收最后一条语句 `foo(1l, 1l)` 执行结果 result
 
-`<number>` 用于 TypeScript 推断返回值的类型
+`<bigint>` 用于 TypeScript 推断返回值的类型
 
-- result 是一个 `number`
+- result 是一个 `bigint`
+
+只要 WebSocket 连接不断开，在后续的会话中 `foo` 这个自定义函数会一直存在，可复用，比如后续通过 `await ddb.call<DdbInt>('foo', [new DdbInt(1), new DdbInt(1)])` 调用这个自定义函数
 
 ##### `execute` 方法声明
 ```ts
@@ -437,8 +439,6 @@ console.log(result.value === 2n)  // true
 - result.form 是 `DdbForm.scalar`
 - result.type 是 `DdbType.long`
 - result.value 是 JavaScript 中原生的 `bigint` (long 的精度不能用 JavaScript 的 number 准确表示，但可以用 bigint 表示)
-
-只要 WebSocket 连接不断开，在后续的会话中 `foo` 这个自定义函数会一直存在，可复用，比如后续通过 `await ddb.call<DdbInt>('foo', [new DdbInt(1), new DdbInt(1)])` 调用这个自定义函数
 
 ##### `eval` 方法声明
 ```ts

@@ -127,15 +127,28 @@ let ddb = new DDB('ws://127.0.0.1:8848', {
 
 
 ### 调用函数
-#### `call` 方法
-##### `call` 方法声明
+#### `invoke` 方法
+##### `invoke` 方法代码示例
 ```ts
-async call <T extends DdbObj> (
+const result = await ddb.invoke('add', [1, 1])
+// TypeScript: const result = await ddb.invoke<number>('add', [1, 1])
+
+console.log(result === 2)  // true
+```
+
+上面例子中，上传了两个参数 1 (对应 DolphinDB 中的 int 类型) 到 DolphinDB 数据库，作为 add 函数的参数，并接收函数调用的结果 result
+
+`<number>` 用于 TypeScript 推断返回值的类型
+
+##### `invoke` 方法声明
+```ts
+/** 调用 dolphindb 函数，传入 js 原生数组作为参数，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）*/
+async invoke <TResult = any> (
     /** 函数名 */
-    func: string,
+    func: string, 
     
-    /** 调用参数 (传入的原生 string 和 boolean 会被自动转换为 DdbObj<string> 和 DdbObj<boolean>) */
-    args?: (DdbObj | string | boolean)[] = [ ],
+    /** `[ ]` 调用参数，可以是 js 原生数组 */
+    args?: any[], 
     
     /** 调用选项 */
     options?: {
@@ -148,15 +161,19 @@ async call <T extends DdbObj> (
         /** 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法) */
         nodes?: string[]
         
-        /** 设置 node 参数时必传，需指定函数类型，其它情况下不传 */
+        /** 设置 node 参数且参数数组为空时必传，需指定函数类型，其它情况下不传 */
         func_type?: DdbFunctionType
         
         /** 设置 nodes 参数时选传，其它情况不传 */
         add_node_alias?: boolean
+        
+        /** 处理本次 rpc 期间的消息 (DdbMessage) */
+        listener?: DdbMessageListener
     } = { }
-): Promise<T>
+): Promise<TResult>
 ```
 
+#### `call` 方法
 ##### `call` 方法代码示例
 ```ts
 import { DdbInt } from 'dolphindb'
@@ -326,16 +343,14 @@ new DdbInt(null)
 new DdbDouble(null)
 ```
 
-#### `invoke` 方法
-##### `invoke` 方法声明
+##### `call` 方法声明
 ```ts
-/** 调用 dolphindb 函数，传入 js 原生数组作为参数，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）*/
-async invoke <TResult = any> (
+async call <T extends DdbObj> (
     /** 函数名 */
-    func: string, 
+    func: string,
     
-    /** `[ ]` 调用参数，可以是 js 原生数组 */
-    args?: any[], 
+    /** 调用参数 (传入的原生 string 和 boolean 会被自动转换为 DdbObj<string> 和 DdbObj<boolean>) */
+    args?: (DdbObj | string | boolean)[] = [ ],
     
     /** 调用选项 */
     options?: {
@@ -353,41 +368,51 @@ async invoke <TResult = any> (
         
         /** 设置 nodes 参数时选传，其它情况不传 */
         add_node_alias?: boolean
-        
-        /** 处理本次 rpc 期间的消息 (DdbMessage) */
-        listener?: DdbMessageListener
-    } = { }
-): Promise<TResult>
-```
-
-##### `invoke` 方法代码示例
-```ts
-const result = await ddb.invoke('add', [1, 1])
-// TypeScript: const result = await ddb.invoke<Number>('add', [1, 1])
-
-console.log(result === 2)  // true
-```
-
-上面例子中，上传了两个参数 1 (对应 DolphinDB 中的 int 类型) 到 DolphinDB 数据库，作为 add 函数的参数，并接收函数调用的结果 result
-
-`<Number>` 用于 TypeScript 推断返回值的类型
-
-### 执行脚本
-#### `eval` 方法
-##### `eval` 方法声明
-```ts
-/** 执行 dolphindb 脚本，返回 DdbObj 对象）*/
-async eval <T extends DdbObj> (
-    /** 执行的脚本 */
-    script: string,
-    
-    /** 执行选项 */
-    options: {
-        /** 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞 */
-        urgent?: boolean
     } = { }
 ): Promise<T>
 ```
+
+### 执行脚本
+#### `execute` 方法
+##### `execute` 方法代码示例
+```ts
+const result = await ddb.execute(
+    'def foo (a, b) {\n' +
+    '    return a + b\n' +
+    '}\n' +
+    'foo(1, 1)\n'
+)
+
+// TypeScript:
+// const result = await ddb.execute<number>(...)
+
+console.log(result.value === 2)  // true
+```
+
+上面例子中，通过字符串上传了一段脚本到 DolphinDB 数据库执行，并接收最后一条语句 `foo(1, 1)` 执行结果 result
+
+`<number>` 用于 TypeScript 推断返回值的类型
+
+- result 是一个 `number`
+
+##### `execute` 方法声明
+```ts
+/** 执行 dolphindb 脚本，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）*/
+async execute <TResult = any> (
+    /** 执行的脚本 */
+    script: string, 
+    
+    /** 执行选项 */
+    options?: {
+        /** 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞 */
+        urgent?: boolean
+        /** listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
+        listener?: DdbMessageListener
+    }
+): Promise<TResult>
+```
+
+#### `eval` 方法
 ##### `eval` 方法代码示例
 ```ts
 const result = await ddb.eval(
@@ -415,44 +440,20 @@ console.log(result.value === 2n)  // true
 
 只要 WebSocket 连接不断开，在后续的会话中 `foo` 这个自定义函数会一直存在，可复用，比如后续通过 `await ddb.call<DdbInt>('foo', [new DdbInt(1), new DdbInt(1)])` 调用这个自定义函数
 
-#### `execute` 方法
-##### `execute` 方法声明
+##### `eval` 方法声明
 ```ts
-/** 执行 dolphindb 脚本，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）*/
-async execute <TResult = any> (
+/** 执行 dolphindb 脚本，返回 DdbObj 对象）*/
+async eval <T extends DdbObj> (
     /** 执行的脚本 */
-    script: string, 
+    script: string,
     
     /** 执行选项 */
-    options?: {
+    options: {
         /** 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞 */
         urgent?: boolean
-        /** listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
-        listener?: DdbMessageListener
-    }
-): Promise<TResult>
+    } = { }
+): Promise<T>
 ```
-##### `execute` 方法代码示例
-```ts
-const result = await ddb.eval(
-    'def foo (a, b) {\n' +
-    '    return a + b\n' +
-    '}\n' +
-    'foo(1, 1)\n'
-)
-
-// TypeScript:
-// import type { DdbLong } from 'dolphindb'
-// const result = await ddb.eval<Number>(...)
-
-console.log(result.value === 2)  // true
-```
-
-上面例子中，通过字符串上传了一段脚本到 DolphinDB 数据库执行，并接收最后一条语句 `foo(1, 1)` 执行结果 result
-
-`<Number>` 用于 TypeScript 推断返回值的类型
-
-- result 是一个 `Number`
 
 ### 上传变量
 #### 例子

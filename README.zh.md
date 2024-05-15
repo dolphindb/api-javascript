@@ -49,7 +49,7 @@ https://www.npmjs.com/package/dolphindb
             await ddb.connect()
             
             console.log(
-                await ddb.eval('1 + 1')
+                await ddb.execute('1 + 1')
             )
         </script>
     </body>

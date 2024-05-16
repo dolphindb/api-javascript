@@ -395,7 +395,7 @@ console.log(result.value === 2n)  // true
 
 - result 是一个 `bigint`
 
-只要 WebSocket 连接不断开，在后续的会话中 `foo` 这个自定义函数会一直存在，可复用，比如后续通过 `await ddb.call<DdbInt>('foo', [new DdbInt(1), new DdbInt(1)])` 调用这个自定义函数
+只要 WebSocket 连接不断开，在后续的会话中 `foo` 这个自定义函数会一直存在，可复用，比如后续通过 `await ddb.invoke<number>('foo', [1, 1])` 调用这个自定义函数
 
 ##### `execute` 方法声明
 ```ts
@@ -530,7 +530,7 @@ let sddb = new DDB('ws://192.168.0.43:8800', {
     streaming: {
         table: '要订阅的流表名称',
         
-        // 流数据处理回调, message 的类型是 StreamingData
+        // 流数据处理回调, message 的类型是 StreamingMessage
         handler (message) {
             console.log(message)
         }
@@ -541,17 +541,17 @@ let sddb = new DDB('ws://192.168.0.43:8800', {
 await sddb.connect()
 ```
 
-连接建立后接收到的流数据会作为 message 参数调用 handler, message 的类型是 StreamingData, 如下:
+连接建立后接收到的流数据会作为 message 参数调用 handler, message 的类型是 StreamingMessage, 如下:
 
 ```ts
 export interface StreamingParams {
     table: string
     action?: string
     
-    handler (message: StreamingData): any
+    handler (message: StreamingMessage): any
 }
 
-export interface StreamingData extends StreamingParams {
+export interface StreamingMessage extends StreamingParams {
     /**
         server 发送消息的时间 (nano seconds since epoch)  
         std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
@@ -569,7 +569,10 @@ export interface StreamingData extends StreamingParams {
     topic: string
     
     /** 流数据，类型是 any vector, 其中的每一个元素对应被订阅表的一个列 (没有 name)，列 (DdbObj<DdbVectorValue>) 中的内容是新增的数据值 */
-    data: DdbObj<DdbVectorObj[]>
+    obj: DdbObj<DdbVectorObj[]>
+    
+    /** 将 obj 转换成 js 原生数据类型后的结果 */
+    data: DdbTableData
     
     /** 新增的流数据行数 */
     rows: number

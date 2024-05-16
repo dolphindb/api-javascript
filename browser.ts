@@ -3766,7 +3766,10 @@ export interface StreamingMessage extends StreamingParams {
     
     /** 流数据，类型是 any vector, 其中的每一个元素对应被订阅表的一个列 (没有 name)，列 (DdbObj<DdbVectorValue>) 中的内容是新增的数据值  
         Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
-    data: DdbObj<DdbVectorObj[]>
+    obj: DdbObj<DdbVectorObj[]>
+    
+    /** 将 obj 转换成 js 原生数据类型后的结果 */
+    data: DdbTableData
     
     /** 新增的流数据行数  Number of new streaming data rows */
     rows: number
@@ -4726,25 +4729,36 @@ export class DDB {
                         const i_topic_end = buffer.indexOf(0, 17)
                         
                         // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
-                        const data = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                        const obj = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
                         
                         // server 推数据时遇到错误会返回 string，一般格式为 error.xxx: 错误信息
-                        if (data.form === DdbForm.scalar && data.type === DdbType.string) {
+                        if (obj.form === DdbForm.scalar && obj.type === DdbType.string) {
                             this.disconnect()
-                            const value = data.value as any as string
+                            const value = obj.value as any as string
                             throw new Error(value.slice(value.indexOf(':') + 1).trim())
                         }
                         
                         if (!schema) {
-                            schema = data
+                            schema = obj
                             return
                         }
                         
-                        const { rows } = data.value[0]
+                        const { rows } = obj.value[0]
+                        const types = obj.value.map(({ type }) => type)
+                        const data = {
+                            name: this.streaming.table || '',
+                            columns: colnames,
+                            types,
+                            data: seq(rows, i =>
+                                zip_object(
+                                    colnames,
+                                    seq(colnames.length, j => convert(types[j], obj.value[j].value[i], this.le))
+                                ))
+                        } as DdbTableData
                         
                         win.rows += rows
                         
-                        win.segments.push(data)
+                        win.segments.push(obj)
                         
                         if (win.rows >= winsize * 2 && win.segments.length >= 2) {
                             let winsize_ = 0
@@ -4768,6 +4782,7 @@ export class DDB {
                             topic: this.dec.decode(buffer.subarray(17, i_topic_end)),
                             colnames,
                             schema,
+                            obj,
                             data,
                             window: win,
                         })

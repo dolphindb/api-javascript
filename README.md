@@ -448,7 +448,7 @@ let sddb = new DDB('ws://192.168.0.43:8800', {
     streaming: {
         table: 'Streaming table name to subscribe to',
         
-        // Streaming data processing callback, the type of message is StreamingData
+        // Streaming data processing callback, the type of message is StreamingMessage
         handler (message) {
             console.log(message)
         }
@@ -459,17 +459,17 @@ let sddb = new DDB('ws://192.168.0.43:8800', {
 await sddb.connect()
 ```
 
-The streaming data received after the connection is established will be used as the message parameter of the handler. The type of the message is StreamingData, as follows:
+The streaming data received after the connection is established will be used as the message parameter of the handler. The type of the message is StreamingMessage, as follows:
 
 ```ts
 export interface StreamingParams {
     table: string
     action?: string
     
-    handler (message: StreamingData): any
+    handler (message: StreamingMessage): any
 }
 
-export interface StreamingData extends StreamingParams {
+export interface StreamingMessage extends StreamingParams {
     /**
         The time the server sent the message (nano seconds since epoch)  
         std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
@@ -487,7 +487,10 @@ export interface StreamingData extends StreamingParams {
     topic: string
     
     /** Streaming data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
-    data: DdbObj<DdbVectorObj[]>
+    obj: DdbObj<DdbVectorObj[]>
+    
+    /** The result after converting obj to js native data type */
+    data: DdbTableData
     
     /** Number of new streaming data rows */
     rows: number

@@ -1831,25 +1831,25 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         - 矩阵对应 DdbMatrixData
         - 字典对应普通的 js 对象 Record<string, any> 
         - 图对应 DdbChartValue */
-    data <TResult extends any[]> (this: DdbVectorObj): TResult
-    data <TResult = any> (this: DdbObj): TResult
-    data <TResult = any> (this: DdbObj): TResult {
+    data <TResult extends any[]> (this: DdbVectorObj, options?: ConvertOptions): TResult
+    data <TResult = any> (this: DdbObj, options?: ConvertOptions): TResult
+    data <TResult = any> (this: DdbObj, options?: ConvertOptions): TResult {
         const { form, type, value, le, rows, name } = this
         
         switch (form) {
             case DdbForm.scalar:
-                return convert(type, value, le) as TResult
+                return convert(type, value, le, options) as TResult
             
             case DdbForm.vector:
             case DdbForm.pair:
             case DdbForm.set: {
-                const data = converts(type, value as DdbVectorValue, rows, le)
+                const data = converts(type, value as DdbVectorValue, rows, le, options)
                 return (form === DdbForm.set ? new Set(data) : data) as TResult
             }
             
             case DdbForm.table: {
                 const cols = value as DdbVectorObj[]
-                const jscols = cols.map(col => col.data())
+                const jscols = cols.map(col => col.data(options))
                 const keys = cols.map(({ name }) => name)
                 
                 return {
@@ -1867,7 +1867,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbForm.dict: {
                 const [keys, values] = value as DdbDictValue
                 
-                return zip_object(keys.data(), values.data()) as TResult
+                return zip_object(keys.data(options), values.data(options)) as TResult
             }
             
             case DdbForm.chart:
@@ -1877,7 +1877,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 const ncolumns = this.cols
                 const { rows: _rows, cols: _cols, data } = value as DdbMatrixValue
                 
-                const jsdata = converts(type, data, rows * ncolumns, le)
+                const jsdata = converts(type, data, rows * ncolumns, le, options)
                 
                 return {
                     type,
@@ -1886,9 +1886,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     
                     ncolumns,
                     
-                    rows: _rows?.data(),
+                    rows: _rows?.data(options),
                     
-                    columns: _cols?.data(),
+                    columns: _cols?.data(options),
                     
                     data: seq(rows, i => 
                             seq(ncolumns, j => 
@@ -2385,6 +2385,12 @@ export interface InspectOptions extends UtilInspectOptions {
 }
 
 
+export interface ConvertOptions {
+    /** 是否要将 blob 类型的数据转为 string */
+    blob?: 'string' | 'binary'
+}
+
+
 /** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个 */
 let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
@@ -2788,7 +2794,11 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 }
 
 
-export function convert (type: DdbType, value: DdbValue, le: boolean) {
+export function convert (type: DdbType, value: DdbValue, le: boolean, options?: ConvertOptions) {
+    const dec = new TextDecoder('utf-8')
+    
+    const { blob = 'string' } = options
+    
     switch (type) {
         case DdbType.void:
             return value === DdbVoidType.null ? null : undefined
@@ -2823,9 +2833,13 @@ export function convert (type: DdbType, value: DdbValue, le: boolean) {
         case DdbType.handle:
         case DdbType.datasource:
         case DdbType.resource:
+            return value
             
         case DdbType.blob:
-            return value
+            return blob === 'string' ? ((value as Uint8Array).length > 100 ?
+                        dec.decode((value as Uint8Array).subarray(0, 98)) + '…'
+                    :
+                        dec.decode((value as Uint8Array))) : value
         
         case DdbType.complex:
         case DdbType.point: {
@@ -2866,7 +2880,7 @@ export function convert (type: DdbType, value: DdbValue, le: boolean) {
 
 
 /** 转换一个向量到 js 原生数组 */
-export function converts (type: DdbType, value: DdbVectorValue, rows: number, le: boolean): any[] {
+export function converts (type: DdbType, value: DdbVectorValue, rows: number, le: boolean, options?: ConvertOptions): any[] {
     if (type < 64 || type >= 128)
         switch (type) {
             // 可以直接用下标取值再转换的类型
@@ -2900,7 +2914,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             case DdbType.functiondef:
             
             case DdbType.blob:
-                return Array.prototype.map.call(value, (x: number | bigint) => convert(type, x, le))
+                return Array.prototype.map.call(value, (x: number | bigint) => convert(type, x, le, options))
                 
             
             case DdbType.void:
@@ -2923,7 +2937,8 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
                 return seq(rows, i => convert(
                     type, 
                     (value as Uint8Array).subarray(16 * i, 16 * (i + 1)), 
-                    le
+                    le,
+                    options
                 ))
             
             case DdbType.decimal32:
@@ -2942,7 +2957,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             }
             
             case DdbType.any:
-                return (value as DdbObj[]).map(x => x.data())
+                return (value as DdbObj[]).map(x => x.data(options))
             
             default:
                 throw new Error(String(DdbType[type] || type) + '[]' + t(' 暂时不支持转换为 js 对象'))
@@ -2963,20 +2978,21 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
                                 type_, 
                                 { scale: (value as DdbArrayVectorValue).scale, data: data.subarray(acc_len, acc_len + length) } as DdbDecimalVectorValue,
                                 length,
-                                le
+                                le,
+                                options
                             )
                             
                         case DdbType.complex:
                         case DdbType.point:
-                            return converts(type_, data.subarray(acc_len, acc_len + 2 * length), length, le)
+                            return converts(type_, data.subarray(acc_len, acc_len + 2 * length), length, le, options)
                         
                         case DdbType.uuid:
                         case DdbType.int128:
                         case DdbType.ipaddr:
-                            return converts(type_, data.subarray(acc_len, acc_len + 16 * length), length, le)
+                            return converts(type_, data.subarray(acc_len, acc_len + 16 * length), length, le, options)
                         
                         default:
-                            return converts(type_, data.subarray(acc_len, acc_len + length), length, le)
+                            return converts(type_, data.subarray(acc_len, acc_len + length), length, le, options)
                     }
                 })()
                 

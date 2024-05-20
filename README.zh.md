@@ -51,6 +51,10 @@ https://www.npmjs.com/package/dolphindb
             console.log(
                 await ddb.execute('1 + 1')
             )
+            
+            console.log(
+                await ddb.invoke('add', [1, 1])
+            )
         </script>
     </body>
 </html>

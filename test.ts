@@ -246,8 +246,8 @@ async function test_streaming (ddb: DDB) {
                 
                 deepEqual(colnames, ['time', 'stock', 'price'])
                 
-                assert(data.form === DdbForm.vector)
-                assert(data.rows === 3)
+                assert(data.columns.length === 3)
+                assert(Array.isArray(data.data))
                 assert(id)
                 assert(time)
                 assert(window.rows)

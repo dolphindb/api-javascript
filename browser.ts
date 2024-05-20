@@ -7,7 +7,7 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 
 import 'xshell/prototype.browser.js'
 import { blue, cyan, green, grey, magenta } from 'xshell/chalk.browser.js'
-import { concat, assert, Lock, genid, seq, zip_object } from 'xshell/utils.browser.js'
+import { concat, assert, Lock, genid, seq, zip_object, decode } from 'xshell/utils.browser.js'
 import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.browser.js'
 
 import { t } from './i18n/index.js'
@@ -2398,12 +2398,6 @@ export interface InspectOptions {
 }
 
 
-export interface ConvertOptions {
-    /** 是否要将 blob 类型的数据转为 string */
-    blob?: 'string' | 'binary'
-}
-
-
 /** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个 */
 let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
 
@@ -2814,6 +2808,12 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 }
 
 
+export interface ConvertOptions {
+    /** 是否要将 blob 类型的数据转为 string */
+    blob?: 'string' | 'binary'
+}
+
+
 export function convert (type: DdbType, value: DdbValue, le: boolean, options: ConvertOptions = { }) {
     const dec = new TextDecoder('utf-8')
     
@@ -2857,9 +2857,9 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, options: C
             
         case DdbType.blob: 
             return blob === 'string' ? ((value as Uint8Array).length > 100 ?
-                        dec.decode((value as Uint8Array).subarray(0, 98)) + '…'
+                        decode((value as Uint8Array).subarray(0, 98)) + '…'
                     :
-                        dec.decode((value as Uint8Array))) : value
+                        decode((value as Uint8Array))) : value
             
         
         case DdbType.complex:
@@ -3763,7 +3763,7 @@ export interface StreamingParams {
 }
 
 
-export interface StreamingMessage<TRows=any> extends StreamingParams {
+export interface StreamingMessage <TRows = any> extends StreamingParams {
     /** server 发送消息的时间 (nano seconds since epoch)   The time the server sent the message (nano seconds since epoch)  
         std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint

@@ -2794,7 +2794,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 }
 
 
-export function convert (type: DdbType, value: DdbValue, le: boolean, options?: ConvertOptions) {
+export function convert (type: DdbType, value: DdbValue, le: boolean, options: ConvertOptions = { }) {
     const dec = new TextDecoder('utf-8')
     
     const { blob = 'string' } = options
@@ -3742,7 +3742,7 @@ export interface StreamingParams {
 }
 
 
-export interface StreamingMessage extends StreamingParams {
+export interface StreamingMessage<TRows=any> extends StreamingParams {
     /** server 发送消息的时间 (nano seconds since epoch)   The time the server sent the message (nano seconds since epoch)  
         std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint
@@ -3765,7 +3765,7 @@ export interface StreamingMessage extends StreamingParams {
     obj: DdbObj<DdbVectorObj[]>
     
     /** 将 obj 转换成 js 原生数据类型后的结果 */
-    data: DdbTableData
+    data: DdbTableData<TRows>
     
     /** 新增的流数据行数  Number of new streaming data rows */
     rows: number

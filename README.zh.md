@@ -556,24 +556,18 @@ export interface StreamingParams {
 }
 
 export interface StreamingMessage <TRows = any> extends StreamingParams {
-    /**
-        server 发送消息的时间 (nano seconds since epoch)  
-        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
-    */
+    /** server 发送消息的时间 (nano seconds since epoch)  
+        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint
     
     /** message id */
     id: bigint
     
     /** 订阅主题，即一个订阅的名称。
-        它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔
-    */
+        它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔 */
     topic: string
     
-    /** 流数据，类型是 any vector, 其中的每一个元素对应被订阅表的一个列 (没有 name)，列 (DdbObj<DdbVectorValue>) 中的内容是新增的数据值 */
-    obj: DdbObj<DdbVectorObj[]>
-    
-    /** 流数据，对象中 data 属性的每一个元素对应被订阅表增量数据中的一行 */
+    /** 流数据 */
     data: DdbTableData<TRows>
     
     window: {

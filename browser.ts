@@ -2694,7 +2694,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
             case DdbType.decimal32:
             case DdbType.decimal64:
             case DdbType.decimal128: {
-                const { scale, data } = obj.value as DdbDecimal32VectorValue | DdbDecimal64VectorValue
+                const { scale, data } = obj.value as DdbDecimal128VectorValue
                 
                 const x = data[index]
                 
@@ -2809,7 +2809,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 
 
 export interface ConvertOptions {
-    /** `'string'` blob 类型数据转换结果的格式 */
+    /** `'string'` blob 类型数据的格式 */
     blob?: 'string' | 'binary'
 }
 
@@ -2851,9 +2851,8 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
         case DdbType.resource:
             return value
             
-        case DdbType.blob: 
+        case DdbType.blob:
             return blob === 'string' ?  decode(value as Uint8Array) : value
-        
         
         case DdbType.complex:
         case DdbType.point: {
@@ -3773,8 +3772,7 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
         Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
     obj: DdbObj<DdbVectorObj[]>
     
-    /** 流数据，对象中 data 属性的每一个元素对应被订阅表增量数据中的一行  
-        Streaming data, each element of the data attribute in the object corresponds to a row in the incremental data of the subscribed table */
+    /** 流数据 */
     data: DdbTableData<TRows>
     
     window: {
@@ -4709,12 +4707,10 @@ export class DDB {
             segments: [ ],
         }
         
-        let data: DdbTableData
-        
         // 流表推送过来的第一条数据是 schema，需要特殊处理
         let first = true
         
-        const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
+        const { value: columns } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
                 new DdbInt(0),
                 this.streaming.table,
@@ -4730,6 +4726,8 @@ export class DDB {
                 // 先准备好收到 websocket message 的 callback
                 on_more_messages: buffer => {
                     try {
+                        let data: DdbTableData
+                        
                         const dv = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
                         
                         const i_topic_end = buffer.indexOf(0, 17)
@@ -4752,19 +4750,20 @@ export class DDB {
                             const types = [ ]
                             const js_cols = [ ]
                             
+                            // 遍历每一列
                             obj.value.forEach(({ type, value }) => {
                                 types.push(type)
-                                js_cols.push(converts(type, value, rows, this.le))
+                                js_cols.push(converts(type, value, rows, obj.le))
                             })
                             
                             data = {
                                 name: this.streaming.table || '',
-                                columns: colnames,
+                                columns,
                                 types,
                                 data: seq(rows, i =>
                                     zip_object(
-                                        colnames,
-                                        seq(colnames.length, j => js_cols[j][i])
+                                        columns,
+                                        seq(columns.length, j => js_cols[j][i])
                                     ))
                             }
                             
@@ -4805,10 +4804,10 @@ export class DDB {
         )
         
         console.log(
-            t('订阅流表成功') + ', colnames:',
+            t('订阅流表成功') + ', columns:',
             
             // string[3](['time', 'stock', 'price'])
-            colnames
+            columns
         )
     }
 }

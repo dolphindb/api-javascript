@@ -227,32 +227,36 @@ async function test_streaming (ddb: DDB) {
     
     let total_rows = 0
     
+    let first = true
+    
     let promise = defer<void>()
     
     let sddb = new DDB(url, {
         ...ddb_options,
         streaming: {
             table: 'prices',
-            handler ({ rows, error, colnames, data, time, id, window, schema }) {
+            handler ({ error, data: _data, time, id, window }) {
                 if (error)
                     throw error
                 
-                if (total_rows === 0 && schema) {
-                    console.log('流订阅返回了 table schema')
-                    console.log(schema)
-                }
+                const { columns, data, name, types } = _data
                 
-                // console.log(data)
+                assert(Array.isArray(data))
                 
-                deepEqual(colnames, ['time', 'stock', 'price'])
+                if (first) {
+                    assert(data.length === 0, '流订阅应该返回 schema')
+                    first = false
+                } else
+                    assert(data.length > 0)
                 
-                assert(data.columns.length === 3)
-                assert(Array.isArray(data.data))
+                deepEqual(columns, ['time', 'stock', 'price'])
+                
+                assert(name === 'prices')
                 assert(id)
                 assert(time)
-                assert(window.rows)
+                assert(types.length === 3)
                 
-                total_rows += rows
+                total_rows += data.length
                 
                 if (total_rows === 50)
                     promise.resolve()

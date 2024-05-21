@@ -4744,6 +4744,7 @@ export class DDB {
                         
                         if (first) {
                             data = obj.data<DdbTableData>()
+                            data.name ||= this.streaming.table
                             first = false
                         } else {
                             const { rows } = obj.value[0]

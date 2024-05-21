@@ -2814,11 +2814,7 @@ export interface ConvertOptions {
 }
 
 
-export function convert (type: DdbType, value: DdbValue, le: boolean, options: ConvertOptions = { }) {
-    const dec = new TextDecoder('utf-8')
-    
-    const { blob = 'string' } = options
-    
+export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = 'string' }: ConvertOptions = { }) {
     switch (type) {
         case DdbType.void:
             return value === DdbVoidType.null ? null : undefined
@@ -2856,10 +2852,7 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, options: C
             return value
             
         case DdbType.blob: 
-            return blob === 'string' ? ((value as Uint8Array).length > 100 ?
-                        decode((value as Uint8Array).subarray(0, 98)) + '…'
-                    :
-                        decode((value as Uint8Array))) : value
+            return blob === 'string' ?  decode((value as Uint8Array)) : value
             
         
         case DdbType.complex:
@@ -3774,7 +3767,7 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
     colnames: string[]
     
     /** 最新的 server 有可能先推一个 table schema 过来 */
-    schema?: DdbTableObj
+    schema?: DdbTableData
     
     /** 订阅主题，即一个订阅的名称。  Subscription topic, which is the name of a subscription.
         它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔  
@@ -3785,7 +3778,8 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
         Stream data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
     obj: DdbObj<DdbVectorObj[]>
     
-    /** 将 obj 转换成 js 原生数据类型后的结果 */
+    /** 流数据，对象中 data 属性的每一个元素对应被订阅表增量数据中的一行  
+        Streaming data, each element of the data attribute in the object corresponds to a row in the incremental data of the subscribed table */
     data: DdbTableData<TRows>
     
     /** 新增的流数据行数  Number of new streaming data rows */
@@ -3799,7 +3793,7 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
         rows: number
         
         /** 每次接收到的 data 组成的数组  An array of data received each time */
-        segments: DdbObj<DdbVectorObj[]>[]
+        segments: DdbTableData<TRows>[]
     }
     
     /** 成功订阅后，后续推送过来的 message 解析错误，则会设置 error 并调用 handler  
@@ -4723,7 +4717,7 @@ export class DDB {
             segments: [ ],
         }
         
-        let schema: DdbTableObj
+        let schema: DdbTableData
         
         const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
@@ -4756,12 +4750,19 @@ export class DDB {
                         }
                         
                         if (!schema) {
-                            schema = obj
+                            schema = obj.data<DdbTableData>()
                             return
                         }
                         
                         const { rows } = obj.value[0]
-                        const types = obj.value.map(({ type }) => type)
+                        const types = [ ]
+                        const js_cols = [ ]
+                        
+                        obj.value.forEach(({ type, value }) => {
+                            types.push(type)
+                            js_cols.push(converts(type, value, rows, this.le))
+                        })
+                        
                         const data = {
                             name: this.streaming.table || '',
                             columns: colnames,
@@ -4769,20 +4770,20 @@ export class DDB {
                             data: seq(rows, i =>
                                 zip_object(
                                     colnames,
-                                    seq(colnames.length, j => convert(types[j], obj.value[j].value[i], this.le))
+                                    seq(colnames.length, j => js_cols[j][i])
                                 ))
                         } as DdbTableData
                         
                         win.rows += rows
                         
-                        win.segments.push(obj)
+                        win.segments.push(data)
                         
                         if (win.rows >= winsize * 2 && win.segments.length >= 2) {
                             let winsize_ = 0
                             let i = win.segments.length - 1
                             // 往前移动至首个累计 winsize_ 超过 winsize 的位置
                             for (  ;  winsize_ < winsize;  i--)
-                                winsize_ += win.segments[i].value[0].rows
+                                winsize_ += win.segments[i].data.length
                             
                             win.segments = win.segments.slice(i)
                             

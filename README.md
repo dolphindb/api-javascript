@@ -469,7 +469,7 @@ export interface StreamingParams {
     handler (message: StreamingMessage): any
 }
 
-export interface StreamingMessage extends StreamingParams {
+export interface StreamingMessage <TRows = any> extends StreamingParams {
     /**
         The time the server sent the message (nano seconds since epoch)  
         std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
@@ -479,8 +479,6 @@ export interface StreamingMessage extends StreamingParams {
     /** message id */
     id: bigint
     
-    colnames: string[]
-    
     /** Subscription topic, which is the name of a subscription.
         It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/`
     */
@@ -489,11 +487,8 @@ export interface StreamingMessage extends StreamingParams {
     /** Streaming data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
     obj: DdbObj<DdbVectorObj[]>
     
-    /** The result after converting obj to js native data type */
-    data: DdbTableData
-    
-    /** Number of new streaming data rows */
-    rows: number
+    /** Streaming data, each element of the data attribute in the object corresponds to a row in the incremental data of the subscribed table */
+    data: DdbTableData<TRows>
     
     window: {
         /** The establishment of the connection starts offset = 0, and gradually increases as the window moves */
@@ -503,7 +498,7 @@ export interface StreamingMessage extends StreamingParams {
         rows: number
         
         /** An array of data received each time */
-        segments: DdbObj<DdbVectorObj[]>[]
+        segments: DdbTableData<TRows>[]
     }
     
     /** After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */

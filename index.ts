@@ -2833,7 +2833,7 @@ export function convert (type: DdbType, value: DdbValue, le: boolean,  { blob = 
             return value
             
         case DdbType.blob:
-            return blob === 'string' ?  decode((value as Uint8Array)) : value
+            return blob === 'string' ?  decode(value as Uint8Array) : value
         
         case DdbType.complex:
         case DdbType.point: {
@@ -3744,11 +3744,6 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
     /** message id */
     id: bigint
     
-    colnames: string[]
-    
-    /** 最新的 server 有可能先推一个 table schema 过来 */
-    schema?: DdbTableData
-    
     /** 订阅主题，即一个订阅的名称。  Subscription topic, which is the name of a subscription.
         它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔  
         It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/` */
@@ -3761,9 +3756,6 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
     /** 流数据，对象中 data 属性的每一个元素对应被订阅表增量数据中的一行  
         Streaming data, each element of the data attribute in the object corresponds to a row in the incremental data of the subscribed table */
     data: DdbTableData<TRows>
-    
-    /** 新增的流数据行数  Number of new streaming data rows */
-    rows: number
     
     window: {
         /** 建立连接开始 offset = 0, 随着 window 的移动逐渐增加  The establishment of the connection starts offset = 0, and gradually increases as the window moves */
@@ -4704,7 +4696,10 @@ export class DDB {
             segments: [ ],
         }
         
-        let schema: DdbTableData
+        let data: DdbTableData
+        
+        // 流表推送过来的第一条数据是 schema，需要特殊处理
+        let first = true
         
         const { value: colnames } = await this.call<DdbVectorStringObj>('publishTable', [
                 'localhost',
@@ -4736,57 +4731,54 @@ export class DDB {
                             throw new Error(value.slice(value.indexOf(':') + 1).trim())
                         }
                         
-                        if (!schema) {
-                            schema = obj.data<DdbTableData>()
-                            return
-                        }
-                        
-                        const { rows } = obj.value[0]
-                        const types = [ ]
-                        const js_cols = [ ]
-                        
-                        obj.value.forEach(({ type, value }) => {
-                            types.push(type)
-                            js_cols.push(converts(type, value, rows, this.le))
-                        })
-                        
-                        const data = {
-                            name: this.streaming.table || '',
-                            columns: colnames,
-                            types,
-                            data: seq(rows, i =>
-                                zip_object(
-                                    colnames,
-                                    seq(colnames.length, j => js_cols[j][i])
-                                ))
-                        } as DdbTableData
-                        
-                        win.rows += rows
-                        
-                        win.segments.push(data)
-                        
-                        if (win.rows >= winsize * 2 && win.segments.length >= 2) {
-                            let winsize_ = 0
-                            let i = win.segments.length - 1
-                            // 往前移动至首个累计 winsize_ 超过 winsize 的位置
-                            for (  ;  winsize_ < winsize;  i--)
-                                winsize_ += win.segments[i].data.length
+                        if (first) {
+                            data = obj.data<DdbTableData>()
+                            first = false
+                        } else {
+                            const { rows } = obj.value[0]
+                            const types = [ ]
+                            const js_cols = [ ]
                             
-                            win.segments = win.segments.slice(i)
+                            obj.value.forEach(({ type, value }) => {
+                                types.push(type)
+                                js_cols.push(converts(type, value, rows, this.le))
+                            })
                             
-                            win.offset += win.rows - winsize_
+                            data = {
+                                name: this.streaming.table || '',
+                                columns: colnames,
+                                types,
+                                data: seq(rows, i =>
+                                    zip_object(
+                                        colnames,
+                                        seq(colnames.length, j => js_cols[j][i])
+                                    ))
+                            }
                             
-                            win.rows = winsize_
+                            win.rows += rows
+                            
+                            win.segments.push(data)
+                            
+                            if (win.rows >= winsize * 2 && win.segments.length >= 2) {
+                                let winsize_ = 0
+                                let i = win.segments.length - 1
+                                // 往前移动至首个累计 winsize_ 超过 winsize 的位置
+                                for (  ;  winsize_ < winsize;  i--)
+                                    winsize_ += win.segments[i].data.length
+                                
+                                win.segments = win.segments.slice(i)
+                                
+                                win.offset += win.rows - winsize_
+                                
+                                win.rows = winsize_
+                            }
                         }
                         
                         this.streaming.handler({
                             ...this.streaming,
                             id: dv.getBigInt64(9, this.le),
                             time: dv.getBigInt64(1, this.le),
-                            rows,
                             topic: this.dec.decode(buffer.subarray(17, i_topic_end)),
-                            colnames,
-                            schema,
                             obj,
                             data,
                             window: win,

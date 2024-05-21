@@ -2790,7 +2790,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 
 
 export interface ConvertOptions {
-    /** 是否要将 blob 类型的数据转为 string */
+    /** `'string'` blob 类型数据转换结果的格式 */
     blob?: 'string' | 'binary'
 }
 

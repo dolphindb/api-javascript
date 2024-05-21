@@ -2809,7 +2809,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 
 
 export interface ConvertOptions {
-    /** 是否要将 blob 类型的数据转为 string */
+    /** `'string'` blob 类型数据转换结果的格式 */
     blob?: 'string' | 'binary'
 }
 
@@ -2852,8 +2852,8 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
             return value
             
         case DdbType.blob: 
-            return blob === 'string' ?  decode((value as Uint8Array)) : value
-            
+            return blob === 'string' ?  decode(value as Uint8Array) : value
+        
         
         case DdbType.complex:
         case DdbType.point: {
@@ -3764,10 +3764,11 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
     /** message id */
     id: bigint
     
-    colnames: string[]
+    /** 流表列名 */
+    columns: string[]
     
-    /** 最新的 server 有可能先推一个 table schema 过来 */
-    schema?: DdbTableData
+    /** 每一列的原始 ddb 数据类型 */
+    types: DdbType[]
     
     /** 订阅主题，即一个订阅的名称。  Subscription topic, which is the name of a subscription.
         它是一个字符串，由订阅表所在节点的别名、流数据表名称和订阅任务名称（如果指定了 actionName）组合而成，使用 `/` 分隔  
@@ -4763,7 +4764,7 @@ export class DDB {
                             js_cols.push(converts(type, value, rows, this.le))
                         })
                         
-                        const data = {
+                        const data: DdbTableData = {
                             name: this.streaming.table || '',
                             columns: colnames,
                             types,
@@ -4772,7 +4773,7 @@ export class DDB {
                                     colnames,
                                     seq(colnames.length, j => js_cols[j][i])
                                 ))
-                        } as DdbTableData
+                        }
                         
                         win.rows += rows
                         
@@ -4798,8 +4799,7 @@ export class DDB {
                             time: dv.getBigInt64(1, this.le),
                             rows,
                             topic: this.dec.decode(buffer.subarray(17, i_topic_end)),
-                            colnames,
-                            schema,
+                            columns: colnames,
                             obj,
                             data,
                             window: win,

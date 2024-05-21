@@ -2982,36 +2982,30 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             let acc_len = 0
             
             return Array.prototype.map.call(lengths, (length: number) => {
-                const result = (() => {
-                    switch (type_) {
-                        case DdbType.decimal32:
-                        case DdbType.decimal64:
-                        case DdbType.decimal128:
-                            return converts(
-                                type_, 
-                                { scale: (value as DdbArrayVectorValue).scale, data: data.subarray(acc_len, acc_len + length) } as DdbDecimalVectorValue,
-                                length,
-                                le,
-                                options
-                            )
-                            
-                        case DdbType.complex:
-                        case DdbType.point:
-                            return converts(type_, data.subarray(acc_len, acc_len + 2 * length), length, le, options)
+                switch (type_) {
+                    case DdbType.decimal32:
+                    case DdbType.decimal64:
+                    case DdbType.decimal128:
+                        return converts(
+                            type_, 
+                            { scale: (value as DdbArrayVectorValue).scale, data: data.subarray(acc_len, acc_len += length) } as DdbDecimalVectorValue,
+                            length,
+                            le,
+                            options
+                        )
                         
-                        case DdbType.uuid:
-                        case DdbType.int128:
-                        case DdbType.ipaddr:
-                            return converts(type_, data.subarray(acc_len, acc_len + 16 * length), length, le, options)
-                        
-                        default:
-                            return converts(type_, data.subarray(acc_len, acc_len + length), length, le, options)
-                    }
-                })()
-                
-                acc_len += length
-                
-                return result
+                    case DdbType.complex:
+                    case DdbType.point:
+                        return converts(type_, data.subarray(acc_len, acc_len += 2 * length), length, le, options)
+                    
+                    case DdbType.uuid:
+                    case DdbType.int128:
+                    case DdbType.ipaddr:
+                        return converts(type_, data.subarray(acc_len, acc_len += 16 * length), length, le, options)
+                    
+                    default:
+                        return converts(type_, data.subarray(acc_len, acc_len += length), length, le, options)
+                }
             })
         }).flat()
     }

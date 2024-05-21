@@ -2941,7 +2941,12 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             
             case DdbType.complex:
             case DdbType.point:
-                return seq(rows, i => [(value as Float64Array)[2 * i], (value as Float64Array)[2 * i + 1]])
+                return seq(rows, i => {
+                    const x = (value as Float64Array)[2 * i]
+                    const y = (value as Float64Array)[2 * i + 1]
+                    
+                    return [x === nulls.double ? null : x, y === nulls.double ? null : y]
+                })
                 
                 
             case DdbType.uuid:

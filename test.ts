@@ -15,7 +15,7 @@ set_inspect_options()
 
 // linux
 // export const url = 'ws://115.239.209.123:8892' as const
-const url = 'ws://192.168.0.200:20023' as const
+const url = 'ws://192.168.0.200:20002' as const
 // export const url = 'ws://192.168.0.29:9002' as const
 
 // windows
@@ -202,27 +202,40 @@ async function test_print (ddb: DDB) {
 }
 
 
-async function test_streaming (ddb: DDB) {
+async function test_streaming (ddb: DDB, ha?: boolean) {
     console.log('测试流数据')
     
     await ddb.eval(
-        'try {\n' +
-        "    if (!defined('prices', SHARED)) {\n" +
-        '        share(\n' +
-        '            streamTable(\n' +
-        '                10000:0,\n' +
-        "                ['time', 'stock', 'price'],\n" +
-        '                [TIMESTAMP, SYMBOL, DOUBLE]\n' +
-        '            ),\n' +
-        "            'prices'\n" +
-        '        )\n' +
-        "        print('prices 流表创建成功')\n" +
-        '    } else\n' +
-        "        print('prices 流表已存在')\n" +
-        '} catch (error) {\n' +
-        "    print('prices 流表创建失败')\n" +
-        '    print(error)\n' +
-        '}\n'
+        ha ?
+            'try {\n' +
+            '    try {\n' +
+            "        dropStreamTable('prices')\n" +
+            '    } catch (error) { }\n' +
+            '    \n' +
+            "    haStreamTable(11, table(10000:0, ['time', 'stock', 'price'], [TIMESTAMP, SYMBOL, DOUBLE]), 'prices', 100000)\n" +
+            "    print('prices 流表创建成功')\n" +
+            '} catch (error) {\n' +
+            "    print('prices 流表创建失败')\n" +
+            '    print(error)\n' +
+            '}\n'
+        :
+            'try {\n' +
+            "    if (!defined('prices', SHARED)) {\n" +
+            '        share(\n' +
+            '            streamTable(\n' +
+            '                10000:0,\n' +
+            "                ['time', 'stock', 'price'],\n" +
+            '                [TIMESTAMP, SYMBOL, DOUBLE]\n' +
+            '            ),\n' +
+            "            'prices'\n" +
+            '        )\n' +
+            "        print('prices 流表创建成功')\n" +
+            '    } else\n' +
+            "        print('prices 流表已存在')\n" +
+            '} catch (error) {\n' +
+            "    print('prices 流表创建失败')\n" +
+            '    print(error)\n' +
+            '}\n'
     )
     
     let total_rows = 0
@@ -252,7 +265,7 @@ async function test_streaming (ddb: DDB) {
                 deepEqual(columns, ['time', 'stock', 'price'])
                 
                 assert(name === 'prices')
-                assert(id)
+                assert(typeof id === 'bigint')
                 assert(time)
                 assert(types.length === 3)
                 

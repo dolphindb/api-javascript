@@ -4689,114 +4689,109 @@ export class DDB {
     
     /** 内部的流订阅方法  Internal stream subscription method */
     async subscribe () {
+        // 流表推送过来的第一条数据是 schema，需要特殊处理
+        let first = true
+        
         let win: StreamingMessage['window'] = {
             offset: 0,
             rows: 0,
             segments: [ ],
         }
         
-        // 流表推送过来的第一条数据是 schema，需要特殊处理
-        let first = true
-        
-        const { value: columns } = await this.call<DdbVectorStringObj>('publishTable', [
-                'localhost',
-                new DdbInt(0),
-                this.streaming.table,
-                (this.streaming.action ||= `api_js_${new Date().getTime()}`),
-                ... this.streaming?.filters?.column ? [
-                    new DdbVoid(),  // offset
-                    this.streaming.filters.column // filter
-                ] : [ ]
-            ],
-            {
-                skip_connection_check: true, 
-                
-                // 先准备好收到 websocket message 的 callback
-                on_more_messages: buffer => {
-                    try {
-                        let data: DdbTableData
-                        
-                        const dv = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-                        
-                        const i_topic_end = buffer.indexOf(0, 17)
-                        
-                        // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
-                        const obj = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
-                        
-                        // server 推数据时遇到错误会返回 string，一般格式为 error.xxx: 错误信息
-                        if (obj.form === DdbForm.scalar && obj.type === DdbType.string) {
-                            this.disconnect()
-                            const value = obj.value as any as string
-                            throw new Error(value.slice(value.indexOf(':') + 1).trim())
-                        }
-                        
-                        if (first) {
-                            data = obj.data<DdbTableData>()
-                            data.name ||= this.streaming.table
-                            first = false
-                        } else {
-                            const { rows } = obj.value[0]
-                            const types = [ ]
-                            const js_cols = [ ]
-                            
-                            // 遍历每一列
-                            obj.value.forEach(({ type, value }) => {
-                                types.push(type)
-                                js_cols.push(converts(type, value, rows, obj.le))
-                            })
-                            
-                            data = {
-                                name: this.streaming.table || '',
-                                columns,
-                                types,
-                                data: seq(rows, i =>
-                                    zip_object(
-                                        columns,
-                                        seq(columns.length, j => js_cols[j][i])
-                                    ))
-                            }
-                            
-                            win.rows += rows
-                            
-                            win.segments.push(data)
-                            
-                            if (win.rows >= winsize * 2 && win.segments.length >= 2) {
-                                let winsize_ = 0
-                                let i = win.segments.length - 1
-                                // 往前移动至首个累计 winsize_ 超过 winsize 的位置
-                                for (  ;  winsize_ < winsize;  i--)
-                                    winsize_ += win.segments[i].data.length
-                                
-                                win.segments = win.segments.slice(i)
-                                
-                                win.offset += win.rows - winsize_
-                                
-                                win.rows = winsize_
-                            }
-                        }
-                        
-                        this.streaming.handler({
-                            ...this.streaming,
-                            id: dv.getBigInt64(9, this.le),
-                            time: dv.getBigInt64(1, this.le),
-                            topic: this.dec.decode(buffer.subarray(17, i_topic_end)),
-                            obj,
-                            data,
-                            window: win,
-                        })
-                    } catch (error) {
-                        // 将 error 交给 handler 处理
-                        this.streaming.handler({ ...this.streaming, error } as StreamingMessage)
-                    }
-                }
-            }
-        )
+        let schema: DdbTableData
         
         console.log(
-            t('订阅流表成功') + ', columns:',
+            t('订阅流表成功:'),
             
-            // string[3](['time', 'stock', 'price'])
-            columns
+            // 普通流表结果为 columns (string[])
+            // 高可用流表为 [columns (string[]), node sites (string[])]
+            (await this.call<DdbVectorStringObj>('publishTable', [
+                    'localhost',
+                    new DdbInt(0),
+                    this.streaming.table,
+                    (this.streaming.action ||= `api_js_${new Date().getTime()}`),
+                    ... this.streaming?.filters?.column ? [
+                        new DdbVoid(),  // offset
+                        this.streaming.filters.column // filter
+                    ] : [ ]
+                ],
+                {
+                    skip_connection_check: true, 
+                    
+                    // 先准备好收到 websocket message 的 callback
+                    on_more_messages: buffer => {
+                        try {
+                            let data: DdbTableData
+                            
+                            const dv = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+                            
+                            const i_topic_end = buffer.indexOf(0, 17)
+                            
+                            // 首个 message 一定是 table schema, 后续消息是 column 片段组成的 any vector
+                            const obj = DdbObj.parse(buffer.subarray(i_topic_end + 1), this.le) as DdbObj<DdbVectorObj[]>
+                            
+                            // server 推数据时遇到错误会返回 string，一般格式为 error.xxx: 错误信息
+                            if (obj.form === DdbForm.scalar && obj.type === DdbType.string) {
+                                this.disconnect()
+                                const value = obj.value as any as string
+                                throw new Error(value.slice(value.indexOf(':') + 1).trim())
+                            }
+                            
+                            if (first) {
+                                schema = data = obj.data<DdbTableData>()
+                                data.name ||= this.streaming.table
+                                first = false
+                            } else {
+                                const _data = obj.data<any[][]>()
+                                
+                                const rows = _data[0].length
+                                
+                                const { columns } = schema
+                                
+                                data = {
+                                    ... schema,
+                                    data: seq(rows, i =>
+                                        zip_object(
+                                            columns,
+                                            seq(columns.length, j => _data[j][i])
+                                        ))
+                                }
+                                
+                                win.rows += rows
+                                
+                                win.segments.push(data)
+                                
+                                if (win.rows >= winsize * 2 && win.segments.length >= 2) {
+                                    let winsize_ = 0
+                                    let i = win.segments.length - 1
+                                    // 往前移动至首个累计 winsize_ 超过 winsize 的位置
+                                    for (  ;  winsize_ < winsize;  i--)
+                                        winsize_ += win.segments[i].data.length
+                                    
+                                    win.segments = win.segments.slice(i)
+                                    
+                                    win.offset += win.rows - winsize_
+                                    
+                                    win.rows = winsize_
+                                }
+                            }
+                            
+                            this.streaming.handler({
+                                ...this.streaming,
+                                id: dv.getBigInt64(9, this.le),
+                                time: dv.getBigInt64(1, this.le),
+                                topic: this.dec.decode(buffer.subarray(17, i_topic_end)),
+                                obj,
+                                data,
+                                window: win,
+                            })
+                        } catch (error) {
+                            // 将 error 交给 handler 处理
+                            this.streaming.handler({ ...this.streaming, error } as StreamingMessage)
+                        }
+                    }
+                }
+            )).data()
         )
     }
 }

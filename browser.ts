@@ -4533,7 +4533,7 @@ export class DDB {
     
     /** 调用 dolphindb 函数，传入 js 原生数组作为参数，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）  
         - func: 函数名  
-        - args?: `[ ]` 调用参数，可以是 js 原生数组  
+        - args?: `[ ]` 调用参数，可以是 js 原生数组，参数在中间且想用 server 函数的默认参数值时可以传 null 占位  
         - options?: 调用选项  
             - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
             - node?: 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法)  

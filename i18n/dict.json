@@ -38,8 +38,8 @@
     "session id 从 {{sid}} 变为 {{sid_}}": {
         "en": "session id changed from {{sid}} to {{sid_}}"
     },
-    "订阅流表成功": {
-        "en": "subscribed to streaming table"
+    "订阅流表成功:": {
+        "en": "subscribed to streaming table:"
     },
     "vector {{type}} 暂不支持序列化": {
         "en": "vector {{type}} serialization is not currently supported"

@@ -3736,7 +3736,6 @@ export interface StreamingParams {
 
 
 export interface StreamingMessage <TRows = any> extends StreamingParams {
-    
     /** server 发送消息的时间 (nano seconds since epoch)   The time the server sent the message (nano seconds since epoch)  
         std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint
@@ -3765,6 +3764,9 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
         
         /** 每次接收到的 data 组成的数组  An array of data received each time */
         segments: DdbTableData<TRows>[]
+        
+        /** 每次接收到的 obj 组成的数组  An array of obj received each time */
+        objs: DdbObj<DdbVectorObj[]>[]
     }
     
     /** 成功订阅后，后续推送过来的 message 解析错误，则会设置 error 并调用 handler  
@@ -4760,6 +4762,7 @@ export class DDB {
                                 win.rows += rows
                                 
                                 win.segments.push(data)
+                                win.objs.push(obj)
                                 
                                 if (win.rows >= winsize * 2 && win.segments.length >= 2) {
                                     let winsize_ = 0
@@ -4769,6 +4772,7 @@ export class DDB {
                                         winsize_ += win.segments[i].data.length
                                     
                                     win.segments = win.segments.slice(i)
+                                    win.objs = win.objs.slice(i)
                                     
                                     win.offset += win.rows - winsize_
                                     

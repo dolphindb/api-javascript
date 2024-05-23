@@ -4710,6 +4710,7 @@ export class DDB {
             offset: 0,
             rows: 0,
             segments: [ ],
+            objs: [ ]
         }
         
         let schema: DdbTableData

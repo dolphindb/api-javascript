@@ -4758,6 +4758,8 @@ export class DDB {
                                     
                                     const { columns } = schema
                                     
+                                    rows = _data[0]?.length || 0
+                                    
                                     data = {
                                         ... schema,
                                         data: seq(rows, i =>
@@ -4766,8 +4768,6 @@ export class DDB {
                                                 seq(columns.length, j => _data[j][i])
                                             ))
                                     }
-                                    
-                                    rows = _data[0]?.length || 0
                                 }
                                 
                                 

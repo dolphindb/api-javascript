@@ -4745,20 +4745,31 @@ export class DDB {
                                 data.name ||= this.streaming.table
                                 first = false
                             } else {
-                                const _data = obj.data<any[][]>()
+                                let rows: number
                                 
-                                const rows = _data[0].length
-                                
-                                const { columns } = schema
-                                
-                                data = {
-                                    ... schema,
-                                    data: seq(rows, i =>
-                                        zip_object(
-                                            columns,
-                                            seq(columns.length, j => _data[j][i])
-                                        ))
+                                // 用了流数据过滤功能后，必然发 table
+                                if (obj.form === DdbForm.table) {
+                                    data = obj.data<DdbTableData>()
+                                    data.name ||= schema.name
+                                    
+                                    rows = data.data.length
+                                } else {
+                                    const _data = obj.data<any[][]>()
+                                    
+                                    const { columns } = schema
+                                    
+                                    data = {
+                                        ... schema,
+                                        data: seq(rows, i =>
+                                            zip_object(
+                                                columns,
+                                                seq(columns.length, j => _data[j][i])
+                                            ))
+                                    }
+                                    
+                                    rows = _data[0]?.length || 0
                                 }
+                                
                                 
                                 win.rows += rows
                                 

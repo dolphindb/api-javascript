@@ -86,7 +86,7 @@
     " 暂时不支持转换为 js 对象": {
         "en": " conversion to js object is not supported at the moment"
     },
-    "连接于 {{time}} 断开\n": {
-        "en": "Disconnected at {{time}}\n"
+    "{{time}} 心跳检测失败，连接已断开": {
+        "en": "{{time}} heartbeat detection failed, the connection has been disconnected"
     }
 }

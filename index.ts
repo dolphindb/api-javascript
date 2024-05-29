@@ -4090,7 +4090,7 @@ export class DDB {
                                 try {
                                     await this.eval('')
                                 } catch (error) {
-                                    console.log(t('连接于 {{time}} 断开\n', { time: new Date().toLocaleString() }), error)
+                                    console.log(t('{{time}} 心跳检测失败，连接已断开', { time: new Date().to_formal_str() }), error)
                                     break
                                 }
                             else

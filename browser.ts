@@ -4101,10 +4101,10 @@ export class DDB {
                 if (this.streaming)
                     await this.subscribe()
                 else
-                    this.timer = window.setInterval(() => { 
+                    this.timer = window.setInterval(async () => { 
                         if (this.connected)
                             try {
-                                this.eval('')
+                                await this.eval('')
                             } catch (error) {
                                 this.clear_timer()
                             }

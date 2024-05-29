@@ -4091,16 +4091,16 @@ export class DDB {
                 if (this.streaming)
                     await this.subscribe()
                 else
-                    this.timer = setInterval(() => { 
+                    this.timer = setInterval(async () => { 
                         if (this.connected)
                             try {
-                                this.eval('')
+                                await this.eval('')
                             } catch (error) {
                                 this.clear_timer()
                             }
                         else
                             this.clear_timer()
-                    }, 1000 * 60 * 4.5)
+                    }, 1000 * 1 * 4.5)
                 
                 resolve()
             } catch (error) {

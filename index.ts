@@ -4021,8 +4021,10 @@ export class DDB {
     
     
     private clear_timer () {
-        clearInterval(this.timer)
-        this.timer = null
+        if (this.timer) {
+            clearInterval(this.timer)
+            this.timer = null
+        }
     }
     
     

@@ -4034,8 +4034,10 @@ export class DDB {
     
     
     private clear_timer () {
-        clearInterval(this.timer)
-        this.timer = null
+        if (this.timer) {
+            clearInterval(this.timer)
+            this.timer = null
+        }
     }
     
     /** 调用后会确保和数据库的连接是正常的 (this.connected === true)，否则抛出错误  

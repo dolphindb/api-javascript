@@ -4102,6 +4102,7 @@ export class DDB {
                                 try {
                                     await this.eval('')
                                 } catch (error) {
+                                    console.log(t('连接于 {{time}} 断开\n', { time: new Date().toLocaleString() }), error)
                                     break
                                 }
                             else

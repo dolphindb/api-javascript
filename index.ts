@@ -3949,6 +3949,9 @@ export class DDB {
     /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
     pinvoke: Promise<DdbVoid>
     
+    /** 定时执行一次空脚本，防止 server 断开 */
+    private timer: NodeJS.Timeout
+    
     
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocketOpen
@@ -4011,8 +4014,15 @@ export class DDB {
         throw new Error(t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
     }
     
+    
     private on_error () {
         // 这里的实现一定会被 connect, rpc 中的实现覆盖
+    }
+    
+    
+    private clear_timer () {
+        clearInterval(this.timer)
+        this.timer = null
     }
     
     
@@ -4080,6 +4090,17 @@ export class DDB {
                 
                 if (this.streaming)
                     await this.subscribe()
+                else
+                    this.timer = setInterval(() => { 
+                        if (this.connected)
+                            try {
+                                this.eval('')
+                            } catch (error) {
+                                this.clear_timer()
+                            }
+                        else
+                            this.clear_timer()
+                    }, 1000 * 60 * 4.5)
                 
                 resolve()
             } catch (error) {
@@ -4192,9 +4213,12 @@ export class DDB {
         if (resource) {
             const { readyState } = resource
             
-            if (readyState !== WebSocketClosed && readyState !== WebSocketClosing)
+            if (readyState !== WebSocketClosed && readyState !== WebSocketClosing) {
                 // 这里不获取 lock，直接关闭连接
                 resource.close(1000)
+                
+                this.clear_timer()
+            }
         }
     }
     

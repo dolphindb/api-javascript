@@ -3965,6 +3965,9 @@ export class DDB {
     /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
     pinvoke: Promise<DdbVoid>
     
+    /** 定时执行一次空脚本，防止 server 断开 */
+    private timer: number
+    
     
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocket.OPEN
@@ -4030,6 +4033,11 @@ export class DDB {
     }
     
     
+    private clear_timer () {
+        clearInterval(this.timer)
+        this.timer = null
+    }
+    
     /** 调用后会确保和数据库的连接是正常的 (this.connected === true)，否则抛出错误  
         这个方法是幂等的，首次调用建立实际的 WebSocket 连接到 URL 对应的 DolphinDB，然后执行自动登录，  
         如果是流数据连接，还会调用 publishTable 订阅流表  
@@ -4092,6 +4100,17 @@ export class DDB {
                 
                 if (this.streaming)
                     await this.subscribe()
+                else
+                    this.timer = window.setInterval(() => { 
+                        if (this.connected)
+                            try {
+                                this.eval('')
+                            } catch (error) {
+                                this.clear_timer()
+                            }
+                        else
+                            this.clear_timer()
+                    }, 1000 * 60 * 4.5)
                 
                 resolve()
             } catch (error) {
@@ -4204,9 +4223,13 @@ export class DDB {
         if (resource) {
             const { readyState } = resource
             
-            if (readyState !== WebSocket.CLOSED && readyState !== WebSocket.CLOSING)
+            if (readyState !== WebSocket.CLOSED && readyState !== WebSocket.CLOSING) {
                 // 这里不获取 lock，直接关闭连接
                 resource.close(1000)
+                
+                this.clear_timer()
+            }
+            
         }
     }
     

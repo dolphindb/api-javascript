@@ -4082,7 +4082,7 @@ export class DDB {
                 if (this.streaming)
                     await this.subscribe()
                 else
-                    // 增加心跳机制避免连接长时间不用自动断开
+                    // 定时执行一次空脚本作为心跳检查，避免因为 nat 超时导致 tcp 连接断开
                     (async () => {
                         while (true) {
                             await delay(1000 * 60 * 4.5)

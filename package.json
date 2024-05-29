@@ -1,7 +1,7 @@
 {
     "name": "dolphindb",
     "description": "DolphinDB JavaScript API",
-    "version": "3.0.31",
+    "version": "3.0.32",
     "type": "module",
     "main": "./index.js",
     "browser": "./browser.js",
@@ -40,6 +40,6 @@
         "dayjs": "^1.11.11",
         "ipaddr.js": "^2.2.0",
         "tslib": "^2.6.2",
-        "xshell": "^1.0.111"
+        "xshell": "^1.0.112"
     }
 }

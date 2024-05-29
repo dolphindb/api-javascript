@@ -4081,10 +4081,10 @@ export class DDB {
                 
                 if (this.streaming)
                     await this.subscribe()
-                else 
+                else
                     // 增加心跳机制避免连接长时间不用自动断开
                     (async () => {
-                        while (1) {
+                        while (true) {
                             await delay(1000 * 60 * 4.5)
                             if (this.connected)
                                 try {

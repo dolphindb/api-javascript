@@ -4025,6 +4025,7 @@ export class DDB {
         throw new Error(t('这是在调用 this.rpc 之前默认的 on_message, 不应该被调用到，除非建立连接后 server 先推送了 message'))
     }
     
+    
     private on_error () {
         // 这里的实现一定会被 connect, rpc 中的实现覆盖
     }
@@ -4092,10 +4093,10 @@ export class DDB {
                 
                 if (this.streaming)
                     await this.subscribe()
-                else 
+                else
                     // 增加心跳机制避免连接长时间不用自动断开
                     (async () => {
-                        while (1) {
+                        while (true) {
                             await delay(1000 * 60 * 4.5)
                             if (this.connected)
                                 try {

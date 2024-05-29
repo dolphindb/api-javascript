@@ -4100,7 +4100,7 @@ export class DDB {
                             }
                         else
                             this.clear_timer()
-                    }, 1000 * 1 * 4.5)
+                    }, 1000 * 60 * 4.5)
                 
                 resolve()
             } catch (error) {

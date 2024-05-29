@@ -4021,8 +4021,10 @@ export class DDB {
     
     
     private clear_timer () {
-        clearInterval(this.timer)
-        this.timer = null
+        if (this.timer) {
+            clearInterval(this.timer)
+            this.timer = null
+        }
     }
     
     
@@ -4091,10 +4093,10 @@ export class DDB {
                 if (this.streaming)
                     await this.subscribe()
                 else
-                    this.timer = setInterval(() => { 
+                    this.timer = setInterval(async () => { 
                         if (this.connected)
                             try {
-                                this.eval('')
+                                await this.eval('')
                             } catch (error) {
                                 this.clear_timer()
                             }

@@ -3965,7 +3965,7 @@ export class DDB {
     /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
     pinvoke: Promise<DdbVoid>
     
-    /** 定时执行一次空脚本，防止 server 断开 */
+    /** 定时执行一次空脚本作为心跳检查，避免因为 nat 超时导致 tcp 连接断开 */
     private timer: number
     
     
@@ -4101,7 +4101,7 @@ export class DDB {
                 if (this.streaming)
                     await this.subscribe()
                 else
-                    this.timer = window.setInterval(() => { 
+                    this.timer = setInterval(() => { 
                         if (this.connected)
                             try {
                                 this.eval('')
@@ -4110,7 +4110,7 @@ export class DDB {
                             }
                         else
                             this.clear_timer()
-                    }, 1000 * 60 * 4.5)
+                    }, 1000 * 60 * 4.5) as any
                 
                 resolve()
             } catch (error) {
@@ -4229,7 +4229,6 @@ export class DDB {
                 
                 this.clear_timer()
             }
-            
         }
     }
     

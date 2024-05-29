@@ -10,7 +10,7 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 import {
     concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, seq, zip_object,
     WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocket, type WebSocketConnectionError,
-    decode, 
+    decode, delay
 } from 'xshell'
 
 import { t } from './i18n/index.js'
@@ -3949,9 +3949,6 @@ export class DDB {
     /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
     pinvoke: Promise<DdbVoid>
     
-    /** 定时执行一次空脚本，防止 server 断开 */
-    private timer: NodeJS.Timeout
-    
     
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocketOpen
@@ -4020,14 +4017,6 @@ export class DDB {
     }
     
     
-    private clear_timer () {
-        if (this.timer) {
-            clearInterval(this.timer)
-            this.timer = null
-        }
-    }
-    
-    
     /** 调用后会确保和数据库的连接是正常的 (this.connected === true)，否则抛出错误  
         这个方法是幂等的，首次调用建立实际的 WebSocket 连接到 URL 对应的 DolphinDB，然后执行自动登录，  
         如果是流数据连接，还会调用 publishTable 订阅流表  
@@ -4092,18 +4081,19 @@ export class DDB {
                 
                 if (this.streaming)
                     await this.subscribe()
-                else
-                    this.timer = setInterval(async () => { 
-                        if (this.connected)
-                            try {
-                                await this.eval('')
-                            } catch (error) {
-                                this.clear_timer()
-                            }
-                        else
-                            this.clear_timer()
-                    }, 1000 * 60 * 4.5)
-                
+                else {
+                    // 增加心跳机制避免连接长时间不用自动断开
+                    const create_heartbeat = async () => new Promise<void>(async (resolve, reject) => {
+                        await delay(1000 * 60 * 4.5)
+                        if (this.connected) {
+                            await this.eval('')
+                            create_heartbeat()
+                        }
+                        resolve()
+                    })
+                    
+                    create_heartbeat()
+                }
                 resolve()
             } catch (error) {
                 this.error ??= error
@@ -4215,12 +4205,9 @@ export class DDB {
         if (resource) {
             const { readyState } = resource
             
-            if (readyState !== WebSocketClosed && readyState !== WebSocketClosing) {
+            if (readyState !== WebSocketClosed && readyState !== WebSocketClosing) 
                 // 这里不获取 lock，直接关闭连接
                 resource.close(1000)
-                
-                this.clear_timer()
-            }
         }
     }
     

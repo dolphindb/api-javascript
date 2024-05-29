@@ -205,6 +205,8 @@ async function test_print (ddb: DDB) {
 async function test_streaming (ddb: DDB, ha?: boolean) {
     console.log('测试流数据')
     
+    const n = 100
+    
     await ddb.eval(
         ha ?
             'try {\n' +
@@ -271,7 +273,7 @@ async function test_streaming (ddb: DDB, ha?: boolean) {
                 
                 total_rows += data.length
                 
-                if (total_rows === 50)
+                if (total_rows === n * 10)
                     promise.resolve()
             },
         }
@@ -280,7 +282,7 @@ async function test_streaming (ddb: DDB, ha?: boolean) {
     await sddb.connect()
     
     await ddb.eval(
-        'n = 5\n' +
+        `n = ${n}\n` +
         '\n' +
         'for (i in 0..9)\n' +
         '    append!(\n' +

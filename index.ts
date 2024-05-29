@@ -4081,19 +4081,22 @@ export class DDB {
                 
                 if (this.streaming)
                     await this.subscribe()
-                else {
+                else 
                     // 增加心跳机制避免连接长时间不用自动断开
-                    const create_heartbeat = async () => new Promise<void>(async (resolve, reject) => {
-                        await delay(1000 * 60 * 4.5)
-                        if (this.connected) {
-                            await this.eval('')
-                            create_heartbeat()
+                    (async () => {
+                        while (1) {
+                            await delay(1000 * 60 * 4.5)
+                            if (this.connected)
+                                try {
+                                    await this.eval('')
+                                } catch (error) {
+                                    break
+                                }
+                            else
+                                break
                         }
-                        resolve()
-                    })
-                    
-                    create_heartbeat()
-                }
+                    })()
+                
                 resolve()
             } catch (error) {
                 this.error ??= error
@@ -4205,7 +4208,7 @@ export class DDB {
         if (resource) {
             const { readyState } = resource
             
-            if (readyState !== WebSocketClosed && readyState !== WebSocketClosing) 
+            if (readyState !== WebSocketClosed && readyState !== WebSocketClosing)
                 // 这里不获取 lock，直接关闭连接
                 resource.close(1000)
         }

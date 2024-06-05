@@ -3947,6 +3947,8 @@ export class DDB {
     
     parse_object = true
     
+    heartbeat_aborter?: AbortController
+    
     
     /** 在 websocket 收到的第一个 error 时，  
         在 connect_websocket 的 on_error 回调中构造 DdbConnectionError 并保存到 DDB 对象上，  
@@ -4077,7 +4079,12 @@ export class DDB {
                     
                     on_error: error => {
                         this.error ??= new DdbConnectionError(this.url, error)
+                        this.heartbeat_aborter?.abort()
                         this.on_error()
+                    },
+                    
+                    on_close: () => {
+                        this.heartbeat_aborter?.abort()
                     }
                 })
             } catch (error) {
@@ -4096,8 +4103,16 @@ export class DDB {
                 else
                     // 定时执行一次空脚本作为心跳检查，避免因为 nat 超时导致 tcp 连接断开
                     (async () => {
+                        this.heartbeat_aborter = new AbortController()
+                        
                         while (true) {
-                            await delay(1000 * 60 * 4.5)
+                            // 连接主动关闭时从循环退出防止影响 node.js 退出
+                            try {
+                                await delay(1000 * 60 * 4.5, { signal: this.heartbeat_aborter.signal })
+                            } catch {
+                                break
+                            }
+                            
                             if (this.connected)
                                 try {
                                     await this.eval('')
@@ -4216,6 +4231,8 @@ export class DDB {
     
     
     disconnect () {
+        this.heartbeat_aborter?.abort()
+        
         const { resource } = this.lwebsocket
         
         if (resource) {

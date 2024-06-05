@@ -23,7 +23,7 @@ export interface FunctionItem {
     markdown: string
 }
 
-type Docs = Record<string, FunctionItem>
+export type Docs = Record<string, FunctionItem>
 
 function is_completion_match (target: string, search: string) {
     let j = 0
@@ -51,19 +51,6 @@ export class DocsAnalyser {
         this.docs = docs
         this.funcs = Object.keys(docs)
         this.lower_funcs = this.funcs.map(func => func.toLowerCase())
-    }
-    
-    
-    async load_docs_async (provider: string | (() => Promise<Docs>)) {
-        let docs: Docs
-        if (typeof provider === 'function')
-            docs = await provider()
-        else if (typeof provider === 'string')
-            docs = await fread_json(provider)
-        else
-            throw new Error('Invalid docs provider')
-        
-        this.update_docs(docs)
     }
     
     

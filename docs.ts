@@ -2,15 +2,16 @@ import { fread_json } from 'xshell'
 
 import { constants, keywords } from './language.js'
 
+
 export interface FunctionSignature {
     full: string
     name: string
-    parameters: Array<{
+    parameters: {
         full: string
         name: string
         optional?: boolean
         default?: string
-    }>
+    }[]
 }
 
 export interface FunctionItem {
@@ -45,11 +46,13 @@ export class DocsAnalyser {
     /** 转化成小写字母的函数名列表 */
     lower_funcs: string[] = [ ]
     
+    
     update_docs (docs: Docs) {
         this.docs = docs
         this.funcs = Object.keys(docs)
         this.lower_funcs = this.funcs.map(func => func.toLowerCase())
     }
+    
     
     async load_docs_async (provider: string | (() => Promise<Docs>)) {
         let docs: Docs
@@ -63,13 +66,16 @@ export class DocsAnalyser {
         this.update_docs(docs)
     }
     
+    
     get_function_markdown (name: string) {
-        return this.docs?.[name]?.markdown
+        return this.docs[name]?.markdown
     }
     
+    
     get_signatures (name: string) {
-        return this.docs?.[name]?.signatures
+        return this.docs[name]?.signatures
     }
+    
     
     /** 查询补全项（包括关键字、常量和函数）
         @param query
@@ -84,6 +90,7 @@ export class DocsAnalyser {
         }
     }
 }
+
 
 const FUNC_NAME_CHAR_REG_EXP = /[a-zA-Z0-9!_]/
 
@@ -155,8 +162,6 @@ function reverse_search_func (text: string): null | {
     }
 }
 
-// 参数分隔符，此处为逗号
-const PARAM_SEPARATOR = ','
 
 // 栈 token 匹配表
 const PAIR_TOKEN_MAP: Record<string, string> = {
@@ -168,6 +173,7 @@ const PAIR_TOKEN_MAP: Record<string, string> = {
 const PAIR_START_TOKENS = new Set(Object.values(PAIR_TOKEN_MAP))
 
 const LAST_IDENTIFIER_NAME_REGEXP = /[a-zA-Z_\u4e00-\u9fa5][\w\u4e00-\u9fa5]*!?$/
+
 
 /** 根据函数参数开始位置分析参数语义，提取出当前参数索引 */
 function find_active_param_index (text: string, param_start_at: number) {
@@ -225,7 +231,7 @@ function find_active_param_index (text: string, param_start_at: number) {
         
         
         // 栈深度为1 且为左小括号：当前语境
-        if (stack.length === 1 && stack[0] === '(' && char === PARAM_SEPARATOR)
+        if (stack.length === 1 && stack[0] === '(' && char === ',')
             commas_count++
         
         
@@ -242,6 +248,7 @@ function find_active_param_index (text: string, param_start_at: number) {
     // 是否为对象方法调用，若是，参数索引+1（对象会变成第一个参数）
     return is_member_call ? index + 1 : index
 }
+
 
 export function parse_signature_help_from_text (text: string, docsAnalyser: DocsAnalyser) {
     const caller = reverse_search_func(text)

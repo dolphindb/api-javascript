@@ -47,13 +47,6 @@ export class DocsAnalyser {
     lower_funcs: string[] = [ ]
     
     
-    update_docs (docs: Docs) {
-        this.docs = docs
-        this.funcs = Object.keys(docs)
-        this.lower_funcs = this.funcs.map(func => func.toLowerCase())
-    }
-    
-    
     get_function_markdown (name: string) {
         return this.docs[name]?.markdown
     }
@@ -75,6 +68,13 @@ export class DocsAnalyser {
             constants: constants.filter(constant => is_completion_match(constant, query_lower)),
             functions: this.funcs.filter((func, i) => is_completion_match(this.lower_funcs[i], query_lower)),
         }
+    }
+    
+    
+    constructor (docs: Docs) {
+        this.docs = docs
+        this.funcs = Object.keys(docs)
+        this.lower_funcs = this.funcs.map(func => func.toLowerCase())
     }
 }
 

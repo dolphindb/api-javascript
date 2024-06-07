@@ -12,16 +12,18 @@ export interface FunctionSignature {
     }[]
 }
 
-export interface FunctionItem {
+export interface Doc {
     /** 文档的公网链接 */
-    href: string
+    url: string
+    
     /** 部分函数存在多个签名，例如 append! 和 x.append!, eachPre 和 func:P 这两组，最好在分析阶段就处理好 */
     signatures: FunctionSignature[] | null
+    
     /** 文档内容 */
     markdown: string
 }
 
-export type Docs = Record<string, FunctionItem>
+export type Docs = Record<string, Doc>
 
 function is_completion_match (target: string, search: string) {
     let j = 0

@@ -48,6 +48,7 @@ export enum DdbForm {
     
     /** sysobj */
     object = 9,
+    tensor = 10,
 }
 
 
@@ -240,6 +241,60 @@ export interface DdbMatrixValue {
     data: DdbVectorValue
 }
 
+/** 工具，取得某个 DdbType 的字节数 */
+const ddbType2Byte: Record<
+DdbType.bool |
+DdbType.char |
+DdbType.short |
+DdbType.int |
+DdbType.long |
+DdbType.float |
+DdbType.double
+, number> = {
+    1: 1,
+    2: 1,
+    3: 2,
+    4: 4,
+    5: 8,
+    15: 4,
+    16: 8,
+}
+
+type TensorElem = Tensor | boolean | string | number | bigint
+interface Tensor extends Array<TensorElem> {}
+
+export interface DdbTensorValue {
+    /** Tensor 的元素的数据类型 */
+    dataType: DdbType
+    
+    /** Tensor类型 */
+    tensorType: number
+    
+    /** 设备类型 */
+    deviceType: number
+    
+    /** Tensor Flags */
+    tensorFlags: number
+    
+    /** 维度 */
+    dimensions: number
+    
+    /** shape, shape[i] 表示第 i 个维度的 size*/
+    shape: bigint[]
+    
+    /** strides, strides[i] 表示在第 i 个维度，一个元素与下一个元素的距离 */
+    strides: bigint[]
+    
+    /** 保留值 */
+    perserveValue: bigint
+    
+    /** 元素个数 */
+    elemCount: bigint
+    
+    /** 数据 */
+    data: Uint8Array
+}
+
 export type DdbDictValue = [DdbVectorObj, DdbVectorObj]
 
 export interface DdbChartValue {
@@ -293,7 +348,7 @@ export type DdbVectorValue =
     DdbDecimal32VectorValue | DdbDecimal64VectorValue | DdbDecimal128VectorValue |
     DdbDurationVectorValue
 
-export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue
+export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue | DdbTensorValue
 
 
 export type DdbStringObj = DdbObj<string>
@@ -325,6 +380,39 @@ export interface DdbTableData <TRow = any> {
     
     /** 表格数据，每一行的对象组成的数组 */
     data: TRow[]
+}
+
+/** DdbObj.data() 返回的 Tensor 对象 */
+export interface DdbTensorData {
+    /** Tensor 的元素的数据类型 */
+    dataType: DdbType
+    
+    /** Tensor类型 */
+    tensorType: number
+    
+    /** 设备类型 */
+    deviceType: number
+    
+    /** Tensor Flags */
+    tensorFlags: number
+    
+    /** 维度 */
+    dimensions: number
+    
+    /** shape, shape[i] 表示第 i 个维度的 size*/
+    shape: bigint[]
+    
+    /** strides, strides[i] 表示在第 i 个维度，一个元素与下一个元素的距离 */
+    strides: bigint[]
+    
+    /** 保留值 */
+    perserveValue: bigint
+    
+    /** 元素个数 */
+    elemCount: bigint
+    
+    /** 数据 */
+    data: Tensor
 }
 
 
@@ -716,6 +804,46 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 })
             }
             
+            case DdbForm.tensor:
+                // 元数据
+                const tensorType = buf[2]
+                const deviceType = buf[3]
+                const dv = new DataView(buf.buffer, buf.byteOffset)
+                const tensorFlags = dv.getUint32(4, le)
+                const dimensions = dv.getInt32(8, le)
+                const shapes: bigint[] = [ ]
+                const strides: bigint[] = [ ]
+                const shapeStart = 12
+                const stridesStart = shapeStart + dimensions * 8
+                const preserveValueStart = stridesStart + dimensions * 8
+                const perserveValue = dv.getBigInt64(preserveValueStart, le)
+                const storageStart = preserveValueStart + 8
+                const elemCount = dv.getBigInt64(storageStart, le)
+                const dataStart = storageStart + 8
+                for (let d = 0;  d < dimensions;  d++) {
+                    const getNumOffset = d * 8
+                    shapes.push(dv.getBigInt64(shapeStart + getNumOffset, le))
+                    strides.push(dv.getBigInt64(stridesStart + getNumOffset, le))
+                }
+                const dataBuffer = buf.subarray(dataStart)
+                return new this({
+                    le,
+                    form,
+                    type,
+                    length: i_data + buf_data.length,
+                    value: {
+                        dataType: type, 
+                        tensorType, 
+                        deviceType,
+                        tensorFlags,
+                        dimensions, 
+                        shape: shapes, 
+                        strides, 
+                        perserveValue,
+                        elemCount, 
+                        data: dataBuffer
+                    }
+                })
             
             default:
                 return new this({
@@ -1896,6 +2024,78 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                 jsdata[j * rows + i]))
                 } satisfies DdbMatrixData as TResult
             }
+            
+            case DdbForm.tensor:
+                const { dataType, 
+                    tensorType, 
+                    deviceType,
+                    tensorFlags,
+                    dimensions, 
+                    shape, 
+                    strides, 
+                    perserveValue,
+                    elemCount,
+                    data, 
+                } = this.value as DdbTensorValue
+                
+                const dataByte: number = ddbType2Byte[dataType]
+                // 降维打击
+                const obj = this;
+                function buildTensor (currentDim: number, dimensions: number, rawData: Uint8Array): Tensor {
+                    const tensor: Tensor = [ ]                        
+                    const dv = new DataView(rawData.buffer,rawData.byteOffset)
+                    const le = obj.le;
+                    for (let i = 0;  i < shape[currentDim];  i++) 
+                        if (currentDim >= dimensions - 1) {
+                        // 直接转换到对应的数组
+                        const offset = i * dataByte * Number(strides[currentDim])
+                        switch (dataType){
+                            case DdbType.bool:
+                                tensor.push(dv.getInt8(offset))
+                                break;                            
+                            case DdbType.char:
+                                tensor.push(dv.getInt8(offset))
+                                break;
+                            case DdbType.short:
+                                tensor.push(dv.getInt16(offset,le))
+                                break;
+                            case DdbType.int:
+                                tensor.push(dv.getInt32(offset,le))
+                                break;                            
+                            case DdbType.long:
+                                tensor.push(dv.getBigInt64(offset,le))
+                                break;                            
+                            case DdbType.float:
+                                tensor.push(dv.getFloat32(offset,le))
+                                break;                            
+                            case DdbType.double:
+                                tensor.push(dv.getFloat64(offset,le))
+                                break;
+                        }
+                        } else {
+                        // 起点
+                        const start = strides[currentDim] * BigInt(i) * BigInt(dataByte)
+                        // 终点
+                        const end = BigInt(start) + strides[currentDim] * BigInt(i) * BigInt(dataByte)
+                        // subarray 不支持 bigint，尴尬了
+                        tensor.push(buildTensor(currentDim + 1, dimensions, rawData.subarray(Number(start), Number(end))))
+                        }
+                    return tensor
+                }
+                
+                const returnData: DdbTensorData = { dataType, 
+                    tensorType, 
+                    deviceType,
+                    tensorFlags,
+                    dimensions, 
+                    shape, 
+                    strides, 
+                    perserveValue,
+                    elemCount,
+                    data: buildTensor(0, dimensions, data)
+                }
+                
+                return returnData satisfies DdbTensorData as TResult
             
             default:
                 throw new Error(t('{{form}} {{type}} 暂不支持 data()', { form, type: get_type_name(type) }))

@@ -2040,37 +2040,35 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 
                 const dataByte: number = ddbType2Byte[dataType]
                 // 降维打击
-                const obj = this;
-                function buildTensor (currentDim: number, dimensions: number, rawData: Uint8Array): Tensor {
+                function buildTensor (currentDim: number, dimensions: number, rawData: Uint8Array, le: boolean): Tensor {
                     const tensor: Tensor = [ ]                        
-                    const dv = new DataView(rawData.buffer,rawData.byteOffset)
-                    const le = obj.le;
+                    const dv = new DataView(rawData.buffer, rawData.byteOffset)
                     for (let i = 0;  i < shape[currentDim];  i++) 
                         if (currentDim >= dimensions - 1) {
                         // 直接转换到对应的数组
                         const offset = i * dataByte * Number(strides[currentDim])
-                        switch (dataType){
+                        switch (dataType) {
                             case DdbType.bool:
                                 tensor.push(dv.getInt8(offset))
-                                break;                            
+                                break                            
                             case DdbType.char:
                                 tensor.push(dv.getInt8(offset))
-                                break;
+                                break
                             case DdbType.short:
-                                tensor.push(dv.getInt16(offset,le))
-                                break;
+                                tensor.push(dv.getInt16(offset, le))
+                                break
                             case DdbType.int:
-                                tensor.push(dv.getInt32(offset,le))
-                                break;                            
+                                tensor.push(dv.getInt32(offset, le))
+                                break                            
                             case DdbType.long:
-                                tensor.push(dv.getBigInt64(offset,le))
-                                break;                            
+                                tensor.push(dv.getBigInt64(offset, le))
+                                break                            
                             case DdbType.float:
-                                tensor.push(dv.getFloat32(offset,le))
-                                break;                            
+                                tensor.push(dv.getFloat32(offset, le))
+                                break                            
                             case DdbType.double:
-                                tensor.push(dv.getFloat64(offset,le))
-                                break;
+                                tensor.push(dv.getFloat64(offset, le))
+                                break
                         }
                         } else {
                         // 起点
@@ -2078,7 +2076,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         // 终点
                         const end = BigInt(start) + strides[currentDim] * BigInt(i) * BigInt(dataByte)
                         // subarray 不支持 bigint，尴尬了
-                        tensor.push(buildTensor(currentDim + 1, dimensions, rawData.subarray(Number(start), Number(end))))
+                        tensor.push(buildTensor(currentDim + 1, dimensions, rawData.subarray(Number(start), Number(end)), le))
                         }
                     return tensor
                 }
@@ -2092,7 +2090,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     strides, 
                     perserveValue,
                     elemCount,
-                    data: buildTensor(0, dimensions, data)
+                    data: buildTensor(0, dimensions, data, this.le)
                 }
                 
                 return returnData satisfies DdbTensorData as TResult

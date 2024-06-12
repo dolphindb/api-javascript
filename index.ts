@@ -251,13 +251,13 @@ DdbType.long |
 DdbType.float |
 DdbType.double
 , number> = {
-    1: 1,
-    2: 1,
-    3: 2,
-    4: 4,
-    5: 8,
-    15: 4,
-    16: 8,
+    [DdbType.bool]: 1,
+    [DdbType.char]: 1,
+    [DdbType.short]: 2,
+    [DdbType.int]: 4,
+    [DdbType.long]: 8,
+    [DdbType.float]: 4,
+    [DdbType.double]: 8,
 }
 
 type TensorElem = Tensor | boolean | string | number | bigint
@@ -280,13 +280,13 @@ export interface DdbTensorValue {
     dimensions: number
     
     /** shape, shape[i] 表示第 i 个维度的 size*/
-    shape: bigint[]
+    shape: number[]
     
     /** strides, strides[i] 表示在第 i 个维度，一个元素与下一个元素的距离 */
-    strides: bigint[]
+    strides: number[]
     
     /** 保留值 */
-    perserveValue: bigint
+    preserveValue: bigint
     
     /** 元素个数 */
     elemCount: bigint
@@ -400,13 +400,13 @@ export interface DdbTensorData {
     dimensions: number
     
     /** shape, shape[i] 表示第 i 个维度的 size*/
-    shape: bigint[]
+    shape: number[]
     
     /** strides, strides[i] 表示在第 i 个维度，一个元素与下一个元素的距离 */
-    strides: bigint[]
+    strides: number[]
     
     /** 保留值 */
-    perserveValue: bigint
+    preserveValue: bigint
     
     /** 元素个数 */
     elemCount: bigint
@@ -811,19 +811,19 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 const tensorFlags = dv.getUint32(4, le)
                 const dimensions = dv.getInt32(8, le)
-                const shapes: bigint[] = [ ]
-                const strides: bigint[] = [ ]
+                const shapes: number[] = [ ]
+                const strides: number[] = [ ]
                 const shapeStart = 12
                 const stridesStart = shapeStart + dimensions * 8
                 const preserveValueStart = stridesStart + dimensions * 8
-                const perserveValue = dv.getBigInt64(preserveValueStart, le)
+                const preserveValue = dv.getBigInt64(preserveValueStart, le)
                 const storageStart = preserveValueStart + 8
                 const elemCount = dv.getBigInt64(storageStart, le)
                 const dataStart = storageStart + 8
                 for (let d = 0;  d < dimensions;  d++) {
                     const getNumOffset = d * 8
-                    shapes.push(dv.getBigInt64(shapeStart + getNumOffset, le))
-                    strides.push(dv.getBigInt64(stridesStart + getNumOffset, le))
+                    shapes.push(Number(dv.getBigInt64(shapeStart + getNumOffset, le)))
+                    strides.push(Number(dv.getBigInt64(stridesStart + getNumOffset, le)))
                 }
                 const dataBuffer = buf.subarray(dataStart)
                 return new this({
@@ -839,7 +839,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         dimensions, 
                         shape: shapes, 
                         strides, 
-                        perserveValue,
+                        preserveValue,
                         elemCount, 
                         data: dataBuffer
                     }
@@ -2033,18 +2033,22 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     dimensions, 
                     shape, 
                     strides, 
-                    perserveValue,
+                    preserveValue,
                     elemCount,
                     data, 
                 } = this.value as DdbTensorValue
                 
                 const dataByte: number = ddbType2Byte[dataType]
                 // 降维打击
-                function buildTensor (currentDim: number, dimensions: number, rawData: Uint8Array, le: boolean): Tensor {
+                function buildTensor (currentDim: number, dimensions: number, rawData: Uint8Array, le: boolean, limit = -1): Tensor {
                     const tensor: Tensor = [ ]                        
                     const dv = new DataView(rawData.buffer, rawData.byteOffset)
                     for (let i = 0;  i < shape[currentDim];  i++) 
                         if (currentDim >= dimensions - 1) {
+                            
+                            if (limit > 0 && i > limit) 
+                                continue
+                            
                         // 直接转换到对应的数组
                         const offset = i * dataByte * Number(strides[currentDim])
                         switch (dataType) {
@@ -2072,12 +2076,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         }
                         } else {
                         // 起点
-                        const start = strides[currentDim] * BigInt(i) * BigInt(dataByte)
+                        const start = strides[currentDim] * i * dataByte
                         // 终点
-                        const end = BigInt(start) + strides[currentDim] * BigInt(i) * BigInt(dataByte)
-                        // subarray 不支持 bigint，尴尬了
+                        const end = start + strides[currentDim] * i * dataByte
                         tensor.push(buildTensor(currentDim + 1, dimensions, rawData.subarray(Number(start), Number(end)), le))
                         }
+                    
                     return tensor
                 }
                 
@@ -2088,7 +2092,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     dimensions, 
                     shape, 
                     strides, 
-                    perserveValue,
+                    preserveValue,
                     elemCount,
                     data: buildTensor(0, dimensions, data, this.le)
                 }

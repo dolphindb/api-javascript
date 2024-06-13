@@ -2130,7 +2130,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     // 起点
                     const start = strides[currentDim] * i * dataByte
                     // 终点
-                    const end = start + strides[currentDim] * i * dataByte
+                    const end = start + strides[currentDim] * 1 * dataByte
                     tensor.push(this.buildTensor({ 
                         currentDim: currentDim + 1, 
                         dimensions, 

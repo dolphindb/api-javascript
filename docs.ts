@@ -55,12 +55,12 @@ export class DocsAnalyser {
     
     
     get_function_markdown (name: string) {
-        return this.docs[name]?.markdown
+        return (this.docs[name] || this.docs[`${name}!`])?.markdown
     }
     
     
     get_signatures (name: string) {
-        return this.docs[name]?.signatures
+        return (this.docs[name] || this.docs[`${name}!`])?.signatures
     }
     
     

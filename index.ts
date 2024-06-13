@@ -2087,29 +2087,46 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 const offset = i * dataByte * Number(strides[currentDim])
                 switch (dataType) {
                     case DdbType.bool:
-                        const boolRawValue = dv.getInt8(offset)
-                        if (boolRawValue === -128)
-                            tensor.push(null)
-                        else
-                            tensor.push(Boolean(boolRawValue))
+                        {
+                            const value = dv.getInt8(offset)
+                            tensor.push(value === nulls.int8 ? null : Boolean(value))
+                        }
                         break
                     case DdbType.char:
-                        tensor.push(dv.getInt8(offset))
+                        {
+                            const value = dv.getInt8(offset)
+                            tensor.push(value === nulls.int8 ? null : value)
+                        }
                         break
                     case DdbType.short:
-                        tensor.push(dv.getInt16(offset, le))
+                        {
+                            const value = dv.getInt16(offset, le)
+                            tensor.push(value === nulls.int16 ? null : value)
+                        }
                         break
                     case DdbType.int:
-                        tensor.push(dv.getInt32(offset, le))
+                        {
+                            const value = dv.getInt32(offset, le)
+                            tensor.push(value === nulls.int32 ? null : value)
+                        }
                         break
                     case DdbType.long:
-                        tensor.push(dv.getBigInt64(offset, le))
+                        {
+                            const value = dv.getBigInt64(offset, le)
+                            tensor.push(value === nulls.int64 ? null : value)
+                        }
                         break
                     case DdbType.float:
-                        tensor.push(dv.getFloat32(offset, le))
+                        {
+                            const value = dv.getFloat32(offset, le)
+                            tensor.push(value === nulls.float32 ? null : value)
+                        }
                         break
                     case DdbType.double:
-                        tensor.push(dv.getFloat64(offset, le))
+                        {
+                            const value = dv.getFloat64(offset, le)
+                            tensor.push(value === nulls.double ? null : value)
+                        }
                         break
                 }
             } else {

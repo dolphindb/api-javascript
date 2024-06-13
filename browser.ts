@@ -239,7 +239,7 @@ export interface DdbMatrixValue {
 }
 
 /** 工具，取得某个 DdbType 的字节数 */
-const ddbType2Byte: Record<
+export const ddbType2Byte: Record<
 DdbType.bool |
 DdbType.char |
 DdbType.short |

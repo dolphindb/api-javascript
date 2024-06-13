@@ -2048,7 +2048,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 return returnData satisfies DdbTensorData as TResult
-
+                
             
             default:
                 throw new Error(t('{{form}} {{type}} 暂不支持 data()', { form, type: get_type_name(type) }))
@@ -2413,7 +2413,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         })
         return result
     }
-
+    
     
     inspect_type () {
         const tname = DdbType[this.type]

@@ -366,6 +366,7 @@ export type DdbMatrixObj <TValue extends DdbMatrixValue = DdbMatrixValue> = DdbO
 
 export type DdbChartObj = DdbObj<DdbChartValue>
 
+export type DdbTensorObj = DdbObj<DdbTensorValue>
 
 /** DdbObj.data() 返回的表格对象 */
 export interface DdbTableData <TRow = any> {

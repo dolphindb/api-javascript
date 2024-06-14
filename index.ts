@@ -243,14 +243,9 @@ export interface DdbMatrixValue {
 
 /** 工具，取得某个 DdbType 的字节数 */
 export const ddb_tensor_bytes: Record<
-DdbType.bool |
-DdbType.char |
-DdbType.short |
-DdbType.int |
-DdbType.long |
-DdbType.float |
-DdbType.double
-, number> = {
+    DdbType.bool | DdbType.char | DdbType.short | DdbType.int | DdbType.long | DdbType.float | DdbType.double, 
+    number
+> = {
     [DdbType.bool]: 1,
     [DdbType.char]: 1,
     [DdbType.short]: 2,
@@ -261,7 +256,7 @@ DdbType.double
 }
 
 type TensorElem = TensorData | boolean | number | bigint | null | string
-interface TensorData extends Array<TensorElem> {}
+interface TensorData extends Array<TensorElem> { }
 
 interface DdbTensorMetadata {
     /** Tensor 的元素的数据类型 */
@@ -279,7 +274,7 @@ interface DdbTensorMetadata {
     /** 维度 */
     dimensions: number
     
-    /** shape, shape[i] 表示第 i 个维度的 size*/
+    /** shape, shape[i] 表示第 i 个维度的 size */
     shape: number[]
     
     /** strides, strides[i] 表示在第 i 个维度，一个元素与下一个元素的距离 */
@@ -821,6 +816,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     }
                 })
             }
+            
             default:
                 return new this({
                     le,
@@ -2042,15 +2038,17 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         @returns  */
     static parse_tensor (
         buildParams: {
-        currentDim: number
-        dimensions: number
-        rawData: Uint8Array
-        le: boolean
-        dataByte: number
-        dataType: DdbType
-        shape: number[]
-        strides: number[]
-    }, limit = -1): TensorData {
+            currentDim: number
+            dimensions: number
+            rawData: Uint8Array
+            le: boolean
+            dataByte: number
+            dataType: DdbType
+            shape: number[]
+            strides: number[]
+        }, 
+        limit = -1
+    ): TensorData {
         const { currentDim, dimensions, rawData, le, dataByte, dataType, shape, strides } = buildParams
         const tensor: TensorData = [ ]
         const dv = new DataView(rawData.buffer, rawData.byteOffset)
@@ -2351,18 +2349,20 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     }
                     
                 }
-                case DdbForm.tensor: 
-                const tensorVal: DdbTensorValue = this.value as unknown as DdbTensorValue
-                const retd = DdbObj.parse_tensor({ 
-                    currentDim: 0, 
-                    dimensions: tensorVal.dimensions, 
-                    rawData: tensorVal.data, 
-                    le: this.le, 
-                    dataByte: ddb_tensor_bytes[tensorVal.data_type], 
-                    dataType: tensorVal.data_type, 
-                    shape: tensorVal.shape, 
-                    strides: tensorVal.strides }, 5)
-                return JSON.stringify(retd).replaceAll('"..."', '...')
+                
+                case DdbForm.tensor: {
+                    const tensorVal: DdbTensorValue = this.value as unknown as DdbTensorValue
+                    const retd = DdbObj.parse_tensor({ 
+                        currentDim: 0, 
+                        dimensions: tensorVal.dimensions, 
+                        rawData: tensorVal.data, 
+                        le: this.le, 
+                        dataByte: ddb_tensor_bytes[tensorVal.data_type], 
+                        dataType: tensorVal.data_type, 
+                        shape: tensorVal.shape, 
+                        strides: tensorVal.strides }, 5)
+                    return JSON.stringify(retd).replaceAll('"..."', '...')
+                }
             }
             
             if (this.value instanceof Uint8Array)

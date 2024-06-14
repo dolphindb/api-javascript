@@ -2065,48 +2065,41 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 // 直接转换到对应的数组
                 const offset = i * dataByte * Number(strides[currentDim])
                 switch (dataType) {
-                    case DdbType.bool:
-                        {
+                    case DdbType.bool:{
                             const value = dv.getInt8(offset)
                             tensor.push(value === nulls.int8 ? null : Boolean(value))
+                            break
                         }
-                        break
-                    case DdbType.char:
-                        {
+                    case DdbType.char:{
                             const value = dv.getInt8(offset)
                             tensor.push(value === nulls.int8 ? null : value)
+                            break
                         }
-                        break
-                    case DdbType.short:
-                        {
+                    case DdbType.short:{
                             const value = dv.getInt16(offset, le)
                             tensor.push(value === nulls.int16 ? null : value)
+                            break
                         }
-                        break
-                    case DdbType.int:
-                        {
+                    case DdbType.int:{
                             const value = dv.getInt32(offset, le)
                             tensor.push(value === nulls.int32 ? null : value)
+                            break
                         }
-                        break
-                    case DdbType.long:
-                        {
+                    case DdbType.long:{
                             const value = dv.getBigInt64(offset, le)
                             tensor.push(value === nulls.int64 ? null : value)
+                            break
                         }
-                        break
-                    case DdbType.float:
-                        {
+                    case DdbType.float:{
                             const value = dv.getFloat32(offset, le)
                             tensor.push(value === nulls.float32 ? null : value)
+                            break
                         }
-                        break
-                    case DdbType.double:
-                        {
+                    case DdbType.double:{
                             const value = dv.getFloat64(offset, le)
                             tensor.push(value === nulls.double ? null : value)
+                            break
                         }
-                        break
                 }
             } else {
                 // 起点
@@ -2423,19 +2416,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 return `matrix<${tname}>[${this.rows}r][${this.cols}c]`
             
             case DdbForm.tensor:
-                return `tensor<${this.generateArrayType(DdbType[(this.value as DdbTensorValue).data_type], (this.value as DdbTensorValue).shape)}>`
+                return `tensor<${generate_array_type(DdbType[(this.value as DdbTensorValue).data_type], (this.value as DdbTensorValue).shape)}>`
             
             default:
                 return `${DdbForm[this.form]} ${tname}`
         }
-    }
-    
-    generateArrayType (baseType: string, dimensions: number[]): string {
-        let result = baseType
-        dimensions.forEach(dimension => {
-            result += `[${dimension}]`
-        })
-        return result
     }
     
     
@@ -5352,6 +5337,14 @@ function set_big_uint_128 (dataView: DataView, byte_offset: number, value: bigin
 
 function set_big_int_128 (dataview: DataView, byte_offset: number, value: bigint, le = true) {
     set_big_uint_128(dataview, byte_offset, value, le)
+}
+
+function generate_array_type (baseType: string, dimensions: number[]): string {
+    let result = baseType
+    dimensions.forEach(dimension => {
+        result += `[${dimension}]`
+    })
+    return result
 }
 
 // 大端

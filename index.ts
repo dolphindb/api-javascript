@@ -2063,37 +2063,37 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 // 直接转换到对应的数组
                 const offset = i * dataByte * Number(strides[currentDim])
                 switch (dataType) {
-                    case DdbType.bool:{
+                    case DdbType.bool: {
                             const value = dv.getInt8(offset)
                             tensor.push(value === nulls.int8 ? null : Boolean(value))
                             break
                         }
-                    case DdbType.char:{
+                    case DdbType.char: {
                             const value = dv.getInt8(offset)
                             tensor.push(value === nulls.int8 ? null : value)
                             break
                         }
-                    case DdbType.short:{
+                    case DdbType.short: {
                             const value = dv.getInt16(offset, le)
                             tensor.push(value === nulls.int16 ? null : value)
                             break
                         }
-                    case DdbType.int:{
+                    case DdbType.int: {
                             const value = dv.getInt32(offset, le)
                             tensor.push(value === nulls.int32 ? null : value)
                             break
                         }
-                    case DdbType.long:{
+                    case DdbType.long: {
                             const value = dv.getBigInt64(offset, le)
                             tensor.push(value === nulls.int64 ? null : value)
                             break
                         }
-                    case DdbType.float:{
+                    case DdbType.float: {
                             const value = dv.getFloat32(offset, le)
                             tensor.push(value === nulls.float32 ? null : value)
                             break
                         }
-                    case DdbType.double:{
+                    case DdbType.double: {
                             const value = dv.getFloat64(offset, le)
                             tensor.push(value === nulls.double ? null : value)
                             break
@@ -2361,7 +2361,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         dataType: tensorVal.data_type, 
                         shape: tensorVal.shape, 
                         strides: tensorVal.strides }, 5)
-                    return JSON.stringify(retd).replaceAll('"..."', '...')
+                    return inspect(retd, options).replaceAll("\'...\'", '...')
                 }
             }
             

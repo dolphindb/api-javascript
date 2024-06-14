@@ -65,7 +65,7 @@ https://www.npmjs.com/package/dolphindb
 ##### 1. 安装
 
 1.1. 在机器上安装最新版的 Node.js 及浏览器。  
-- windows: https://nodejs.org/en/download/current/  
+- windows: https://nodejs.org/en/download/prebuilt-installer/current
 - linux: https://github.com/nodesource/distributions?tab=readme-ov-file#debian-and-ubuntu-based-distributions  
 
 1.2. （可选）使用以下命令创建新项目。如果已有项目，可跳过此步。

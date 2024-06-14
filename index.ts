@@ -1997,7 +1997,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 } satisfies DdbMatrixData as TResult
             }
             
-            case DdbForm.tensor:
+            case DdbForm.tensor: {
                 const { 
                     data_type, 
                     tensor_type, 
@@ -2026,6 +2026,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 return returnData satisfies DdbTensorData as TResult
+            }
             
             default:
                 throw new Error(t('{{form}} {{type}} 暂不支持 data()', { form, type: get_type_name(type) }))

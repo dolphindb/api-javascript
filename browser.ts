@@ -239,15 +239,10 @@ export interface DdbMatrixValue {
 }
 
 /** 工具，取得某个 DdbType 的字节数 */
-export const ddbType2Byte: Record<
-DdbType.bool |
-DdbType.char |
-DdbType.short |
-DdbType.int |
-DdbType.long |
-DdbType.float |
-DdbType.double
-, number> = {
+export const ddb_tensor_bytes: Record<
+    DdbType.bool | DdbType.char | DdbType.short | DdbType.int | DdbType.long | DdbType.float | DdbType.double, 
+    number
+> = {
     [DdbType.bool]: 1,
     [DdbType.char]: 1,
     [DdbType.short]: 2,
@@ -257,37 +252,39 @@ DdbType.double
     [DdbType.double]: 8,
 }
 
-type TensorElem = Tensor | boolean | number | bigint | null | string
-interface Tensor extends Array<TensorElem> {}
+type TensorElem = TensorData | boolean | number | bigint | null | string
+interface TensorData extends Array<TensorElem> { }
 
-export interface DdbTensorValue {
+interface DdbTensorMetadata {
     /** Tensor 的元素的数据类型 */
-    dataType: DdbType
+    data_type: DdbType
     
-    /** Tensor类型 */
-    tensorType: number
+    /** Tensor 类型 */
+    tensor_type: number
     
     /** 设备类型 */
-    deviceType: number
+    device_type: number
     
     /** Tensor Flags */
-    tensorFlags: number
+    tensor_flags: number
     
     /** 维度 */
     dimensions: number
     
-    /** shape, shape[i] 表示第 i 个维度的 size*/
+    /** shape, shape[i] 表示第 i 个维度的 size */
     shape: number[]
     
     /** strides, strides[i] 表示在第 i 个维度，一个元素与下一个元素的距离 */
     strides: number[]
     
     /** 保留值 */
-    preserveValue: bigint
+    preserve_value: bigint
     
     /** 元素个数 */
-    elemCount: bigint
-    
+    elem_count: number
+}
+
+export interface DdbTensorValue extends DdbTensorMetadata {
     /** 数据 */
     data: Uint8Array
 }
@@ -381,37 +378,11 @@ export interface DdbTableData <TRow = any> {
 }
 
 /** DdbObj.data() 返回的 Tensor 对象 */
-export interface DdbTensorData {
-    /** Tensor 的元素的数据类型 */
-    dataType: DdbType
-    
-    /** Tensor类型 */
-    tensorType: number
-    
-    /** 设备类型 */
-    deviceType: number
-    
-    /** Tensor Flags */
-    tensorFlags: number
-    
-    /** 维度 */
-    dimensions: number
-    
-    /** shape, shape[i] 表示第 i 个维度的 size*/
-    shape: number[]
-    
-    /** strides, strides[i] 表示在第 i 个维度，一个元素与下一个元素的距离 */
-    strides: number[]
-    
-    /** 保留值 */
-    preserveValue: bigint
-    
-    /** 元素个数 */
-    elemCount: bigint
-    
+export interface DdbTensorData extends DdbTensorMetadata {
     /** 数据 */
-    data: Tensor
+    data: TensorData
 }
+
 
 /** DdbObj.data() 返回的矩阵对象 */
 export interface DdbMatrixData {
@@ -801,7 +772,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 })
             }
             
-            case DdbForm.tensor:
+            case DdbForm.tensor: {
                 // 元数据
                 const tensorType = buf[2]
                 const deviceType = buf[3]
@@ -829,18 +800,19 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     type,
                     length: i_data + buf_data.length,
                     value: {
-                        dataType: type, 
-                        tensorType, 
-                        deviceType,
-                        tensorFlags,
+                        data_type: type, 
+                        tensor_type: tensorType, 
+                        device_type: deviceType,
+                        tensor_flags: tensorFlags,
                         dimensions, 
                         shape: shapes, 
                         strides, 
-                        preserveValue,
-                        elemCount, 
+                        preserve_value: preserveValue,
+                        elem_count: Number(elemCount), 
                         data: dataBuffer
                     }
                 })
+            }
             
             default:
                 return new this({
@@ -2022,45 +1994,48 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 } satisfies DdbMatrixData as TResult
             }
             
-            case DdbForm.tensor:
-                const { dataType, 
-                    tensorType, 
-                    deviceType,
-                    tensorFlags,
+            case DdbForm.tensor: {
+                const { 
+                    data_type, 
+                    tensor_type, 
+                    device_type,
+                    tensor_flags,
                     dimensions, 
                     shape, 
                     strides, 
-                    preserveValue,
-                    elemCount,
+                    preserve_value,
+                    elem_count,
                     data, 
                 } = this.value as DdbTensorValue
                 
-                const dataByte: number = ddbType2Byte[dataType]                
-                const returnData: DdbTensorData = { dataType, 
-                    tensorType, 
-                    deviceType,
-                    tensorFlags,
+                const dataByte: number = ddb_tensor_bytes[data_type]                
+                const returnData: DdbTensorData = { 
+                    data_type, 
+                    tensor_type, 
+                    device_type,
+                    tensor_flags,
                     dimensions, 
                     shape, 
                     strides, 
-                    preserveValue,
-                    elemCount, // 0, dimensions, data, this.le,dataByte
-                    data: this.buildTensor({ currentDim: 0, dimensions, rawData: data, le: this.le, dataByte, dataType, shape, strides })
+                    preserve_value,
+                    elem_count,
+                    data: DdbObj.parse_tensor({ currentDim: 0, dimensions, rawData: data, le: this.le, dataByte, dataType: data_type, shape, strides })
                 }
                 
                 return returnData satisfies DdbTensorData as TResult
-                
+            }
             
             default:
                 throw new Error(t('{{form}} {{type}} 暂不支持 data()', { form, type: get_type_name(type) }))
         }
     }
     
-        /** 构建 Tensor
-        @param buildParams 构建参数
-        @param limit 限制每个维度最大元素个数（仅用于 log，不作他用）
-        @returns  */
-        buildTensor (buildParams: {
+    /** 构建 Tensor
+    @param buildParams 构建参数
+    @param limit 限制每个维度最大元素个数（仅用于 log，不作他用）
+    @returns  */
+    static parse_tensor (
+        buildParams: {
             currentDim: number
             dimensions: number
             rawData: Uint8Array
@@ -2069,85 +2044,78 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             dataType: DdbType
             shape: number[]
             strides: number[]
-        }, limit = -1): Tensor {
-            const { currentDim, dimensions, rawData, le, dataByte, dataType, shape, strides } = buildParams
-            const tensor: Tensor = [ ]
-            const dv = new DataView(rawData.buffer, rawData.byteOffset)
-            for (let i = 0;  i < shape[currentDim];  i++)
-                if (currentDim >= dimensions - 1) {
-                
-                    if (limit > 0 && i >= limit) {
-                        tensor.push('...')
-                        break
-                    }
-                        
-                    // 直接转换到对应的数组
-                    const offset = i * dataByte * Number(strides[currentDim])
-                    switch (dataType) {
-                        case DdbType.bool:
-                            {
-                                const value = dv.getInt8(offset)
-                                tensor.push(value === nulls.int8 ? null : Boolean(value))
-                            }
-                            break
-                        case DdbType.char:
-                            {
-                                const value = dv.getInt8(offset)
-                                tensor.push(value === nulls.int8 ? null : value)
-                            }
-                            break
-                        case DdbType.short:
-                            {
-                                const value = dv.getInt16(offset, le)
-                                tensor.push(value === nulls.int16 ? null : value)
-                            }
-                            break
-                        case DdbType.int:
-                            {
-                                const value = dv.getInt32(offset, le)
-                                tensor.push(value === nulls.int32 ? null : value)
-                            }
-                            break
-                        case DdbType.long:
-                            {
-                                const value = dv.getBigInt64(offset, le)
-                                tensor.push(value === nulls.int64 ? null : value)
-                            }
-                            break
-                        case DdbType.float:
-                            {
-                                const value = dv.getFloat32(offset, le)
-                                tensor.push(value === nulls.float32 ? null : value)
-                            }
-                            break
-                        case DdbType.double:
-                            {
-                                const value = dv.getFloat64(offset, le)
-                                tensor.push(value === nulls.double ? null : value)
-                            }
-                            break
-                    }
-                } else {
-                    // 起点
-                    const start = strides[currentDim] * i * dataByte
-                    // 终点
-                    const end = start + strides[currentDim] * 1 * dataByte
-                    tensor.push(this.buildTensor({ 
-                        currentDim: currentDim + 1, 
-                        dimensions, 
-                        rawData: rawData.subarray(Number(start), Number(end)), 
-                        le, 
-                        dataByte, 
-                        shape, 
-                        strides, 
-                        dataType 
-                    }, limit))
+        },
+        limit = -1
+    ): TensorData {
+        const { currentDim, dimensions, rawData, le, dataByte, dataType, shape, strides } = buildParams
+        const tensor: TensorData = [ ]
+        const dv = new DataView(rawData.buffer, rawData.byteOffset)
+        for (let i = 0;  i < shape[currentDim];  i++)
+            if (currentDim >= dimensions - 1) {
+            
+                if (limit > 0 && i >= limit) {
+                    tensor.push('...')
+                    break
                 }
                 
-            return tensor
-        }
-    
-    
+                // 直接转换到对应的数组
+                const offset = i * dataByte * Number(strides[currentDim])
+                switch (dataType) {
+                    case DdbType.bool: {
+                        const value = dv.getInt8(offset)
+                        tensor.push(value === nulls.int8 ? null : Boolean(value))
+                        break
+                    }
+                    case DdbType.char: {
+                        const value = dv.getInt8(offset)
+                        tensor.push(value === nulls.int8 ? null : value)
+                        break
+                    }
+                    case DdbType.short: {
+                        const value = dv.getInt16(offset, le)
+                        tensor.push(value === nulls.int16 ? null : value)
+                        break
+                    }
+                    case DdbType.int: {
+                        const value = dv.getInt32(offset, le)
+                        tensor.push(value === nulls.int32 ? null : value)
+                        break
+                    }
+                    case DdbType.long: {
+                        const value = dv.getBigInt64(offset, le)
+                        tensor.push(value === nulls.int64 ? null : value)
+                        break
+                    }
+                    case DdbType.float: {
+                        const value = dv.getFloat32(offset, le)
+                        tensor.push(value === nulls.float32 ? null : value)
+                        break
+                    }
+                    case DdbType.double: {
+                        const value = dv.getFloat64(offset, le)
+                        tensor.push(value === nulls.double ? null : value)
+                        break
+                    }
+                }
+            } else {
+                // 起点
+                const start = strides[currentDim] * i * dataByte
+                // 终点
+                const end = start + strides[currentDim] * 1 * dataByte
+                tensor.push(DdbObj.parse_tensor({
+                    currentDim: currentDim + 1,
+                    dimensions,
+                    rawData: rawData.subarray(Number(start), Number(end)),
+                    le,
+                    dataByte,
+                    shape,
+                    strides,
+                    dataType
+                }, limit))
+            }
+            
+        return tensor
+    }
     
     toString (options: InspectOptions = { nullstr: true, quote: true }): string {
         const type = this.inspect_type()
@@ -2382,19 +2350,20 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         4
                     )
                     
-                    case DdbForm.tensor: 
+                case DdbForm.tensor: {
                     const tensorVal: DdbTensorValue = this.value as unknown as DdbTensorValue
-                    const retd = this.buildTensor({ 
-                        currentDim: 0, 
-                        dimensions: tensorVal.dimensions, 
-                        rawData: tensorVal.data, 
-                        le: this.le, 
-                        dataByte: ddbType2Byte[tensorVal.dataType], 
-                        dataType: tensorVal.dataType, 
-                        shape: tensorVal.shape, 
-                        strides: tensorVal.strides }, 5)
+                    const retd = DdbObj.parse_tensor({
+                        currentDim: 0,
+                        dimensions: tensorVal.dimensions,
+                        rawData: tensorVal.data,
+                        le: this.le,
+                        dataByte: ddb_tensor_bytes[tensorVal.data_type],
+                        dataType: tensorVal.data_type,
+                        shape: tensorVal.shape,
+                        strides: tensorVal.strides
+                    }, 5)
                     return JSON.stringify(retd).replaceAll('"..."', '...')
-    
+                }
             }
             
             return String(this.value)
@@ -2406,16 +2375,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         else
             return `${ options?.colors ? blue(type) : type }(${ this.name ? `'${this.name}', ` : '' }${data})`
     }
-    
-    generateArrayType (baseType: string, dimensions: number[]): string {
-        let result = baseType
-        dimensions.forEach(dimension => {
-            result += `[${dimension}]`
-        })
-        return result
-    }
-    
-    
+        
     inspect_type () {
         const tname = DdbType[this.type]
         
@@ -2450,7 +2410,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 return `matrix<${tname}>[${this.rows}r][${this.cols}c]`
                 
             case DdbForm.tensor:
-                return `tensor<${this.generateArrayType(DdbType[(this.value as DdbTensorValue).dataType], (this.value as DdbTensorValue).shape)}>`
+                return `tensor<${generate_array_type(DdbType[(this.value as DdbTensorValue).data_type], (this.value as DdbTensorValue).shape)}>`
     
             default:
                 return `${DdbForm[this.form]} ${tname}`
@@ -5386,6 +5346,14 @@ function set_big_uint_128 (dataView: DataView, byte_offset: number, value: bigin
 
 function set_big_int_128 (dataview: DataView, byte_offset: number, value: bigint, le = true) {
     set_big_uint_128(dataview, byte_offset, value, le)
+}
+
+function generate_array_type (baseType: string, dimensions: number[]): string {
+    let result = baseType
+    dimensions.forEach(dimension => {
+        result += `[${dimension}]`
+    })
+    return result
 }
 
 // 大端

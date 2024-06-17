@@ -1774,11 +1774,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 case DdbForm.tensor: {
-                    const { le, form, type, value } = this;
-                    const { data_type, tensor_type, device_type, tensor_flags, dimensions, shape, strides, preserve_value, elem_count, data } = value as DdbTensorValue;
+                    const { le, value } = this;
+                    const { tensor_type, device_type, tensor_flags, dimensions, shape, strides, preserve_value, elem_count, data } = value as DdbTensorValue;
 
                     // 计算总的字节长度
-                    const totalLength = 10 + dimensions * 8 * 2 + 8 + 8 + data.length; // 12字节元数据 + 维度信息 + 保留值和元素数量 + 数据部分
+                    const totalLength = 10 + dimensions * 8 * 2 + 8 + 8 + data.length; // 12 字节元数据 + 维度信息 + 保留值和元素数量 + 数据部分
 
                     const buffer = new ArrayBuffer(totalLength);
                     const dv = new DataView(buffer);

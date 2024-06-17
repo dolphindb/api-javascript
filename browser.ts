@@ -1822,8 +1822,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    /** 将 DdbObj 转换为 js 原生数据类型 
-        - 标量对应 number, bigint 或者字符串
+    /** 将 DdbObj 转换为 js 原生数据类型  
+        - 标量对应 number, bigint 或者字符串 (其中时间类型转换为常用的字符串表示)
         - 数组对应 js 原生数组
         - 表格对应 DdbTableData
         - 矩阵对应 DdbMatrixData

@@ -2415,7 +2415,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         else
             return `${ options?.colors ? blue(type) : type }(${ this.name ? `'${this.name}', ` : '' }${data})`
     }
-        
+    
+    
     inspect_type () {
         const tname = DdbType[this.type]
         

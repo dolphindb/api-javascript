@@ -1773,6 +1773,46 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     ]
                 }
                 
+                case DdbForm.tensor: {
+                    const { le, form, type, value } = this;
+                    const { data_type, tensor_type, device_type, tensor_flags, dimensions, shape, strides, preserve_value, elem_count, data } = value as DdbTensorValue;
+
+                    // 计算总的字节长度
+                    const totalLength = 10 + dimensions * 8 * 2 + 8 + 8 + data.length; // 12字节元数据 + 维度信息 + 保留值和元素数量 + 数据部分
+
+                    const buffer = new ArrayBuffer(totalLength);
+                    const dv = new DataView(buffer);
+                    const uint8Array = new Uint8Array(buffer);
+                                        
+                    // 写入元数据
+                    // uint8Array[0] = type;
+                    // uint8Array[1] = form;
+                    uint8Array[0] = tensor_type;
+                    uint8Array[1] = device_type;
+                    dv.setUint32(2, tensor_flags, le);
+                    dv.setInt32(6, dimensions, le);
+
+                    // 写入形状和步长
+                    const shapeStart = 10;
+                    const stridesStart = shapeStart + dimensions * 8;
+                    for (let d = 0; d < dimensions; d++) {
+                        dv.setBigInt64(shapeStart + d * 8, BigInt(shape[d]), le);
+                        dv.setBigInt64(stridesStart + d * 8, BigInt(strides[d]), le);
+                    }
+
+                    // 写入保留值和元素数量
+                    const preserveValueStart = stridesStart + dimensions * 8;
+                    dv.setBigInt64(preserveValueStart, preserve_value, le);
+                    const storageStart = preserveValueStart + 8;
+                    dv.setBigInt64(storageStart, BigInt(elem_count), le);
+
+                    // 写入数据
+                    const dataStart = storageStart + 8;
+                    uint8Array.set(data, dataStart);
+
+                    return [uint8Array];
+                }
+                
                 default:
                     throw new Error(t('vector {{type}} 暂不支持序列化', { type: get_type_name(type) }))
             }

@@ -5079,7 +5079,7 @@ export class DDB {
                                 }
                                 
                                 
-                                win.data = win.data.concat(data.data)    
+                                data.data.forEach(row => win.data.push(row))   
                                 
                                 win.objs.push(obj)
                                 

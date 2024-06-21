@@ -494,11 +494,11 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
         /** The establishment of the connection starts offset = 0, and gradually increases as the window moves */
         offset: number
         
-        /** sum of segment.row in segments */
-        rows: number
+        /** Historical data */
+        data: TRows[]
         
-        /** An array of data received each time */
-        segments: DdbTableData<TRows>[]
+        /** An array of obj received each time */
+        objs: DdbObj<DdbVectorObj[]>[]
     }
     
     /** After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */

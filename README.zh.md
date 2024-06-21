@@ -577,11 +577,11 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
         /** 建立连接开始 offset = 0, 随着 window 的移动逐渐增加 */
         offset: number
         
-        /** segments 中 segment.row 的总和 */
-        rows: number
+        /** 历史数据 */
+        data: TRows[]
         
-        /** 每次接收到的 data 组成的数组 */
-        segments: DdbTableData<TRows>[]
+        /** 每次接收到的 obj 组成的数组 */
+        objs: DdbObj<DdbVectorObj[]>[]
     }
     
     /** 成功订阅后，后续推送过来的 message 解析错误，则会设置 error 并调用 handler */

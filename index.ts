@@ -2658,6 +2658,9 @@ export interface InspectOptions extends UtilInspectOptions {
     
     /** `true` 决定格式化后的数据是否有千分位 */
     grouping?: boolean
+    
+    /** timestamp 类型转换为字符串表示时显示到秒还是毫秒 */
+    timestamp?: 's' | 'ms'
 }
 
 
@@ -2677,8 +2680,8 @@ let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short',
 
 /** 根据 DdbType 格式化单个元素 (value) 为字符串，空值返回 'null' 字符串 */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
+    const { grouping = true, timestamp = 'ms' } = options
     const formatter = (() => {
-        const { grouping = true } = options
         const decimals = options.decimals ?? _decimals
         
         if (decimals !== _decimals || grouping !== _grouping) {
@@ -2697,8 +2700,9 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     
     
     function format_time (
-        formatter: (value: number | bigint) => string,
-        _null: number | bigint
+        formatter: (value: number | bigint, format?: string) => string,
+        _null: number | bigint,
+        format?: string
     ) {
         if (value === null || value === _null)
             return inspect(null, options)
@@ -2707,7 +2711,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
         try {
-            str = formatter(value as number | bigint)
+            str = formatter(value as number | bigint, format)
         } catch (error) {
             if (error instanceof RangeError)
                 str = 'Invalid Date'
@@ -2795,7 +2799,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             return format_time(datetime2str, nulls.int32)
         
         case DdbType.timestamp:
-            return format_time(timestamp2str, nulls.int64)
+            return format_time(timestamp2str, nulls.int64, timestamp === 's' ? 'YYYY.MM.DD HH:mm:ss' : undefined)
         
         case DdbType.nanotime:
             return format_time(nanotime2str, nulls.int64)
@@ -3073,7 +3077,7 @@ export interface ConvertOptions {
 }
 
 
-export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = 'string' }: ConvertOptions = { }) {
+export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = 'string', timestamp = 'ms' }: ConvertOptions = { }) {
     switch (type) {
         case DdbType.void:
             return value === DdbVoidType.null ? null : undefined
@@ -3130,7 +3134,6 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
         case DdbType.second:
         case DdbType.datetime:
         case DdbType.datehour:
-        case DdbType.timestamp:
         case DdbType.nanotime:
         case DdbType.nanotimestamp:
         case DdbType.duration:
@@ -3144,6 +3147,9 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
         case DdbType.decimal64:
         case DdbType.decimal128:
             return format(type, value, le, { colors: false })
+            
+        case DdbType.timestamp:
+            return format(type, value, le, { colors: false, timestamp })
         
         default:
             throw new Error(String(DdbType[type] || type) + t(' 暂时不支持转换为 js 对象'))

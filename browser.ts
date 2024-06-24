@@ -2721,8 +2721,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     
     function format_time (
         formatter: (value: number | bigint, format?: string) => string,
-        _null: number | bigint,
-        format?: string
+        _null: number | bigint
     ) {
         if (value === null || value === _null)
             return get_nullstr()
@@ -2731,7 +2730,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
         try {
-            str = formatter(value as number | bigint, format)
+            str = formatter(value as number | bigint, timestamp === 's' ? 'YYYY.MM.DD HH:mm:ss' : undefined)
         } catch (error) {
             if (error instanceof RangeError)
                 str = 'Invalid Date'
@@ -2816,7 +2815,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             return format_time(datetime2str, nulls.int32)
         
         case DdbType.timestamp:
-            return format_time(timestamp2str, nulls.int64, timestamp === 's' ? 'YYYY.MM.DD HH:mm:ss' : undefined)
+            return format_time(timestamp2str, nulls.int64)
         
         case DdbType.nanotime:
             return format_time(nanotime2str, nulls.int64)
@@ -5097,7 +5096,7 @@ export class DDB {
                                 }
                                 
                                 
-                                data.data.forEach(row => win.data.push(row))    
+                                data.data.forEach(row => { win.data.push(row) })    
                                 
                                 win.objs.push(obj)
                                 

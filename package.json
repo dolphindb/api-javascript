@@ -32,14 +32,14 @@
         "JavaScript"
     ],
     "devDependencies": {
-        "@types/node": "^20.14.2",
-        "eslint": "^9.4.0",
-        "typescript": "^5.4.5"
+        "@types/node": "^20.14.8",
+        "eslint": "^9.5.0",
+        "typescript": "^5.5.2"
     },
     "dependencies": {
         "dayjs": "^1.11.11",
         "ipaddr.js": "^2.2.0",
         "tslib": "^2.6.3",
-        "xshell": "^1.0.128"
+        "xshell": "^1.0.142"
     }
 }

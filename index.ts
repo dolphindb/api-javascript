@@ -2710,7 +2710,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
         try {
-            str = formatter(value as number | bigint, timestamp === 's' ? 'YYYY.MM.DD HH:mm:ss' : undefined)
+            str = formatter(value as number | bigint, (type === DdbType.timestamp && timestamp === 's') ? 'YYYY.MM.DD HH:mm:ss' : undefined)
         } catch (error) {
             if (error instanceof RangeError)
                 str = 'Invalid Date'
@@ -3133,6 +3133,7 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
         case DdbType.second:
         case DdbType.datetime:
         case DdbType.datehour:
+        case DdbType.timestamp:
         case DdbType.nanotime:
         case DdbType.nanotimestamp:
         case DdbType.duration:
@@ -3145,9 +3146,6 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
         case DdbType.decimal32:
         case DdbType.decimal64:
         case DdbType.decimal128:
-            return format(type, value, le, { colors: false })
-            
-        case DdbType.timestamp:
             return format(type, value, le, { colors: false, timestamp })
         
         default:

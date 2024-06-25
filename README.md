@@ -16,120 +16,179 @@
 ## English | [中文](./README.zh.md)
 
 ## Overview
-DolphinDB JavaScript API is a JavaScript library that encapsulates the ability to operate the DolphinDB database, such as: connecting to the database, executing scripts, calling functions, uploading variables, etc.
+The DolphinDB JavaScript API is a JavaScript library that encapsulates interactions with the DolphinDB database, such as connecting to the database, executing scripts, calling functions, uploading variables, etc.
 
 https://www.npmjs.com/package/dolphindb
 
 ## Features
-- Use WebSocket to communicate with DolphinDB database, exchange data in binary format, and support real-time push of streaming data
-- Support running in browser environment and Node.js environment
-- Use TypedArray such as Int32Array in JavaScript to process binary data, with high performance
-- Support serialized upload of up to 2GB of data with a single call, and the amount of downloaded data is not limited
+
+- Communicates with the DolphinDB database using WebSocket and exchanges data in binary format, supporting real-time streaming data.
+- Supports running in both browser and Node.js environments.
+- Uses TypedArray in JavaScript such as Int32Array to handle binary data.
+- Supports serialized upload of up to 2 GB of data in a single call, with no limit on the amount of downloaded data.
 
 ## Usage
-### Initialize and connect to DolphinDB
+
+### Connecting to DolphinDB
 
 #### Method 1: Use the built CDN version directly in the browser
 
-Save the following content to the `example.html` file, open it with a browser and run it. F12 opens the debugging console to see the log.
+Save the following content to an `example.html` file and open it with a browser to run it. Press F12 to open the debug console and check the logs.
 
 ```html
 <!doctype html>
 <html>
-     <head>
-         <title>DolphinDB</title>
-         <meta charset='utf-8' />
-     </head>
-     <body>
-         <script type="module">
-             import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
+    <head>
+        <title>DolphinDB</title>
+        <meta charset='utf-8' />
+    </head>
+    <body>
+        <script type="module">
+            import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
             
-             let ddb = new DDB('ws://127.0.0.1:8848')
+            let ddb = new DDB('ws://127.0.0.1:8848')
             
-             await ddb.connect()
+            await ddb.connect()
             
-             console.log(
-                 await ddb.eval('1 + 1')
-             )
-         </script>
-     </body>
+            console.log(
+                await ddb.execute('1 + 1')
+            )
+            
+            console.log(
+                await ddb.invoke('add', [1, 1])
+            )
+        </script>
+    </body>
 </html>
 ```
 
-#### Method 2: Install the npm package in the project and import it
+#### Method 2: Install the npm package and import to the project
 
 ##### 1. Installation
 
-1.1. Install the latest version of Node.js and browser on the machine.
-     - windows: https://nodejs.org/en/download/current/
-     - linux: https://github.com/nodesource/distributions?tab=readme-ov-file#debian-and-ubuntu-based-distributions
-1.2. (Optional) Create a new project using the following command. If you already have a project, you can skip this step.
-     ```bash
-     mkdir dolphindb-example
-     cd dolphindb-example
-     npm init --yes
-     ```
-1.3. Open the package.json file with an editor and add a line "type": "module" below `"main": "./index.js"`. This will enable ECMAScript modules. You can use `import { DDB } from 'dolphindb'` to import npm package.
-1.4. Install the npm package in the project.
-     ```bash
-     npm install dolphindb
-     ```
+1.1. Install the latest version of Node.js and browser on your machine.
+- Windows: https://nodejs.org/en/download/prebuilt-installer/current
+- Linux: https://github.com/nodesource/distributions?tab=readme-ov-file#debian-and-ubuntu-based-distributions
 
-##### 2. Use
+1.2. (Optional) Create a new project using the following command. Skip this step if you already have a project.
+
+```bash
+mkdir dolphindb-example
+cd dolphindb-example
+npm init --yes
+```
+
+1.3. Open the `package.json` file with an editor and add a line `"type": "module"` below `"main": "./index.js"` to enable ECMAScript modules. In the following code, you can use `import { DDB } from 'dolphindb'` to import npm package.
+
+1.4. Install the npm package in the project.
+
+```bash
+npm install dolphindb
+```
+
+##### 2. Usage
 
 ```ts
-// 2.1 Use the following method to import in the browser environment
+// 2.1 import in the browser environment
 import { DDB } from 'dolphindb/browser.js'
 
-// 2.1 Use the following method to import in Node.js environment
+// 2.1 import in the Node.js environment
 // import { DDB } from 'dolphindb'
-// The import method for existing projects using CommonJS modules is const { DDB } = await import('dolphindb')
+// For existing projects using CommonJS modules, import as follows: const { DDB } = await import('dolphindb')
 
-// 2.2 Use the WebSocket URL to initialize the connection to the DolphinDB instance (without establishing an actual network connection)
+// 2.2 Initialize the instance to connect to DolphinDB using the WebSocket URL (no actual network connection is established)
 let ddb = new DDB('ws://127.0.0.1:8848')
 
 // Use HTTPS encryption
 // let ddb = new DDB('wss://dolphindb.com')
 
-// 2.3 Establish a connection to DolphinDB (requires DolphinDB database version to be no less than 1.30.16 or 2.00.4)
+// 2.3 Establish a connection to DolphinDB (requires DolphinDB database version no less than 1.30.16 or 2.00.4)
 await ddb.connect()
 ```
 
-#### Code completion, function prompt data
-- https://cdn.dolphindb.cn/assets/docs.zh.json
-- https://cdn.dolphindb.cn/assets/docs.en.json
+#### Code completion and function prompt
 
+See https://cdn.dolphindb.cn/assets/docs.en.json  
+or https://cdn.dolphindb.cn/assets/docs.zh.json
 
-#### DDB Connection Options
+#### Connection options
+
 ```ts
-let ddb = new DDB('ws://127.0.0.1:8848')
-
-// Encrypt with HTTPS
-let ddbsecure = new DDB('wss://dolphindb.com', {
-    // Whether to log in automatically after establishing a connection, default `true`
+let ddb = new DDB('ws://127.0.0.1:8848', {
+    // Whether to automatically log in after establishing a connection, default is true
     autologin: true,
     
-    // DolphinDB username, default `'admin'`
+    // DolphinDB login username, default is 'admin'
     username: 'admin',
     
-    // DolphinDB password, default `'123456'`
+    // DolphinDB login password, default is '123456'
     password: '123456',
     
-    // set python session flag, default `false`
+    // Set python session flag, default is false
     python: false,
     
-    // set sql standrd flag,  use the SqlStandard enum to pass arguments, default `DolphinDB`
+    // Set the SQL standard to execute in the current session, use the SqlStandard enum, default is DolphinDB
     // sql: SqlStandard.MySQL,
     // sql: SqlStandard.Oracle,
     
-    // After setting this option, the database connection is only used for streaming data. For details, see `5. Streaming Data`
+    // Set this option for the database connection to be used only for streaming data, see `5. Streaming Data` for details
     streaming: undefined
 })
 ```
 
-
 ### Calling functions
-#### Example
+#### `invoke` method
+##### Code example
+
+```ts
+const result = await ddb.invoke('add', [1, 1])
+// TypeScript: const result = await ddb.invoke<number>('add', [1, 1])
+
+console.log(result === 2)  // true
+```
+
+In the example above, two parameters 1 (corresponding to the int type in DolphinDB) are uploaded to the DolphinDB database as parameters of the `add` function, and the result of the function call is received in `result`.
+
+`<number>` is used for TypeScript to infer the type of the return value.
+
+##### Method declaration
+
+```ts
+/** Call a dolphindb function, passing in a native JS array as parameters, and return a native JS object or value (result after calling DdbObj.data()) */
+async invoke <TResult = any> (
+    /** Function name */
+    func: string, 
+    
+    /** `[ ]` Call parameters, can be a native JS array */
+    args?: any[], 
+    
+    /** Call options */
+    options?: {
+        /** Urgent flag. Use urgent worker to execute, preventing being blocked by other jobs */
+        urgent?: boolean
+        
+        /** When setting node alias, send to the corresponding node in the cluster to execute (using DolphinDB's rpc method) */
+        node?: string
+        
+        /** When setting multiple node aliases, send to the corresponding multiple nodes in the cluster to execute (using DolphinDB's pnodeRun method) */
+        nodes?: string[]
+        
+        /** Required when setting the node parameter and the parameter array is empty, specify the function type, not passed in other cases */
+        func_type?: DdbFunctionType
+        
+        /** Optionally passed when setting the nodes parameter, not passed in other cases */
+        add_node_alias?: boolean
+        
+        /** Handle messages (DdbMessage) during this rpc */
+        listener?: DdbMessageListener
+    } = { }
+): Promise<TResult>
+```
+
+#### `call` method
+
+##### Code example
+
 ```ts
 import { DdbInt } from 'dolphindb'
 
@@ -139,22 +198,21 @@ const result = await ddb.call('add', [new DdbInt(1), new DdbInt(1)])
 console.log(result.value === 2)  // true
 ```
 
-#### Using DdbObj objects to represent data types in DolphinDB
+###### Using DdbObj objects to represent data types in DolphinDB
 
-In the preceding example, two parameters (`new DdbInt(1)`, corresponding to the INT type in DolphinDB) are uploaded to the DolphinDB database as parameters of the add function, then the result of the function call is received.
+In the example above, two parameters `new DdbInt(1)`, corresponding to the INT type in DolphinDB, are uploaded to the DolphinDB database as arguments of the `add` function, and the result of the function call is received in `result`.
 
-`<DdbInt>` is used by TypeScript to infer the type of the return value
+<DdbInt> is used by TypeScript to infer the type of the return value
 
-- result is a `DdbInt`, which is also a `DdbObj<number>`
-- result.form is a `DdbForm.scalar`
-- result.type is a `DdbType.int`
-- result.value is data of `number` type in JavaScript (the value range and precision of INT can be accurately represented by JavaScript `number` type)
+- result is a DdbInt, which is also a DdbObj<number>
+- result.form is a DdbForm.scalar
+- result.type is a DdbType.int
+- result.value is data of number type in JavaScript (the value range and precision of INT can be accurately represented by JavaScript number type)
 
-It is recommended to first understand the concepts related to TypedArray in JavaScript, you can refer to:  
+It is recommended to first understand the concepts related to TypedArray in JavaScript, you can refer to:
 
-- https://stackoverflow.com/questions/42416783/where-to-use-arraybuffer-vs-typed-array-in-javascript  
-- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray  
-
+- https://stackoverflow.com/questions/42416783/where-to-use-arraybuffer-vs-typed-array-in-javascript
+- https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray
 
 ```ts
 /** Can represent all data types in DolphinDB databases */
@@ -162,10 +220,10 @@ class DdbObj <T extends DdbValue = DdbValue> {
     /** is it little endian */
     le: boolean
     
-    /** data form https://www.dolphindb.cn/cn/help/DataTypesandStructures/DataForms/index.html */
+    /** DolphinDB data form */
     form: DdbForm
     
-    /** data type  https://www.dolphindb.cn/cn/help/DataTypesandStructures/DataTypes/index.html */
+    /** DolphinDB data type */
     type: DdbType
     
     /** consumed length in buf parsed */
@@ -282,13 +340,13 @@ const obj = new DdbObj({
      length: 0
 })
 
-// It's easier to use shortcut classes
+// easier to use shortcut classes
 const obj = new DdbSetInt(
      new Set([1, 2, 3])
 )
 ```
 
-##### NULL object in the form of scalar
+##### NULL object in scalar
 
 For the NULL object in the form of scalar, the value corresponding to DdbObj is null in JavaScript：
 
@@ -300,8 +358,8 @@ new DdbInt(null)
 new DdbDouble(null)
 ```
 
+##### Method declaration
 
-#### `call` method declaration
 ```ts
 async call <T extends DdbObj> (
     /** function name */
@@ -330,9 +388,11 @@ async call <T extends DdbObj> (
 ): Promise<T>
 ```
 
+### Executing scripts
 
-### Executing the script
-#### Example
+#### `execute` method
+##### Code example
+
 ```ts
 const result = await ddb.eval(
     'def foo (a, b) {\n' +
@@ -359,24 +419,70 @@ In the preceding example, a script is uploaded through a string to the DolphinDB
 
 As long as the WebSocket connection is not disconnected, the custom function `foo` will always exist in the subsequent session and can be reused, for example, you can use `await ddb.call<DdbInt>('foo', [new DdbInt(1), new DdbInt(1)])` to call this custom function
 
-#### `eval` Method declaration
+##### Method declaration
 
 ```ts
+/** Execute DolphinDB script and return a native JS object or value (result after calling DdbObj.data()) */
+async execute <TResult = any> (
+    /** Script to execute */
+    script: string, 
+    
+    /** Execution options */
+    options?: {
+        /** Urgent flag, ensure the submitted script is processed using an urgent worker to prevent blocking by other jobs */
+        urgent?: boolean
+        /** listener?: Handle messages (DdbMessage) during this rpc */
+        listener?: DdbMessageListener
+    }
+): Promise<TResult>
+```
+
+#### `eval` Method
+
+##### Code example
+```ts
+const result = await ddb.eval(
+    'def foo (a, b) {\n' +
+    '    return a + b\n' +
+    '}\n' +
+    'foo(1l, 1l)\n'
+)
+
+// TypeScript:
+// import type { DdbLong } from 'dolphindb'
+// const result = await ddb.eval<DdbLong>(...)
+
+console.log(result.value === 2n)  // true
+```
+
+In the example above, a script is uploaded as a string to the DolphinDB database for execution, and the result of the last statement `foo(1l, 1l)` is received in `result`.
+
+`<DdbLong>` is used for TypeScript to infer the return value type.
+
+- result is a `DdbLong`, also `DdbObj<bigint>`
+- result.form is `DdbForm.scalar`
+- result.type is `DdbType.long`
+- result.value is a native `bigint` in JavaScript (the precision of long cannot be accurately represented by JavaScript's number, but can be represented by bigint)
+
+##### Method declaration
+
+```ts
+/** Execute DolphinDB script and return a DdbObj object */
 async eval <T extends DdbObj> (
-    /** the script to execute */
+    /** Script to execute */
     script: string,
     
-    /** calling options */
+    /** Execution options */
     options: {
-        /** Urgent flag. Use urgent worker to execute to prevent being blocked by other jobs */
+        /** Urgent flag, ensure the submitted script is processed using an urgent worker to prevent blocking by other jobs */
         urgent?: boolean
     } = { }
 ): Promise<T>
 ```
 
+### Upload Variables
+#### Code example
 
-### Uploading variables
-#### Example
 ```ts
 import { DdbVectorDouble } from 'dolphindb'
 
@@ -386,27 +492,28 @@ a.fill(1.0)
 ddb.upload(['bar1', 'bar2'], [new DdbVectorDouble(a), new DdbVectorDouble(a)])
 ```
 
-In the preceding example, two variables, `bar1` and `bar2`, are uploaded, and the variable value is a double vector of length 10000
+In the example above, two variables `bar1` and `bar2` are uploaded, with values being double vectors of length 10000.
 
-As long as the WebSocket connection is on, variables `bar1` and `bar2` will always exist in subsequent session and can be reused
+As long as the WebSocket connection is not disconnected, these variables `bar1` and `bar2` will always exist in subsequent sessions and can be reused.
 
-#### `upload` method declaration
+#### Method declaration
+
 ```ts
 async upload (
-    /** variable names */
+    /** Variable names to upload */
     vars: string[],
     
-    /** variable values */
+    /** Variable values to upload */
     args: (DdbObj | string | boolean)[]
 ): Promise<void>
 ```
 
+### Other Examples
 
-### Examples
 ```ts
 import { nulls, DdbInt, timestamp2str, DdbVectorSymbol, DdbTable, DdbVectorDouble } from 'dolphindb'
 
-// Format timestamp in DolphinDB as string
+// Format timestamp in DolphinDB to string
 timestamp2str(
     (
         await ddb.call('now', [false])
@@ -414,20 +521,20 @@ timestamp2str(
     ).value
 ) === '2022.02.23 17:23:13.494'
 
-// create symbol vector
+// Create symbol vector
 new DdbVectorSymbol(['aaa', 'aaa', 'aaa', 'aaa', 'aaa', 'bbb'])
 
-// Create a double vector with NULL values using JavaScript native arrays
+// Create double vector with NULL values using native JavaScript array
 new DdbVectorDouble([0.1, null, 0.3])
 
-// More efficient and memory efficient double vector creation using JavaScript TypedArray
+// Create double vector more efficiently and memory-saving using JavaScript TypedArray
 let av = new Float64Array(3)
 av[0] = 0.1
 av[1] = nulls.double
 av[2] = 0.3
 new DdbVectorDouble(av)
 
-// create DdbTable
+// Create DdbTable
 new DdbTable(
     [
         new DdbVectorDouble([0.1, 0.2, null], 'col0'),
@@ -437,18 +544,18 @@ new DdbTable(
 )
 ```
 
-### Streaming data
+### Streaming Data
 
 ```ts
-// New Streaming Data Connection Configuration
+// Create new streaming data connection configuration
 let sddb = new DDB('ws://192.168.0.43:8800', {
     autologin: true,
     username: 'admin',
     password: '123456',
     streaming: {
-        table: 'Streaming table name to subscribe to',
+        table: 'name of the stream table to subscribe to',
         
-        // Streaming data processing callback, the type of message is StreamingMessage
+        // Stream data processing callback, message type is StreamingMessage
         handler (message) {
             console.log(message)
         }
@@ -459,7 +566,7 @@ let sddb = new DDB('ws://192.168.0.43:8800', {
 await sddb.connect()
 ```
 
-The streaming data received after the connection is established will be used as the message parameter of the handler. The type of the message is StreamingMessage, as follows:
+After the connection is established, the received streaming data will be called as the `message` parameter of the `handler`, and the message type is `StreamingMessage`, as follows:
 
 ```ts
 export interface StreamingParams {
@@ -470,50 +577,42 @@ export interface StreamingParams {
 }
 
 export interface StreamingMessage <TRows = any> extends StreamingParams {
-    /**
-        The time the server sent the message (nano seconds since epoch)  
-        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1)
-    */
+    /** The time when the server sends the message (nano seconds since epoch)
+        std::chrono::system_clock::now().time_since_epoch() / std::chrono::nanoseconds(1) */
     time: bigint
     
-    /** message id */
+    /** Message ID */
     id: bigint
     
-    /** Subscription topic, which is the name of a subscription.
-        It is a string consisting of the alias of the node where the subscription table is located, the stream data table name, and the subscription task name (if actionName is specified), separated by `/`
-    */
+    /** Subscription topic, i.e., the name of a subscription.
+        It is a string composed of the alias of the node where the subscription table is located, the name of the stream table, and the name of the subscription task (if actionName is specified), separated by `/` */
     topic: string
     
-    /** Streaming data, the type is any vector, each element of which corresponds to a column (without name) of the subscribed table, and the content in the column (DdbObj<DdbVectorValue>) is the new data value */
-    obj: DdbObj<DdbVectorObj[]>
-    
-    /** Streaming data, each element of the data attribute in the object corresponds to a row in the incremental data of the subscribed table */
+    /** Streaming data */
     data: DdbTableData<TRows>
     
     window: {
-        /** The establishment of the connection starts offset = 0, and gradually increases as the window moves */
+        /** Offset from the start of the connection, starting at 0, and increasing as the window moves */
         offset: number
         
         /** Historical data */
         data: TRows[]
         
-        /** An array of obj received each time */
+        /** Array of objects received each time */
         objs: DdbObj<DdbVectorObj[]>[]
     }
     
-    /** After successfully subscribed, if the subsequently pushed message is parsed incorrectly, the error will be set and the handler will be called. */
+    /** If there is an error in parsing the message pushed after the successful subscription, the error is set and the handler is called */
     error?: Error
 }
 ```
 
-
-### Development
+## Development Method
 
 ```shell
-# Install the latest version of nodejs
-# https://nodejs.org/en/download/current/
+# Install the latest version of nodejs (see above)
 
-# Install the pnpm package manager
+# Install pnpm package manager
 npm install -g pnpm
 
 git clone https://github.com/dolphindb/api-javascript.git
@@ -526,18 +625,18 @@ pnpm install
 # Copy .vscode/settings.template.json to .vscode/settings.json
 cp .vscode/settings.template.json .vscode/settings.json
 
-# Refer to scripts in package.json
+# Refer to the scripts in package.json
 
-# Construct
+# Build
 pnpm run build
 
-#lint
+# Lint
 pnpm run lint
 
-# test
+# Test
 pnpm run test
 
-# scan entries
+# Scan entries
 pnpm run scan
 # Manually complete untranslated entries
 # Run the scan again to update the dictionary file dict.json

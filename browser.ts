@@ -4989,6 +4989,11 @@ export class DDB {
         
         if (message !== 'OK') {
             error.message = message
+            
+            let lines = error.stack.split_lines()
+            lines[0] += `: ${message}`
+            error.stack = lines.join_lines(false)
+            
             return { type: 'error', data: error }
         }
         

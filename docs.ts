@@ -25,32 +25,26 @@ export interface Doc {
 
 export type Docs = Record<string, Doc>
 
-function is_completion_match (target: string, search: string) {
-    let j = 0
-    for (const c of search) {
-        j = target.indexOf(c, j) + 1
-        if (!j)
-            return false
-    }
-    
-    return true
-}
 
-export class DocsAnalyser {
+export class DocsProvider {
     /** 文档原始信息 */
     docs?: Docs
     
     /** 函数名列表 */
-    funcs: string[] = [ ]
+    functions: string[]
     
     /** 转化成小写字母的函数名列表 */
-    lower_funcs: string[] = [ ]
+    functions_lower: string[]
+    
+    constants_lower: string[]
     
     
+    /** - docs: docs.zh.json 等文件对应的文档对象 */
     constructor (docs: Docs) {
         this.docs = docs
-        this.funcs = Object.keys(docs)
-        this.lower_funcs = this.funcs.map(func => func.toLowerCase())
+        this.functions = Object.keys(docs)
+        this.functions_lower = this.functions.map(func => func.toLowerCase())
+        this.constants_lower = constants.map(constant => constant.toLowerCase())
     }
     
     
@@ -64,16 +58,80 @@ export class DocsAnalyser {
     }
     
     
-    /** 查询补全项（包括关键字、常量和函数）
-        @param query
-        @returns  */
-    search_completion_items (query: string) {
-        const query_lower = query.toLowerCase()
+    /** 根据用户输入提供补全列表，返回匹配的关键字、常量和函数 */
+    complete (query: string) {
+        let functions: string[]
+        let _constants: string[]
+        
+        if (query.length === 1) {
+            const c = query[0].toLowerCase()
+            functions = this.functions.filter((func, i) =>
+                this.functions_lower[i].startsWith(c)
+            )
+            _constants = constants.filter((constant, i) =>
+                this.constants_lower[i].startsWith(c)
+            )
+        } else {
+            const query_lower = query.toLowerCase()
+            
+            functions = this.functions.filter((func, i) => {
+                const func_lower = this.functions_lower[i]
+                let j = 0
+                for (const c of query_lower) {
+                    j = func_lower.indexOf(c, j) + 1
+                    if (!j)  // 找不到则 j === 0
+                        return false
+                }
+                
+                return true
+            })
+            
+            _constants = constants.filter((constant, i) => {
+                const constant_lower = this.constants_lower[i]
+                let j = 0
+                for (const c of query_lower) {
+                    j = constant_lower.indexOf(c, j) + 1
+                    if (!j)  // 找不到则 j === 0
+                        return false
+                }
+                
+                return true
+            })
+        }
         
         return {
-            keywords: keywords.filter(keyword => keyword.startsWith(query)),
-            constants: constants.filter(constant => is_completion_match(constant, query_lower)),
-            functions: this.funcs.filter((func, i) => is_completion_match(this.lower_funcs[i], query_lower)),
+            keywords: keywords.filter(kw => kw.startsWith(query)),
+            constants: _constants,
+            functions,
+        }
+    }
+    
+    
+    get_signature_help (text: string) {
+        const caller = reverse_search_func(text)
+        if (!caller)
+            return
+        
+        const { func_name, param_start_at } = caller
+        
+        const cursor_param_index = find_active_param_index(text, param_start_at)
+        if (cursor_param_index === -1)
+            return
+        
+        const signatures = this.get_signatures(func_name)
+        if (!signatures)
+            return
+        
+        const signature = signatures[0]
+        const params_length = signature.parameters.length
+        // 如果输入参数数量超出了签名内声明的参数数量，active_parameter 为 undefined
+        const active_parameter = cursor_param_index > params_length - 1 ? undefined : cursor_param_index
+        const documentation_md = this.get_function_markdown(func_name)
+        
+        return {
+            signature,
+            active_parameter,
+            documentation_md,
         }
     }
 }
@@ -235,30 +293,3 @@ function find_active_param_index (text: string, param_start_at: number) {
     // 是否为对象方法调用，若是，参数索引+1（对象会变成第一个参数）
     return is_member_call ? index + 1 : index
 }
-
-
-export function parse_signature_help_from_text (text: string, docsAnalyser: DocsAnalyser) {
-    const caller = reverse_search_func(text)
-    if (!caller)
-        return
-    const { func_name, param_start_at } = caller
-    
-    const cursor_param_index = find_active_param_index(text, param_start_at)
-    if (cursor_param_index === -1)
-        return
-    const signatures = docsAnalyser.get_signatures(func_name)
-    if (!signatures)
-        return
-    const signature = signatures[0]
-    const params_length = signature.parameters.length
-    // 如果输入参数数量超出了签名内声明的参数数量，active_parameter 为 undefined
-    const active_parameter = cursor_param_index > params_length - 1 ? undefined : cursor_param_index
-    const documentation_md = docsAnalyser.get_function_markdown(func_name)
-    
-    return {
-        signature,
-        active_parameter,
-        documentation_md,
-    }
-}
-

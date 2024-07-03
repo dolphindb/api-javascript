@@ -250,6 +250,22 @@ export const constants = [
     'DB_UPDATE',
     'DB_WRITE',
     
+    'CATALOG_MANAGE',
+    'CATALOG_READ',
+    'CATALOG_WRITE',
+    'CATALOG_INSERT',
+    'CATALOG_UPDATE',
+    'CATALOG_DELETE',
+    
+    'SCHEMA_MANAGE',
+    'SCHEMAOBJ_CREATE',
+    'SCHEMAOBJ_DELETE',
+    'SCHEMA_READ',
+    'SCHEMA_WRITE',
+    'SCHEMA_INSERT',
+    'SCHEMA_UPDATE',
+    'SCHEMA_DELETE',
+    
     'SCRIPT_EXEC',
     'TASK_GROUP_MEM_LIMIT',
     'TEST_EXEC',

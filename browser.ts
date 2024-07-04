@@ -1625,6 +1625,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         case DdbType.handle:
                         case DdbType.datasource:
                         case DdbType.resource:
+                            assert(!(value as string).includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
+                            
                             return [
                                 DdbObj.enc.encode(value as string),
                                 Uint8Array.of(0),
@@ -1878,7 +1880,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.code: {
                 let bufs = new Array<Uint8Array>(length * 2)
                 for (let i = 0;  i < length;  i++) {
-                    bufs[2 * i] = this.enc.encode((value as string[])[i])
+                    const s = (value as string[])[i]
+                    assert(!s.includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
+                    bufs[2 * i] = this.enc.encode(s)
                     bufs[2 * i + 1] = Uint8Array.of(0)
                 }
                 return bufs

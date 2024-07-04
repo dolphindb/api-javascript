@@ -88,5 +88,8 @@
     },
     "{{time}} 心跳检测失败，连接已断开": {
         "en": "{{time}} heartbeat detection failed, the connection has been disconnected"
+    },
+    "pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开": {
+        "en": "The string cannot contain \\0 in the middle when packing, otherwise uploading to DolphinDB will cause the connection to be disconnected"
     }
 }

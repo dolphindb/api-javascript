@@ -4622,6 +4622,8 @@ export class DDB {
                             if (this.verbose)
                                 console.log(func + inspect(args, { colors: false }) + rpc_id)
                             
+                            assert(!func.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
+                            
                             return 'function\n' +
                                 `${func}\n` +
                                 `${args.length}\n` +
@@ -4630,6 +4632,8 @@ export class DDB {
                         case 'script':
                             if (this.verbose)
                                 console.log(script + rpc_id)
+                            
+                            assert(!script.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
                             
                             return 'script\n' +
                                 script

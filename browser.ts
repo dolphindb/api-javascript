@@ -4625,14 +4625,14 @@ export class DDB {
             
             const args = DdbObj.to_ddbobjs(_args)
             
-            const rpc_id = ` (id = ${id})`
+            const rpc_id = `(id = ${id})`
             
             const command = this.enc.encode(
                 (() => {
                     switch (type) {
                         case 'function':
                             if (this.verbose)
-                                console.log(func + args.map(arg => arg.toString()).join(', ').bracket() + rpc_id)
+                                console.log(func, args.map(arg => arg.data()), rpc_id)
                             
                             assert(!func.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
                             
@@ -4643,7 +4643,7 @@ export class DDB {
                         
                         case 'script':
                             if (this.verbose)
-                                console.log(script + rpc_id)
+                                console.log(script, rpc_id)
                             
                             assert(!script.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
                             
@@ -4652,8 +4652,9 @@ export class DDB {
                         
                         case 'variable':
                             if (this.verbose)
-                                for (let i = 0;  i < vars.length;  i++)
-                                    console.log(`${vars[i]} = ${args[i].toString()}`)
+                                vars.forEach((v, i) => {
+                                    console.log(v, '=', args[i].data())
+                                })
                             
                             return 'variable\n' +
                                 `${vars.join(',')}\n` +
@@ -4669,7 +4670,7 @@ export class DDB {
                                         `login(${this.username.quote()}, ${this.password.quote()})`
                                     :
                                         '') +
-                                    rpc_id
+                                    ` ${rpc_id}`
                                 )
                             
                             return 'connect\n' +
@@ -4742,7 +4743,7 @@ export class DDB {
             })
             
             if (this.verbose)
-                console.log(result.toString() + rpc_id)
+                console.log(result.data(), rpc_id)
             
             return result
         })

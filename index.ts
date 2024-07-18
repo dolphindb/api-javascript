@@ -3669,7 +3669,7 @@ export function date2ms (date: number | null) {
     
     const ms = 1000 * 3600 * 24 * date
     
-    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return timestamp2ms(BigInt(ms))
 }
 
 export function date2str (date: number | null, format = 'YYYY.MM.DD') {

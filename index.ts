@@ -3707,7 +3707,7 @@ export function time2ms (time: number | null): number | null {
     return (time === null || time === nulls.int32) ?
         null
     :
-        1000 * 60 * new Date(time).getTimezoneOffset() + time
+        timestamp2ms(time)
 }
 
 export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
@@ -3725,7 +3725,7 @@ export function minute2ms (minute: number | null): number | null {
     
     const ms = 60 * 1000 * minute
     
-    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return timestamp2ms(ms)
 }
 
 export function minute2str (minute: number | null, format = 'HH:mm[m]') {
@@ -3743,7 +3743,7 @@ export function second2ms (second: number | null): number | null {
     
     const ms = 1000 * second
     
-    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return timestamp2ms(ms)
 }
 
 export function second2str (second: number | null, format = 'HH:mm:ss') {
@@ -3773,7 +3773,7 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
 }
 
 /** _datetime_formatter.format 会在 date 为 Invalid Date 时抛出错误 */
-export function timestamp2ms (timestamp: bigint | null): number | null {
+export function timestamp2ms (timestamp: bigint | number | null): number | null {
     if (timestamp === null || timestamp === nulls.int64)
         return null
         
@@ -3802,7 +3802,7 @@ export function datehour2ms (datehour: number | null): number | null {
     
     const ms = 1000 * 3600 * datehour
     
-    return 1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+    return timestamp2ms(ms)
 }
 
 export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH') {
@@ -3812,7 +3812,7 @@ export function datehour2str (datehour: number | null, format = 'YYYY.MM.DDTHH')
     const ms = 1000 * 3600 * datehour
     
     return dayjs(
-        1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+        timestamp2ms(ms)
     ).format(format)
 }
 
@@ -3861,7 +3861,7 @@ export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSS
     
     return (
         dayjs(
-            1000 * 60 * new Date(ms).getTimezoneOffset() + ms
+            timestamp2ms(ms)
         ).format(
             format.slice(0, i_second_end)
         ) + 

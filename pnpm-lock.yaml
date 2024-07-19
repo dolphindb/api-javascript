@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       dayjs:
-        specifier: ^1.11.11
-        version: 1.11.11
+        specifier: ^1.11.12
+        version: 1.11.12
       ipaddr.js:
         specifier: ^2.2.0
         version: 2.2.0
@@ -1507,8 +1507,8 @@ packages:
   dateformat@2.2.0:
     resolution: {integrity: sha512-GODcnWq3YGoTnygPfi02ygEiRxqUxpJwuRHjdhJYuxpcZmDq4rjBiXYmbCCzStxo176ixfLT6i4NPwQooRySnw==}
 
-  dayjs@1.11.11:
-    resolution: {integrity: sha512-okzr3f11N6WuqYtZSvm+F776mB41wRZMhKP+hc34YdW+KmtYYK9iqvHSwo2k9FEH3fhGXvOPV6yz2IcSrfRUDg==}
+  dayjs@1.11.12:
+    resolution: {integrity: sha512-Rt2g+nTbLlDWZTwwrIXjy9MeiZmSDI375FvZs72ngxx8PDC6YXOeR3q5LAuPzjZQxhiWdRKac7RKV+YyQYfYIg==}
 
   debounce@1.2.1:
     resolution: {integrity: sha512-XRRe6Glud4rd/ZGQfiV1ruXSfbvfJedlV9Y6zOlP+2K04vBYiJEte6stfFkCP03aMnY5tsipamumUjL14fofug==}
@@ -5233,7 +5233,7 @@ snapshots:
 
   dateformat@2.2.0: {}
 
-  dayjs@1.11.11: {}
+  dayjs@1.11.12: {}
 
   debounce@1.2.1: {}
 

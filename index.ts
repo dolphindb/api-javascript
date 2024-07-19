@@ -2091,7 +2091,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             dataType: DdbType
             shape: number[]
             strides: number[]
-        }, 
+        },
         limit = -1
     ): TensorData {
         const { currentDim, dimensions, rawData, le, dataByte, dataType, shape, strides } = buildParams
@@ -2104,60 +2104,60 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     tensor.push('...')
                     break
                 }
-                    
+                
                 // 直接转换到对应的数组
                 const offset = i * dataByte * Number(strides[currentDim])
                 switch (dataType) {
                     case DdbType.bool: {
-                            const value = dv.getInt8(offset)
-                            tensor.push(value === nulls.int8 ? null : Boolean(value))
-                            break
-                        }
+                        const value = dv.getInt8(offset)
+                        tensor.push(value === nulls.int8 ? null : Boolean(value))
+                        break
+                    }
                     case DdbType.char: {
-                            const value = dv.getInt8(offset)
-                            tensor.push(value === nulls.int8 ? null : value)
-                            break
-                        }
+                        const value = dv.getInt8(offset)
+                        tensor.push(value === nulls.int8 ? null : value)
+                        break
+                    }
                     case DdbType.short: {
-                            const value = dv.getInt16(offset, le)
-                            tensor.push(value === nulls.int16 ? null : value)
-                            break
-                        }
+                        const value = dv.getInt16(offset, le)
+                        tensor.push(value === nulls.int16 ? null : value)
+                        break
+                    }
                     case DdbType.int: {
-                            const value = dv.getInt32(offset, le)
-                            tensor.push(value === nulls.int32 ? null : value)
-                            break
-                        }
+                        const value = dv.getInt32(offset, le)
+                        tensor.push(value === nulls.int32 ? null : value)
+                        break
+                    }
                     case DdbType.long: {
-                            const value = dv.getBigInt64(offset, le)
-                            tensor.push(value === nulls.int64 ? null : value)
-                            break
-                        }
+                        const value = dv.getBigInt64(offset, le)
+                        tensor.push(value === nulls.int64 ? null : value)
+                        break
+                    }
                     case DdbType.float: {
-                            const value = dv.getFloat32(offset, le)
-                            tensor.push(value === nulls.float32 ? null : value)
-                            break
-                        }
+                        const value = dv.getFloat32(offset, le)
+                        tensor.push(value === nulls.float32 ? null : value)
+                        break
+                    }
                     case DdbType.double: {
-                            const value = dv.getFloat64(offset, le)
-                            tensor.push(value === nulls.double ? null : value)
-                            break
-                        }
+                        const value = dv.getFloat64(offset, le)
+                        tensor.push(value === nulls.double ? null : value)
+                        break
+                    }
                 }
             } else {
                 // 起点
                 const start = strides[currentDim] * i * dataByte
                 // 终点
                 const end = start + strides[currentDim] * 1 * dataByte
-                tensor.push(DdbObj.parse_tensor({ 
-                    currentDim: currentDim + 1, 
-                    dimensions, 
-                    rawData: rawData.subarray(Number(start), Number(end)), 
-                    le, 
-                    dataByte, 
-                    shape, 
-                    strides, 
-                    dataType 
+                tensor.push(DdbObj.parse_tensor({
+                    currentDim: currentDim + 1,
+                    dimensions,
+                    rawData: rawData.subarray(Number(start), Number(end)),
+                    le,
+                    dataByte,
+                    shape,
+                    strides,
+                    dataType
                 }, limit))
             }
             

@@ -3660,8 +3660,8 @@ export class DdbTable extends DdbObj<DdbObj[]> {
 }
 
 export function date2ms (date: number | null) {
-    // 将 server 的本地时间 (以 ms 为单位，1970.01.01 00:00:00 作为零点) 当成是客户端这里的本地的时间，然后根据本地的时区信息转换为 utc 时间
-    // 本地的时区与实际的时间值相关，timezone offset 可能会受到夏令时 (DST) 的影响
+    // 将 server 的本地时间 (以 ms 为单位，1970.01.01 00:00:00 作为零点) 作为 UTC-0 格式化为字符串，然后根据本地的时区解析这个字符串转换为 UTC-8
+    // 本地的时区与实际的时间值相关，getTimezoneOffset() 可能会受到夏令时 (DST) 的影响，不能使用
     // 得到的 utc 毫秒数交给 js date 或者 dayjs 去格式化
     
     if (date === null || date === nulls.int32)
@@ -3669,7 +3669,7 @@ export function date2ms (date: number | null) {
     
     const ms = 1000 * 3600 * 24 * date
     
-    return timestamp2ms(BigInt(ms))
+    return timestamp2ms(ms)
 }
 
 export function date2str (date: number | null, format = 'YYYY.MM.DD') {
@@ -3776,7 +3776,7 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
 export function timestamp2ms (timestamp: bigint | number | null): number | null {
     if (timestamp === null || timestamp === nulls.int64)
         return null
-        
+    
     const date = new Date(Number(timestamp))
     return dayjs(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
 }

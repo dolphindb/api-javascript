@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DolphinDB</title>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/klinecharts@8.3.0/dist/klinecharts.min.js"></script>
+</head>
+<body>
+    <div id="main" style="width: 600px; height:50px;"></div>
+    <div id="k-line-chart" style="height:800px;"></div>
+    <script type="module">
+        import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js';
+        const chart = klinecharts.init('k-line-chart');
+        let conn = new DDB('ws://183.134.101.143:8499');
+        await conn.connect();
+        async function updateChart(conn) {
+            const re = await conn.execute('select timestamp, open, high, low, close, volume, turnover from kt');
+            chart.applyNewData(re.data);
+        }
+        setInterval(() => updateChart(conn), 1000)
+    </script>
+</body>
+</html>

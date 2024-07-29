@@ -6,7 +6,7 @@ import { keywords } from './language.js'
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
-    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData
+    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions
 } from './index.js'
 
 
@@ -24,7 +24,7 @@ const url = 'ws://192.168.0.200:20023' as const
 // local 8848
 // export const url = 'ws://127.0.0.1:8848' as const
 
-const ddb_options = fexists('T:/TEMP/', { print: false }) ? { proxy: MyProxy.work } : { }
+const ddb_options: DdbOptions = fexists('T:/TEMP/', { print: false }) ? { proxy: MyProxy.work } : { }
 
 
 ;(async function test () {

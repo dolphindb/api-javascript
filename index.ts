@@ -3115,6 +3115,7 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
         case DdbType.handle:
         case DdbType.datasource:
         case DdbType.resource:
+        case DdbType.compressed:
             return value
             
         case DdbType.blob:
@@ -3193,6 +3194,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             case DdbType.functiondef:
             
             case DdbType.blob:
+            case DdbType.compressed:
                 return Array.prototype.map.call(value, (x: number | bigint) => convert(type, x, le, options))
                 
             

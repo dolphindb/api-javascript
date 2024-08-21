@@ -4877,19 +4877,20 @@ export class DDB {
         // 逻辑类似 DdbObj.to_ddbobjs, 需要同步修改
         let simple = true
         let has_ddbobj = false
-        for (const arg of args) {
-            if (arg && arg instanceof DdbObj)
-                has_ddbobj = true
-            else {
-                const type = typeof arg
-                if (type === 'string' || type === 'boolean')
-                    { }
+        if (args)
+            for (const arg of args) {
+                if (arg && arg instanceof DdbObj)
+                    has_ddbobj = true
                 else {
-                    simple = false
-                    break
+                    const type = typeof arg
+                    if (type === 'string' || type === 'boolean')
+                        { }
+                    else {
+                        simple = false
+                        break
+                    }
                 }
             }
-        }
         
         if (!simple) {
             if (has_ddbobj)

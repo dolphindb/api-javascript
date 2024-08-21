@@ -627,7 +627,7 @@ function get_tm_language (python = false) {
             function_call: {
                 patterns: [
                     {
-                        begin: '(@)?(\\w*!?)\\s*(?=\\()',
+                        begin: '(@)?(\\w*!?)\\b(?=\\s*\\()',
                         beginCaptures: {
                             1: { name: 'variable.other.readwrite.instance.dolphindb' },
                             2: { patterns: [{ include: '#function_name' }] }

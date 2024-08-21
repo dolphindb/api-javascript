@@ -94,5 +94,8 @@
     },
     "发送至 DolphinDB 执行的脚本中间不能含有 \\0": {
         "en": "The script sent to DolphinDB for execution cannot contain \\0 in the middle"
+    },
+    "调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象": {
+        "en": "The parameters of calling ddb.invoke cannot contain both DdbObj and complex js native objects"
     }
 }

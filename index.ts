@@ -4873,14 +4873,37 @@ export class DDB {
             , { urgent: true }
         ))
         
-        if (options?.node)
-            options.func_type = DdbFunctionType.UserDefinedFunc
+        // 检查 args 是否全部为简单参数，是则直接调用 call，避免 invoke 间接调用
+        // 逻辑类似 DdbObj.to_ddbobjs, 需要同步修改
+        let simple = true
+        let has_ddbobj = false
+        for (const arg of args) {
+            if (arg && arg instanceof DdbObj)
+                has_ddbobj = true
+            else {
+                const type = typeof arg
+                if (type === 'string' || type === 'boolean')
+                    { }
+                else {
+                    simple = false
+                    break
+                }
+            }
+        }
         
-        return (await this.call(
-            args?.length ? 'invoke' : func,
-            args?.length ? [func, JSON.stringify(args)] : undefined,
-            options
-        )).data<TResult>()
+        if (!simple) {
+            if (has_ddbobj)
+                throw new Error(t('调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象'))
+            
+            if (options?.node)
+                options.func_type = DdbFunctionType.UserDefinedFunc
+        }
+        
+        const result = simple
+            ? await this.call(func, args, options)
+            : await this.call('invoke', [func, JSON.stringify(args)], options)
+        
+        return result.data<TResult>()
     }
     
     

@@ -18,12 +18,12 @@ importers:
         specifier: ^2.6.3
         version: 2.6.3
       xshell:
-        specifier: ^1.0.161
-        version: 1.0.161
+        specifier: ^1.0.162
+        version: 1.0.162
     devDependencies:
       '@types/node':
-        specifier: ^22.4.1
-        version: 22.4.1
+        specifier: ^22.5.0
+        version: 22.5.0
       eslint:
         specifier: ^9.9.0
         version: 9.9.0
@@ -904,8 +904,8 @@ packages:
   '@types/node-sass@4.11.7':
     resolution: {integrity: sha512-QY0sXZGPRzJ2obo66f9zB6S0Uo9PRdcoPKPbyftSoKXub90s4ut/JK3fYHOqmhYhRRVEB3P5o5rEnq2/bWBdeg==}
 
-  '@types/node@22.4.1':
-    resolution: {integrity: sha512-1tbpb9325+gPnKK0dMm+/LMriX0vKxf6RnB0SZUqfyVkQ4fMgUSySqhxE/y8Jvs4NyF1yHzTfG9KlnkIODxPKg==}
+  '@types/node@22.5.0':
+    resolution: {integrity: sha512-DkFrJOe+rfdHTqqMg0bSNlGlQ85hSoh2TPzZyhHsXnMtligRWpxUySiyw8FY14ITt24HVCiQPWxS3KO/QlGmWg==}
 
   '@types/sass-loader@8.0.9':
     resolution: {integrity: sha512-OAzsrLMYVMprsR5Je2eIGqwsJ6FulUG5fHkzPemv5ejhyX05lpqNw5tbvdJqZi31RFELVeoR9yij17Xu6Qk1xA==}
@@ -3364,8 +3364,8 @@ packages:
     resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
     engines: {node: '>=4.0'}
 
-  xshell@1.0.161:
-    resolution: {integrity: sha512-GXGuWdtW7N8Aim7A6TBW8iqJbnPwCRTg+lWr5WLoI+rgoCcp2psJHUf6Z04QNU3lvCtUKNRN52KpfKrtM6xxuQ==}
+  xshell@1.0.162:
+    resolution: {integrity: sha512-3OWgLGqXrieNE4uf3jiSZPHpeXF0Fe5PFm/U84x+NFiwA4rIBR/PqK/qRBfD8TRBCvsxNfIfRNNLT+00mecHDg==}
     hasBin: true
 
   xtend@4.0.2:
@@ -4501,15 +4501,15 @@ snapshots:
 
   '@types/node-sass@4.11.7':
     dependencies:
-      '@types/node': 22.4.1
+      '@types/node': 22.5.0
 
-  '@types/node@22.4.1':
+  '@types/node@22.5.0':
     dependencies:
       undici-types: 6.19.6
 
   '@types/sass-loader@8.0.9':
     dependencies:
-      '@types/node': 22.4.1
+      '@types/node': 22.5.0
       '@types/node-sass': 4.11.7
       '@types/webpack': 4.41.38
       sass: 1.77.8
@@ -4524,13 +4524,13 @@ snapshots:
 
   '@types/webpack-sources@3.2.3':
     dependencies:
-      '@types/node': 22.4.1
+      '@types/node': 22.5.0
       '@types/source-list-map': 0.1.6
       source-map: 0.7.4
 
   '@types/webpack@4.41.38':
     dependencies:
-      '@types/node': 22.4.1
+      '@types/node': 22.5.0
       '@types/tapable': 1.0.12
       '@types/uglify-js': 3.17.5
       '@types/webpack-sources': 3.2.3
@@ -4539,7 +4539,7 @@ snapshots:
 
   '@types/ws@8.5.12':
     dependencies:
-      '@types/node': 22.4.1
+      '@types/node': 22.5.0
 
   '@typescript-eslint/eslint-plugin@8.2.0(@typescript-eslint/parser@8.2.0(eslint@9.9.0)(typescript@5.5.4))(eslint@9.9.0)(typescript@5.5.4)':
     dependencies:
@@ -6032,7 +6032,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.4.1
+      '@types/node': 22.5.0
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -7247,7 +7247,7 @@ snapshots:
 
   xmlbuilder@11.0.1: {}
 
-  xshell@1.0.161:
+  xshell@1.0.162:
     dependencies:
       '@babel/core': 7.25.2
       '@babel/parser': 7.25.3

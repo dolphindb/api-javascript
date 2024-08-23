@@ -50,17 +50,6 @@
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "skipLibCheck": true,
-    },
-    
-    "watchOptions": {
-        "excludeDirectories": [
-            "**/node_modules",
-        ],
-        
-        "watchFile": "useFsEvents",
-        "watchDirectory": "useFsEvents",
-        
-        "fallbackPolling": "dynamicPriority"
     }
 }
 

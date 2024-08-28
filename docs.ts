@@ -1,4 +1,4 @@
-import { constants, keywords } from './language.js'
+import { constants, keywords } from './language.ts'
 
 
 export interface FunctionSignature {

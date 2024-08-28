@@ -10,7 +10,7 @@ import { blue, cyan, green, grey, magenta } from 'xshell/chalk.browser.js'
 import { concat, assert, Lock, genid, seq, zip_object, decode, delay } from 'xshell/utils.browser.js'
 import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.browser.js'
 
-import { t } from './i18n/index.js'
+import { t } from './i18n/index.ts'
 
 
 export const nulls = {

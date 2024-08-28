@@ -4029,6 +4029,8 @@ export interface StreamingParams {
     
     action?: string
     
+    offset?: number
+    
     filters?: {
         /** https://docs.dolphindb.cn/zh/help/FunctionsandCommands/FunctionReferences/s/subscribeTable.html#:~:text=%E8%BF%9E%E6%8E%A5%E6%96%B0%E7%9A%84%20leader%E3%80%82-,filter%20%E5%8F%82%E6%95%B0%E9%9C%80%E8%A6%81%E9%85%8D%E5%90%88,-setStreamTableFilterColumn%20%E5%87%BD%E6%95%B0%E4%B8%80%E8%B5%B7 */
         column?: DdbObj
@@ -5065,6 +5067,9 @@ export class DDB {
         }
         
         let schema: DdbTableData
+        const offset_arg = (this.streaming.offset === undefined || this.streaming.offset === null) 
+        ? new DdbVoid()
+        : new DdbInt(this.streaming.offset) // offset
         
         console.log(
             t('订阅流表成功:'),
@@ -5076,10 +5081,10 @@ export class DDB {
                     new DdbInt(0),
                     this.streaming.table,
                     (this.streaming.action ||= `api_js_${new Date().getTime()}`),
-                    ... this.streaming?.filters?.column ? [
-                        new DdbVoid(),  // offset
-                        this.streaming.filters.column // filter
-                    ] : [ ]
+                    offset_arg,
+                    this.streaming?.filters?.column ?
+                    this.streaming.filters.column
+                    : new DdbVoid(), // filter
                 ],
                 {
                     skip_connection_check: true, 

@@ -5085,7 +5085,7 @@ export class DDB {
                     (this.streaming.offset === undefined || this.streaming.offset === null)
                         ? new DdbVoid()
                         : new DdbInt(this.streaming.offset), // offset
-                    this.streaming?.filters?.column || new DdbVoid(), // filter
+                    this.streaming.filters?.column || new DdbVoid(), // filter
                 ],
                 {
                     skip_connection_check: true, 

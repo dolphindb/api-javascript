@@ -4029,6 +4029,10 @@ export interface StreamingParams {
     
     action?: string
     
+    /** offset 是订阅任务开始后的第一条消息所在的位置。消息是流数据表中的行。
+        如果未指定，或设为-1，订阅将会从流数据表的当前行开始。
+        如果 offset = -2，系统会获取持久化到磁盘上的 offset，并从该位置开始订阅。注意：须同时设置 persistOffset = true，offset = -2 才会生效；否则 offset 会变为 -1。
+        offset 与流数据表创建时的第一行对应。如果某些行因为内存限制被删除，在决定订阅开始的位置时，这些行仍然考虑在内。 */
     offset?: number
     
     filters?: {
@@ -5067,9 +5071,6 @@ export class DDB {
         }
         
         let schema: DdbTableData
-        const offset_arg = (this.streaming.offset === undefined || this.streaming.offset === null) 
-        ? new DdbVoid()
-        : new DdbInt(this.streaming.offset) // offset
         
         console.log(
             t('订阅流表成功:'),
@@ -5081,10 +5082,10 @@ export class DDB {
                     new DdbInt(0),
                     this.streaming.table,
                     (this.streaming.action ||= `api_js_${new Date().getTime()}`),
-                    offset_arg,
-                    this.streaming?.filters?.column ?
-                    this.streaming.filters.column
-                    : new DdbVoid(), // filter
+                    (this.streaming.offset === undefined || this.streaming.offset === null)
+                        ? new DdbVoid()
+                        : new DdbInt(this.streaming.offset), // offset
+                    this.streaming?.filters?.column || new DdbVoid(), // filter
                 ],
                 {
                     skip_connection_check: true, 

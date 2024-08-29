@@ -2,12 +2,12 @@ import { deepEqual } from 'assert/strict'
 
 import { assert, defer, fexists, inspect, MyProxy, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
-import { keywords } from './language.js'
+import { keywords } from './language.ts'
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
     type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions
-} from './index.js'
+} from './index.ts'
 
 
 set_inspect_options()

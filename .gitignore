@@ -9,7 +9,8 @@ node_modules/
 *.map
 *.d.ts
 
-/eslint.config.js
+!/eslint.config.js
+
 /docs.zh.json
 /docs.en.json
 

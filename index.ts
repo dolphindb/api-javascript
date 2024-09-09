@@ -2005,7 +2005,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             case DdbType.iotany: {
-                const { index, subVec: sub_vec } = value as DdbIotAnyVectorValue
+                const { index, subVec } = value as DdbIotAnyVectorValue
                 
                 const bufs: ArrayBufferView[] = [ ]
                 bufs.push(BigUint64Array.of(BigInt(index.length)))
@@ -2013,11 +2013,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 for (const [type, idx] of index) 
                     bufs.push(Uint32Array.of(type, idx))
                 
-                const type_size = Object.values(sub_vec).length
+                const type_size = Object.values(subVec).length
                 
                 bufs.push(Uint32Array.of(type_size))
                 
-                for (const [type, vec] of Object.entries(sub_vec)) {
+                for (const [type, vec] of Object.entries(subVec)) {
                     const flag = (DdbForm.vector << 8) + Number(type)
                     bufs.push(Uint16Array.of(flag))
                     // 写入 rows 和 cols
@@ -3040,9 +3040,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                 )
             
             case DdbType.iotany:
-                const { index: indexes, subVec: sub_vec } = obj.value as DdbIotAnyVectorValue
+                const { index: indexes, subVec } = obj.value as DdbIotAnyVectorValue
                 const [type, idx] = indexes[index]
-                return format(type, sub_vec[type][idx], obj.le, options)
+                return format(type, subVec[type][idx], obj.le, options)
                 
             case DdbType.decimal32:
             case DdbType.decimal64:
@@ -3335,9 +3335,9 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
                 return (value as DdbObj[]).map(x => x.data(options))
                 
             case DdbType.iotany: {
-                const { index: indexes, subVec: sub_vec } = value as DdbIotAnyVectorValue
+                const { index: indexes, subVec } = value as DdbIotAnyVectorValue
                 return indexes.map(([type, idx]) => 
-                    convert(type, sub_vec[type][idx], le, options)
+                    convert(type, subVec[type][idx], le, options)
                 )
             }
             

@@ -340,7 +340,8 @@ export type DdbVectorValue =
     Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array |
     string[] | // string[]
     Uint8Array[] | // blob
-    DdbObj[] | DdbIotAnyVectorValue |// any
+    DdbObj[] | // any
+    DdbIotAnyVectorValue | // iot any vector
     DdbSymbolExtendedValue | 
     DdbArrayVectorValue |
     DdbDecimal32VectorValue | DdbDecimal64VectorValue | DdbDecimal128VectorValue |
@@ -412,10 +413,7 @@ export interface DdbMatrixData {
 }
 
 export type IotAnySubVector = {
-    [key in DdbType]?:  Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array |
-    string[] | // string[]
-    Uint8Array[] | // blob
-    DdbObj[]
+    [key in DdbType]?: Int8Array | Int16Array | Int32Array | BigInt64Array | Float32Array | Float64Array | string[]
 }
 
 export interface DdbIotAnyVectorValue {
@@ -493,7 +491,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         const type = buf[0]
         const form = buf[1]
-        console.log('type', form, type)
+        
         if (buf.length <= 2) 
             return new this({
                 le,
@@ -1033,16 +1031,12 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 i_items_start += 2
                 const form = flag >> 8
                 const sub_type = flag & 0xff as DdbType
-                if (form !== DdbForm.vector) {
-                    console.log('form', form)
+                if (form !== DdbForm.vector) 
                     throw new Error('Invalid data form for IotAny subvector')
-                    
-                } 
                 
                 const sub_size = dv.getUint32(i_items_start, le)
                 // 同时跳过 sub_size 和 cols
                 i_items_start += 8
-                
                 
                 const [len, value] = this.parse_vector_items(
                     buf.subarray(i_items_start),
@@ -1081,7 +1075,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 rows,
                 value,
             })
-        } else   // array vector or iotany vector
+        } else {  // array vector
             // av = array(INT[], 0, 3)
             // append!(av, [1..4])
             // append!(av, [1..70000])
@@ -1092,14 +1086,14 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             
             // block 0
             // 01 00 block.rows = 1
-            // 04 00 block.unit = 4
+            // 04 block.unit = 4
             // 00 reserved
             // 04 00 00 00 block.lengths = [4]
             // 01 00 00 00 02 00 00 00 03 00 00 00 04 00 00 00 block.data
             
             // block 1
             // 01 00 block.rows = 1
-            // 04 00 block.unit = 4
+            // 04 block.unit = 4
             // 00 reserved
             // 70 11 01 00 block.lengths = [70000 (0x00011170)]
             // 01 00 00 00 02 00 00 00 ... 279992 more bytes> block.data
@@ -1135,9 +1129,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             // block 1
             // ...
             
-       
-            
-            {
             const type_ = type - 64
             
             const cols = dv.getUint32(4, le)
@@ -1231,8 +1222,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 rows,
                 value: blocks
             })
-           }
-        
+        }
     }
     
     
@@ -1895,6 +1885,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
         })()
         
+        
         if (!body)
             return new Uint8Array(0)
         
@@ -1955,7 +1946,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 let bufs = new Array<Uint8Array>(length * 2)
                 for (let i = 0;  i < length;  i++) {
                     const s = (value as string[])[i]
-                    
                     assert(!s.includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
                     bufs[2 * i] = this.enc.encode(s)
                     bufs[2 * i + 1] = Uint8Array.of(0)
@@ -4810,6 +4800,7 @@ export class DDB {
                                 listener(message, this)
                             
                             const { type, data } = message
+                            
                             switch (type) {
                                 case 'print':
                                     if (this.print_message)

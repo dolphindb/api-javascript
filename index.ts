@@ -340,7 +340,7 @@ export type DdbVectorValue =
     Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array |
     string[] | // string[]
     Uint8Array[] | // blob
-    DdbObj[] | IotAnyVector |// any
+    DdbObj[] | DdbIotAnyVectorValue |// any
     DdbSymbolExtendedValue | 
     DdbArrayVectorValue |
     DdbDecimal32VectorValue | DdbDecimal64VectorValue | DdbDecimal128VectorValue |
@@ -355,6 +355,8 @@ export type DdbVectorObj <TValue extends DdbVectorValue = DdbVectorValue> = DdbO
 
 export type DdbVectorAnyObj = DdbVectorObj<DdbObj[]>
 export type DdbVectorStringObj = DdbVectorObj<string[]>
+
+export type DdbIotAnyVectorObj = DdbVectorObj<DdbIotAnyVectorValue>
 
 export type DdbTableObj <TColumns extends DdbVectorObj[] = DdbVectorObj[]> = DdbObj<TColumns>
 
@@ -410,12 +412,15 @@ export interface DdbMatrixData {
 }
 
 export type IotAnySubVector = {
-    [key in DdbType]?: DdbVectorValue;
+    [key in DdbType]?:  Uint8Array | Int8Array | Int16Array | Int32Array | Float32Array | Float64Array | BigInt64Array | BigInt128Array |
+    string[] | // string[]
+    Uint8Array[] | // blob
+    DdbObj[]
 }
 
-export interface IotAnyVector {
-    indexes: [DdbType, number][]
-    sub_vec: IotAnySubVector
+export interface DdbIotAnyVectorValue {
+    index: [DdbType, number][]
+    subVec: IotAnySubVector
 }
 
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
@@ -488,7 +493,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         const type = buf[0]
         const form = buf[1]
-        
+        console.log('type', form, type)
         if (buf.length <= 2) 
             return new this({
                 le,
@@ -1004,7 +1009,62 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         let i_items_start = 8
         
-        if (type < 64 || type >= 128) {  // 普通数组
+        if (type === DdbType.iotany) {
+            const indexes: [DdbType, number][] = [ ]
+            // long long size
+            const size = Number(dv.getBigUint64(i_items_start, le))
+            i_items_start += 8
+            // 拿到每个元素的类型和下标
+            for (let i = 0;  i < size;  i++) {
+                const type = dv.getUint32(i_items_start, le)
+                i_items_start += 4
+                const idx = dv.getUint32(i_items_start, le)
+                i_items_start += 4
+                indexes.push([type, idx])
+            }
+            
+            const type_size = dv.getUint32(i_items_start, le)
+            i_items_start += 4
+            const sub_vec: IotAnySubVector = { }
+            
+            for (let i = 0;  i < type_size;  i++) {                
+                const flag = dv.getUint16(i_items_start, le)
+                
+                i_items_start += 2
+                const form = flag >> 8
+                const sub_type = flag & 0xff as DdbType
+                if (form !== DdbForm.vector) {
+                    console.log('form', form)
+                    throw new Error('Invalid data form for IotAny subvector')
+                    
+                } 
+                
+                const sub_size = dv.getUint32(i_items_start, le)
+                // 同时跳过 sub_size 和 cols
+                i_items_start += 8
+                
+                
+                const [len, value] = this.parse_vector_items(
+                    buf.subarray(i_items_start),
+                    le,
+                    sub_type,
+                    sub_size
+                )
+                i_items_start += len
+                sub_vec[sub_type] = value
+            }
+            
+            return new this({
+                le,
+                form: DdbForm.vector,
+                length: i_items_start,
+                type: DdbType.iotany,
+                cols: 1,
+                rows: size,
+                value: { index: indexes, subVec: sub_vec } as DdbIotAnyVectorValue
+            })
+        }
+        else if (type < 64 || type >= 128) {  // 普通数组
             const [len_items, value] = this.parse_vector_items(
                 buf.subarray(i_items_start),
                 le,
@@ -1032,14 +1092,14 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             
             // block 0
             // 01 00 block.rows = 1
-            // 04 block.unit = 4
+            // 04 00 block.unit = 4
             // 00 reserved
             // 04 00 00 00 block.lengths = [4]
             // 01 00 00 00 02 00 00 00 03 00 00 00 04 00 00 00 block.data
             
             // block 1
             // 01 00 block.rows = 1
-            // 04 block.unit = 4
+            // 04 00 block.unit = 4
             // 00 reserved
             // 70 11 01 00 block.lengths = [70000 (0x00011170)]
             // 01 00 00 00 02 00 00 00 ... 279992 more bytes> block.data
@@ -1075,54 +1135,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             // block 1
             // ...
             
-            if (type === DdbType.iotany) {
-                const index: [DdbType, number][] = [ ]
-                const size = dv.getUint32(i_items_start, le)
-                i_items_start += 4
-                for (let i = 0;  i < size;  i++) {
-                    const type = dv.getUint32(i_items_start, le)
-                    i_items_start += 4
-                    const idx = dv.getUint32(i_items_start, le)
-                    i_items_start += 4
-                    index.push([type, idx])
-                }
-                const type_size = dv.getUint32(i_items_start, le)
-                i_items_start += 4
-                
-                const sub_vec: IotAnySubVector = { }
-                
-                for (let i = 0;  i < type_size;  i++) {
-                    const flag = dv.getUint16(i_items_start, le)
-                    i_items_start += 2
-                    const sub_type = flag & 0xff as DdbType
-                    const form = flag >> 8
-                    
-                    if (form !== DdbForm.vector) 
-                        throw new Error('Invalid data form for IotAny subvector')
-                    
-                    
-                    const [len, value] = this.parse_vector_items(
-                        buf.subarray(i_items_start),
-                        le,
-                        sub_type,
-                        size
-                    )
-                    i_items_start += len
-                    sub_vec[sub_type] = value
-                }
-                
-                return new this({
-                    le,
-                    form: DdbForm.vector,
-                    type: DdbType.iotany,
-                    length: i_items_start,
-                    cols: 1,
-                    rows: size,
-                    value: { indexes: index, sub_vec } as IotAnyVector
-                })
-            }
+       
             
-           else {
+            {
             const type_ = type - 64
             
             const cols = dv.getUint32(4, le)
@@ -1880,7 +1895,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
         })()
         
-        
         if (!body)
             return new Uint8Array(0)
         
@@ -1941,6 +1955,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 let bufs = new Array<Uint8Array>(length * 2)
                 for (let i = 0;  i < length;  i++) {
                     const s = (value as string[])[i]
+                    
                     assert(!s.includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
                     bufs[2 * i] = this.enc.encode(s)
                     bufs[2 * i + 1] = Uint8Array.of(0)
@@ -2000,9 +2015,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             case DdbType.iotany: {
-                const { indexes: index, sub_vec } = value as IotAnyVector
+                const { index, subVec: sub_vec } = value as DdbIotAnyVectorValue
+                
                 const bufs: ArrayBufferView[] = [ ]
-                bufs.push(Uint32Array.of(index.length))
+                bufs.push(BigUint64Array.of(BigInt(index.length)))
                 
                 for (const [type, idx] of index) 
                     bufs.push(Uint32Array.of(type, idx))
@@ -2013,11 +2029,11 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 
                 for (const [type, vec] of Object.entries(sub_vec)) {
                     const flag = (DdbForm.vector << 8) + Number(type)
-                    
                     bufs.push(Uint16Array.of(flag))
-                    bufs.push(...this.pack_vector_body(vec, Number(type), index.length))
+                    // 写入 rows 和 cols
+                    bufs.push(Uint32Array.of(vec.length, 1))
+                    bufs.push(...this.pack_vector_body(vec, Number(type), vec.length))
                 }
-                
                 return bufs
             }
             
@@ -3034,7 +3050,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                 )
             
             case DdbType.iotany:
-                const { indexes, sub_vec } = obj.value as IotAnyVector
+                const { index: indexes, subVec: sub_vec } = obj.value as DdbIotAnyVectorValue
                 const [type, idx] = indexes[index]
                 return format(type, sub_vec[type][idx], obj.le, options)
                 
@@ -3329,7 +3345,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
                 return (value as DdbObj[]).map(x => x.data(options))
                 
             case DdbType.iotany: {
-                const { indexes, sub_vec } = value as IotAnyVector
+                const { index: indexes, subVec: sub_vec } = value as DdbIotAnyVectorValue
                 return indexes.map(([type, idx]) => 
                     convert(type, sub_vec[type][idx], le, options)
                 )
@@ -4794,7 +4810,6 @@ export class DDB {
                                 listener(message, this)
                             
                             const { type, data } = message
-                            
                             switch (type) {
                                 case 'print':
                                     if (this.print_message)

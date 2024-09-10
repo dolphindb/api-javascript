@@ -3,10 +3,12 @@ import { deepEqual } from 'assert/strict'
 import { assert, defer, fexists, inspect, MyProxy, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.ts'
+
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
-    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions
+    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
+    type DdbIotAnyVector,
 } from './index.ts'
 
 
@@ -14,7 +16,7 @@ set_inspect_options()
 
 
 // linux
-const url = 'ws://192.168.0.200:20023' as const
+const url = 'ws://192.168.0.122:8849' as const
 // const url = 'ws://183.134.101.143:8499' as const
 // const url = 'ws://192.168.0.29:9002' as const
 
@@ -33,17 +35,18 @@ const ddb_options: DdbOptions = fexists('T:/TEMP/', { print: false }) ? { proxy:
     let ddb = new DDB(url, ddb_options)
     
     const tests = [
-        test_repl,
+        test_parse_iot_vector_type,
+        // test_pack_iot_any_vector,
         
-        test_keywords,
-        test_types,
-        test_reconnection,
-        test_connection_error,
-        test_print,
-        test_time,
-        test_streaming,
-        test_error,
-        test_invoke
+        // test_keywords,
+        // test_types,
+        // test_reconnection,
+        // test_connection_error,
+        // test_print,
+        // test_time,
+        // test_streaming,
+        // test_error,
+        // test_invoke
     ]
     
     for (const fn_test of tests)
@@ -86,7 +89,17 @@ async function get_printed (ddb: DDB, code: string) {
 
 
 async function test_repl (ddb: DDB) {
-    
+    let _ddb = new DDB(url, ddb_options)
+    try {
+        await _ddb.execute(
+            'clearCachedModules()\n' +
+            'use autoInspection'
+        )
+        await _ddb.execute('scheduleJob("6253392463056112", "巡检描述", runPlan{"6253392463056112"}, minute("09:39m"), date("2024.09.02"), date("2124.09.02"), "W", [1])')
+        // await _ddb.invoke('scheduleJob', ['6253392463056112', '巡检描述', 'runPlan{"6253392463056112"}', 'minute("09:39m")', 'date("2024.09.02")', 'date("2124.09.02")', 'W', [1] ])
+    } catch (error) {
+        console.log('error', error)
+    }
 }
 
 
@@ -503,6 +516,108 @@ async function test_from_stdjson (ddb: DDB) {
             })
         ])
     )
+}
+
+async function test_parse_iot_vector_type (ddb: DDB) {
+    
+    let script = 
+    'dbName = "dfs://db"\n' +
+    'login(`admin,`123456)\n' +
+    '\n' +
+    'if (existsDatabase(dbName)) {\n' +
+    '    dropDatabase(dbName)\n' +
+    '}\n' +
+    '\n' +
+    `db = database(dbName, RANGE, 0 100, engine='TSDB')\n` +
+    '\n' +
+    'create table "dfs://db"."pt" (\n' +
+    '    id INT,\n' +
+    '    ticket SYMBOL,\n' +
+    '    id2 SYMBOL,\n' +
+    '    id3 IOTANY\n' +
+    ')\n' +
+    'partitioned by id,\n' +
+    'sortColumns=[`ticket, `id],\n' +
+    'sortKeyMappingFunction=[hashBucket{, 1000}],\n' +
+    'latestKeyCache=true\n' +
+    '\n' +
+    'pt=loadTable(dbName, `pt)\n' +
+    '\n' +
+    'schema(loadTable(dbName, `pt))\n' +
+    '\n' +
+    'for (i in 1..3) {\n' +
+    `    t=table(take(1,100) as id, take("aa"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
+    '    loadTable(dbName, `pt).append!(t)\n' +
+    '    flushTSDBCache()\n' +
+    '}\n' +
+    '\n' +
+    'for (i in 1..3) {\n' +
+    `    t=table(take(1,100) as id, take("bb"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, double(1..100) as id3)\n` +
+    '    loadTable(dbName, `pt).append!(t)\n' +
+    '    flushTSDBCache()\n' +
+    '}\n' +
+    '\n' +
+    'for (i in 1..10) {\n' +
+    '    if (i % 2 == 0) {\n' +
+    `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, rand(200.0, 100) as id3)\n` +
+    '    } else {\n' +
+    `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
+    '    }\n' +
+    '    loadTable(dbName, `pt).append!(t)\n' +
+//    `    flushTSDBCache()\n` +
+    '}\n' +
+    '\n' +
+    'tt=select * from loadTable(dbName, `pt)\n' +
+    'tt[`id3]\n'
+    
+    
+    try {
+        const tst = await ddb.eval(
+            script
+        )
+        console.log('🚀 ~ test_parse_iot_vector_type ~ tst:', tst)
+        await ddb.upload(['iotAnyVector'], [tst])
+        await ddb.eval('print(iotAnyVector)')
+    } catch (error) {
+        console.log('error', error)
+    }
+   
+}
+
+async function test_pack_iot_any_vector (ddb: DDB) {
+      // 创建 IotAnyVector 数据
+      const iotAnyVectorData: DdbIotAnyVector = {
+          index: [
+              [DdbType.int, 0],
+              [DdbType.double, 0],
+              [DdbType.string, 0],
+              [DdbType.int, 1],
+              [DdbType.int, 2],
+              [DdbType.double, 1],
+              [DdbType.string, 1]
+          ],
+          subVec: {
+              [DdbType.int]: new Int32Array([1, 2, 4]),
+              [DdbType.double]: new Float64Array([1.1, 2.2]),
+              [DdbType.string]: ['a', 'b']
+          },
+      }
+    
+    const iotAnyVector = new DdbObj<DdbIotAnyVector>({
+        form: DdbForm.vector,
+        type: DdbType.iotany,
+        rows: iotAnyVectorData.index.length,
+        cols: 1,
+        value: iotAnyVectorData
+    })
+    
+    try {
+        await ddb.upload(['iotAnyVector'], [iotAnyVector])
+        await ddb.eval('print(iotAnyVector)')
+        
+    } catch (error) {
+        console.error('error', error)
+    }
 }
 
 

@@ -212,6 +212,7 @@ export const constants = [
     'DECIMAL32',
     'DECIMAL64',
     'DECIMAL128',
+    'IOTANY',
     
     // partition type
     'SEQ',

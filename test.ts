@@ -1,6 +1,6 @@
 import { deepEqual } from 'assert/strict'
 
-import { assert, defer, fexists, inspect, MyProxy, set_inspect_options, WebSocketConnectionError } from 'xshell'
+import { assert, defer, fread, inspect, MyProxy, ramdisk, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.ts'
 
@@ -15,6 +15,8 @@ import {
 set_inspect_options()
 
 
+const fpd_root = import.meta.dirname.fpd
+
 // linux
 const url = 'ws://192.168.0.122:8849' as const
 // const url = 'ws://183.134.101.143:8499' as const
@@ -26,7 +28,7 @@ const url = 'ws://192.168.0.122:8849' as const
 // local 8848
 // export const url = 'ws://127.0.0.1:8848' as const
 
-const ddb_options: DdbOptions = fexists('T:/TEMP/', { print: false }) ? { proxy: MyProxy.work } : { }
+const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
 
 
 ;(async function test () {

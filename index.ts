@@ -1414,7 +1414,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbType.iotany: {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 let i_value_start = 0
-                const indexes: [DdbType, number][] = [ ]
+                const indexes = [ ]
                 const size = Number(dv.getBigUint64(i_value_start, le))
                 i_value_start += 8
     
@@ -1423,7 +1423,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     i_value_start += 4
                     const idx = dv.getUint32(i_value_start, le)
                     i_value_start += 4
-                    indexes.push([type, idx])
+                    indexes.push(type, idx)
                 }
     
                 const type_size = dv.getUint32(i_value_start, le)
@@ -1452,12 +1452,18 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 let value = [ ]
                  // 根据 indexes 数组构建最终的 value 数组
-                for (const [type, idx] of indexes) {
+                 for (let i = 0;  i < indexes.length;  i += 2) {
+                    const type = indexes[i] as DdbType
+                    const idx = indexes[i + 1]
                     const vector = sub_vec.get(type)
                     if (vector && idx < vector.length) 
                         value.push(vector[idx])
-                     else 
-                        throw new Error(`Invalid index [${type}, ${idx}] for IotAny subvector`)
+                    else 
+                        throw new Error(t('IOTANY vector 索引错误: 类型 {{type}} 的子向量访问越界。索引: {{idx}}, 子向量长度: {{length}}。请检查 IOTANY vector 的结构和索引是否匹配。', {
+                            type: DdbType[type] || type,
+                            idx,
+                            length: vector ? vector.length : 0
+                        }))
                     
                 }
     

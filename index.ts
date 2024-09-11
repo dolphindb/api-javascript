@@ -4780,7 +4780,7 @@ export class DDB {
             script =
                 'def () {\n' +
                     lines.slice(0, -1).indent().join_lines() +
-                `    return ${lines.last}\n`
+                `    return ${lines.last}\n` +
                 '} ()\n'
         }
         

@@ -4092,6 +4092,8 @@ export interface DdbEvalOptions {
     parse_object?: boolean
 }
 
+export interface DdbExecuteOptions extends DdbEvalOptions, ConvertOptions { }
+
 
 type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 
@@ -4176,6 +4178,8 @@ export interface DdbCallOptions extends DdbEvalOptions {
     skip_connection_check?: boolean
     on_more_messages?: DdbRpcOptions['on_more_messages']
 }
+
+export interface DdbInvokeOptions extends DdbCallOptions, ConvertOptions { }
 
 
 export class DDB {
@@ -4873,7 +4877,7 @@ export class DDB {
             - func_type?: 设置 node 参数且参数数组为空时必传，需指定函数类型，其它情况下不传  
             - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
-    async invoke <TResult = any> (func: string, args?: any[], options?: DdbCallOptions) {
+    async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
         await (this.pinvoke ??= this.eval<DdbVoid>(
             this.python ?
                 '\n' +
@@ -4924,7 +4928,7 @@ export class DDB {
             ? await this.call(func, args, options)
             : await this.call('invoke', [func, JSON.stringify(args)], options)
         
-        return result.data<TResult>()
+        return result.data<TResult>(options)
     }
     
     
@@ -4933,9 +4937,9 @@ export class DDB {
         - options?: 执行选项  
             - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞  
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
-    async execute <TResult = any> (script: string, options?: DdbEvalOptions) {
+    async execute <TResult = any> (script: string, options?: DdbExecuteOptions) {
         return (await this.eval(script, options))
-            .data<TResult>()
+            .data<TResult>(options)
     }
     
     

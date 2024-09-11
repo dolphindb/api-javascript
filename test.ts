@@ -18,7 +18,7 @@ set_inspect_options()
 const fpd_root = import.meta.dirname.fpd
 
 // linux
-const url = 'ws://192.168.0.122:8849' as const
+const url = 'ws://192.168.1.56:8848' as const
 // const url = 'ws://183.134.101.143:8499' as const
 // const url = 'ws://192.168.0.29:9002' as const
 
@@ -523,54 +523,54 @@ async function test_from_stdjson (ddb: DDB) {
 async function test_parse_iot_vector_type (ddb: DDB) {
     
     let script = 
-    'dbName = "dfs://db"\n' +
-    'login(`admin,`123456)\n' +
-    '\n' +
-    'if (existsDatabase(dbName)) {\n' +
-    '    dropDatabase(dbName)\n' +
-    '}\n' +
-    '\n' +
-    `db = database(dbName, RANGE, 0 100, engine='TSDB')\n` +
-    '\n' +
-    'create table "dfs://db"."pt" (\n' +
-    '    id INT,\n' +
-    '    ticket SYMBOL,\n' +
-    '    id2 SYMBOL,\n' +
-    '    id3 IOTANY\n' +
-    ')\n' +
-    'partitioned by id,\n' +
-    'sortColumns=[`ticket, `id],\n' +
-    'sortKeyMappingFunction=[hashBucket{, 1000}],\n' +
-    'latestKeyCache=true\n' +
-    '\n' +
-    'pt=loadTable(dbName, `pt)\n' +
-    '\n' +
-    'schema(loadTable(dbName, `pt))\n' +
-    '\n' +
-    'for (i in 1..3) {\n' +
-    `    t=table(take(1,100) as id, take("aa"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
-    '    loadTable(dbName, `pt).append!(t)\n' +
-    '    flushTSDBCache()\n' +
-    '}\n' +
-    '\n' +
-    'for (i in 1..3) {\n' +
-    `    t=table(take(1,100) as id, take("bb"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, double(1..100) as id3)\n` +
-    '    loadTable(dbName, `pt).append!(t)\n' +
-    '    flushTSDBCache()\n' +
-    '}\n' +
-    '\n' +
-    'for (i in 1..10) {\n' +
-    '    if (i % 2 == 0) {\n' +
-    `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, rand(200.0, 100) as id3)\n` +
-    '    } else {\n' +
-    `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
-    '    }\n' +
-    '    loadTable(dbName, `pt).append!(t)\n' +
-//    `    flushTSDBCache()\n` +
-    '}\n' +
-    '\n' +
-    'tt=select * from loadTable(dbName, `pt)\n' +
-    'tt[`id3]\n'
+//     'dbName = "dfs://db"\n' +
+//     'login(`admin,`123456)\n' +
+//     '\n' +
+//     'if (existsDatabase(dbName)) {\n' +
+//     '    dropDatabase(dbName)\n' +
+//     '}\n' +
+//     '\n' +
+//     `db = database(dbName, RANGE, 0 100, engine='TSDB')\n` +
+//     '\n' +
+//     'create table "dfs://db"."pt" (\n' +
+//     '    id INT,\n' +
+//     '    ticket SYMBOL,\n' +
+//     '    id2 SYMBOL,\n' +
+//     '    id3 IOTANY\n' +
+//     ')\n' +
+//     'partitioned by id,\n' +
+//     'sortColumns=[`ticket, `id],\n' +
+//     'sortKeyMappingFunction=[hashBucket{, 1000}],\n' +
+//     'latestKeyCache=true\n' +
+//     '\n' +
+//     'pt=loadTable(dbName, `pt)\n' +
+//     '\n' +
+//     'schema(loadTable(dbName, `pt))\n' +
+//     '\n' +
+//     'for (i in 1..3) {\n' +
+//     `    t=table(take(1,100) as id, take("aa"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
+//     '    loadTable(dbName, `pt).append!(t)\n' +
+//     '    flushTSDBCache()\n' +
+//     '}\n' +
+//     '\n' +
+//     'for (i in 1..3) {\n' +
+//     `    t=table(take(1,100) as id, take("bb"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, double(1..100) as id3)\n` +
+//     '    loadTable(dbName, `pt).append!(t)\n' +
+//     '    flushTSDBCache()\n' +
+//     '}\n' +
+//     '\n' +
+//     'for (i in 1..10) {\n' +
+//     '    if (i % 2 == 0) {\n' +
+//     `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, rand(200.0, 100) as id3)\n` +
+//     '    } else {\n' +
+//     `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
+//     '    }\n' +
+//     '    loadTable(dbName, `pt).append!(t)\n' +
+// //    `    flushTSDBCache()\n` +
+//     '}\n' +
+//     '\n' +
+    'tt=select * from loadTable("dfs://db", `pt)\n' +
+    'table(tt[`id3])\n'
     
     
     try {

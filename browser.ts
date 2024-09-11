@@ -338,7 +338,7 @@ export type DdbVectorValue =
     string[] | // string[]
     Uint8Array[] | // blob
     DdbObj[] | // any
-    DdbIotAnyVectorValue | // iot any vector
+    IotVectorItemValue |
     DdbSymbolExtendedValue | 
     DdbArrayVectorValue |
     DdbDecimal32VectorValue | DdbDecimal64VectorValue | DdbDecimal128VectorValue |
@@ -353,8 +353,6 @@ export type DdbVectorObj <TValue extends DdbVectorValue = DdbVectorValue> = DdbO
 
 export type DdbVectorAnyObj = DdbVectorObj<DdbObj[]>
 export type DdbVectorStringObj = DdbVectorObj<string[]>
-
-export type DdbIotAnyVectorObj = DdbVectorObj<DdbIotAnyVectorValue>
 
 export type DdbTableObj <TColumns extends DdbVectorObj[] = DdbVectorObj[]> = DdbObj<TColumns>
 
@@ -409,14 +407,9 @@ export interface DdbMatrixData {
     data: any[][]
 }
 
-export type IotAnySubVector = {
-    [key in DdbType]?: Int8Array | Int16Array | Int32Array | BigInt64Array | Float32Array | Float64Array | string[]
-}
+export type IotVectorItemValue = [number | string | bigint | boolean][]
 
-export interface DdbIotAnyVectorValue {
-    index: [DdbType, number][]
-    subVec: IotAnySubVector
-}
+export type DdbIotAnyVector  = DdbObj<IotVectorItemValue>
 
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
 export class DdbObj <TValue extends DdbValue = DdbValue> {
@@ -1019,6 +1012,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 cols: 1,
                 rows,
                 value,
+                ... type === DdbType.iotany ? { buffer: buf } : { }
             })
         } else {  // array vector
             // av = array(INT[], 0, 3)
@@ -1416,50 +1410,57 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             }
             
             case DdbType.iotany: {
-                let i_items_start = 0
-                const indexes: [DdbType, number][] = [ ]
+                // 构造 indexes
                 const dv = new DataView(buf.buffer, buf.byteOffset)
-                // long long size
-                const size = Number(dv.getBigUint64(i_items_start, le))
-                i_items_start += 8
+                let i_value_start = 0
+                const size = Number(dv.getBigUint64(i_value_start, le))
+                const indexes = new Array(size * 2)
+                i_value_start += 8
                 
-                // 拿到每个元素的类型和下标
                 for (let i = 0;  i < size;  i++) {
-                    const type = dv.getUint32(i_items_start, le)
-                    i_items_start += 4
-                    const idx = dv.getUint32(i_items_start, le)
-                    i_items_start += 4
-                    indexes.push([type, idx])
+                    const type = dv.getUint32(i_value_start, le)
+                    i_value_start += 4
+                    const idx = dv.getUint32(i_value_start, le)
+                    i_value_start += 4
+                    indexes[i * 2] = type
+                    indexes[i * 2 + 1] = idx
                 }
                 
-                const type_size = dv.getUint32(i_items_start, le)
-                i_items_start += 4
-                const sub_vec: IotAnySubVector = { }
-                
+                // 构造 sub vector
+                const type_size = dv.getUint32(i_value_start, le)
+                i_value_start += 4
+                const sub_vec = new Map<DdbType, DdbVectorValue>()
                 for (let i = 0;  i < type_size;  i++) {
-                    const flag = dv.getUint16(i_items_start, le)
-                    i_items_start += 2
+                    const flag = dv.getUint16(i_value_start, le)
+                    i_value_start += 2
                     const form = flag >> 8
                     const sub_type = flag & 0xff as DdbType
-                    if (form !== DdbForm.vector) 
-                        throw new Error('Invalid data form for IotAny subvector')
+                    assert(form === DdbForm.vector, t('iotany sub vector 不支持非 vector 类型'))
                     
-                    const sub_size = dv.getUint32(i_items_start, le)
-                    // 同时跳过 sub_size 和 cols
-                    i_items_start += 8
+                    const sub_size = dv.getUint32(i_value_start, le)
+                    i_value_start += 8 // 同时跳过 sub_size 和 cols
                     
-                    const [len, value] = this.parse_vector_items(
-                        buf.subarray(i_items_start),
+                    const [len, vector] = this.parse_vector_items(
+                        buf.subarray(i_value_start),
                         le,
                         sub_type,
                         sub_size
                     )
-                    i_items_start += len
-                    sub_vec[sub_type] = value
+                    i_value_start += len
+                    sub_vec.set(sub_type, vector)
                 }
                 
-                return [i_items_start, { index: indexes, subVec: sub_vec } as DdbIotAnyVectorValue]
+                let value = new Array(size)
+                
+                 // 根据 indexes 数组构建最终的 value 数组
+                 for (let i = 0;  i < size;  i++)
+                     value[i] = (
+                        sub_vec.get(indexes[i * 2] as DdbType)
+                    )[indexes[i * 2 + 1]]
+                
+                return [i_value_start, value]
             }
+    
             
             // 25 01 type = decimal32, form = vector
             // 02 00 00 00 01 00 00 00
@@ -1752,6 +1753,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             ])).flat()
                         ]
                     
+                    if (form === DdbForm.vector && type === DdbType.iotany) 
+                        return [this.buffer]
+                    
                     return [
                         Uint32Array.of(this.rows, 1),
                         ... DdbObj.pack_vector_body(value as DdbVectorValue, type, this.rows)
@@ -1991,29 +1995,6 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 let bufs = new Array<Uint8Array>(length)
                 for (let i = 0;  i < length;  i++)
                     bufs[i] = (value as DdbObj[])[i].pack()
-                return bufs
-            }
-            
-            case DdbType.iotany: {
-                const { index, subVec } = value as DdbIotAnyVectorValue
-                
-                const bufs: ArrayBufferView[] = [ ]
-                bufs.push(BigUint64Array.of(BigInt(index.length)))
-                
-                for (const [type, idx] of index) 
-                    bufs.push(Uint32Array.of(type, idx))
-                
-                const type_size = Object.values(subVec).length
-                
-                bufs.push(Uint32Array.of(type_size))
-                
-                for (const [type, vec] of Object.entries(subVec)) {
-                    const flag = (DdbForm.vector << 8) + Number(type)
-                    bufs.push(Uint16Array.of(flag))
-                    // 写入 rows 和 cols
-                    bufs.push(Uint32Array.of(vec.length, 1))
-                    bufs.push(...this.pack_vector_body(vec, Number(type), vec.length))
-                }
                 return bufs
             }
             
@@ -3049,10 +3030,6 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                     obj.le,
                     options
                 )
-            case DdbType.iotany:
-                const { index: indexes, subVec } = obj.value as DdbIotAnyVectorValue
-                const [type, idx] = indexes[index]
-                return format(type, subVec[type][idx], obj.le, options)
                     
             
             case DdbType.decimal32:
@@ -3345,13 +3322,9 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             
             case DdbType.any:
                 return (value as DdbObj[]).map(x => x.data(options))
-            
-            case DdbType.iotany: {
-                const { index: indexes, subVec } = value as DdbIotAnyVectorValue
-                return indexes.map(([type, idx]) => 
-                    convert(type, subVec[type][idx], le, options)
-                )
-            }
+                
+            case DdbType.iotany:
+                return value as any[]
                 
             default:
                 throw new Error(String(DdbType[type] || type) + '[]' + t(' 暂时不支持转换为 js 对象'))

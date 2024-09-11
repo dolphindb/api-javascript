@@ -574,51 +574,12 @@ async function test_parse_iot_vector_type (ddb: DDB) {
     
     
     try {
-        const tst = await ddb.eval(
-            script
-        )
+        const tst = await ddb.execute(script)
         console.log('🚀 ~ test_parse_iot_vector_type ~ tst:', tst)
         await ddb.upload(['iotAnyVector'], [tst])
-        await ddb.eval('print(iotAnyVector)')
+        await ddb.execute('print(iotAnyVector)')
     } catch (error) {
         console.log('error', error)
-    }
-   
-}
-
-async function test_pack_iot_any_vector (ddb: DDB) {
-      // 创建 IotAnyVector 数据
-      const iotAnyVectorData: DdbIotAnyVector = {
-          index: [
-              [DdbType.int, 0],
-              [DdbType.double, 0],
-              [DdbType.string, 0],
-              [DdbType.int, 1],
-              [DdbType.int, 2],
-              [DdbType.double, 1],
-              [DdbType.string, 1]
-          ],
-          subVec: {
-              [DdbType.int]: new Int32Array([1, 2, 4]),
-              [DdbType.double]: new Float64Array([1.1, 2.2]),
-              [DdbType.string]: ['a', 'b']
-          },
-      }
-    
-    const iotAnyVector = new DdbObj<DdbIotAnyVector>({
-        form: DdbForm.vector,
-        type: DdbType.iotany,
-        rows: iotAnyVectorData.index.length,
-        cols: 1,
-        value: iotAnyVectorData
-    })
-    
-    try {
-        await ddb.upload(['iotAnyVector'], [iotAnyVector])
-        await ddb.eval('print(iotAnyVector)')
-        
-    } catch (error) {
-        console.error('error', error)
     }
 }
 

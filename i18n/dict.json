@@ -97,5 +97,8 @@
     },
     "调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象": {
         "en": "The parameters of calling ddb.invoke cannot contain both DdbObj and complex js native objects"
+    },
+    "iife 执行的脚本行数应该至少为 2 行": {
+        "en": "The number of script lines executed by iife should be at least 2"
     }
 }

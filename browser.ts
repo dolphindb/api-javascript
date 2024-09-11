@@ -4090,6 +4090,7 @@ export interface DdbEvalOptions {
     urgent?: boolean
     listener?: DdbMessageListener
     parse_object?: boolean
+    iife?: boolean
 }
 
 export interface DdbExecuteOptions extends DdbEvalOptions, ConvertOptions { }
@@ -4772,15 +4773,29 @@ export class DDB {
                 不做解析，以便后续转发、序列化  
                 Set parse_object during this rpc, and restore the original after the end.  
                 When it is false, the returned DdbObj only contains buffer and le without parsing,   
-                so as to facilitate subsequent forwarding and serialization */
+                so as to facilitate subsequent forwarding and serialization 
+            - iife?: 使用 `def () { ... } ()` 包裹脚本，return 最后一行，避免变量泄漏 */
     async eval <T extends DdbObj> (
         script: string,
         {
             urgent,
             listener,
             parse_object,
+            iife,
         }: DdbEvalOptions = { }
     ) {
+        if (iife) {
+            const lines = script.split_lines()
+            if (lines.length < 2)
+                throw new Error(t('iife 执行的脚本行数应该至少为 2 行'))
+            
+            script =
+                'def () {\n' +
+                    lines.slice(0, -1).indent().join_lines() +
+                `    return ${lines.last}\n`
+                '} ()\n'
+        }
+        
         return this.rpc<T>('script', { script, urgent, listener, parse_object })
     }
     

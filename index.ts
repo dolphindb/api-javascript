@@ -5212,8 +5212,7 @@ export class DDB {
                                     }
                                 }
                                 
-                                
-                                data.data.forEach(row => { win.data.push(row) })
+                                win.data.push(...data.data)
                                 
                                 win.objs.push(obj)
                                 

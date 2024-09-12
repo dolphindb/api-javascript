@@ -3,6 +3,7 @@ node_modules/
 *.ts
 !*.d.ts
 
+/test.js
 /test/
 /.vscode/
 

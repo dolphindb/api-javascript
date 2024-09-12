@@ -17,16 +17,9 @@ set_inspect_options()
 
 const fpd_root = import.meta.dirname.fpd
 
-// linux
-const url = 'ws://192.168.1.56:8848' as const
-// const url = 'ws://183.134.101.143:8499' as const
-// const url = 'ws://192.168.0.29:9002' as const
-
-// windows
-// export const url = 'ws://192.168.0.29:9002' as const
-
-// local 8848
-// export const url = 'ws://127.0.0.1:8848' as const
+const url = 'ws://192.168.0.200:20023' as const
+// const url = 'ws://192.168.0.122:8849' as const
+// const url = 'ws://127.0.0.1:8848' as const
 
 const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
 

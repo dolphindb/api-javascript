@@ -4098,7 +4098,7 @@ export interface StreamingParams {
     offset?: number
     
     filters?: {
-        /** https://docs.dolphindb.cn/zh/help/FunctionsandCommands/FunctionReferences/s/subscribeTable.html#:~:text=%E8%BF%9E%E6%8E%A5%E6%96%B0%E7%9A%84%20leader%E3%80%82-,filter%20%E5%8F%82%E6%95%B0%E9%9C%80%E8%A6%81%E9%85%8D%E5%90%88,-setStreamTableFilterColumn%20%E5%87%BD%E6%95%B0%E4%B8%80%E8%B5%B7 */
+        /** https://test.dolphindb.cn/zh/funcs/s/subscribeTable.html#:~:text=filter%20%E5%8F%82%E6%95%B0%E9%9C%80%E8%A6%81%E9%85%8D%E5%90%88%20setStreamTableFilterColumn%20%E5%87%BD%E6%95%B0%E4%B8%80%E8%B5%B7%E4%BD%BF%E7%94%A8 */
         column?: DdbObj
         
         /** 过滤条件的 DolphinDB 表达式 https://dolphindb1.atlassian.net/wiki/spaces/dev/pages/760840447/WebSocketConsole */
@@ -4152,7 +4152,10 @@ export interface DdbEvalOptions {
     urgent?: boolean
     listener?: DdbMessageListener
     parse_object?: boolean
+    iife?: boolean
 }
+
+export interface DdbExecuteOptions extends DdbEvalOptions, ConvertOptions { }
 
 
 type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
@@ -4238,6 +4241,8 @@ export interface DdbCallOptions extends DdbEvalOptions {
     skip_connection_check?: boolean
     on_more_messages?: DdbRpcOptions['on_more_messages']
 }
+
+export interface DdbInvokeOptions extends DdbCallOptions, ConvertOptions { }
 
 
 export class DDB {
@@ -4830,15 +4835,29 @@ export class DDB {
                 不做解析，以便后续转发、序列化  
                 Set parse_object during this rpc, and restore the original after the end.  
                 When it is false, the returned DdbObj only contains buffer and le without parsing,   
-                so as to facilitate subsequent forwarding and serialization */
+                so as to facilitate subsequent forwarding and serialization 
+            - iife?: 使用 `def () { ... } ()` 包裹脚本，return 最后一行，避免变量泄漏 */
     async eval <T extends DdbObj> (
         script: string,
         {
             urgent,
             listener,
             parse_object,
+            iife,
         }: DdbEvalOptions = { }
     ) {
+        if (iife) {
+            const lines = script.split_lines()
+            if (lines.length < 2)
+                throw new Error(t('iife 执行的脚本行数应该至少为 2 行'))
+            
+            script =
+                'def () {\n' +
+                    lines.slice(0, -1).indent().join_lines() +
+                `    return ${lines.last}\n` +
+                '} ()\n'
+        }
+        
         return this.rpc<T>('script', { script, urgent, listener, parse_object })
     }
     
@@ -4935,7 +4954,7 @@ export class DDB {
             - func_type?: 设置 node 参数且参数数组为空时必传，需指定函数类型，其它情况下不传  
             - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
-    async invoke <TResult = any> (func: string, args?: any[], options?: DdbCallOptions) {
+    async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
         await (this.pinvoke ??= this.eval<DdbVoid>(
             this.python ?
                 '\n' +
@@ -4986,7 +5005,7 @@ export class DDB {
             ? await this.call(func, args, options)
             : await this.call('invoke', [func, JSON.stringify(args)], options)
         
-        return result.data<TResult>()
+        return result.data<TResult>(options)
     }
     
     
@@ -4995,9 +5014,9 @@ export class DDB {
         - options?: 执行选项  
             - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞  
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
-    async execute <TResult = any> (script: string, options?: DdbEvalOptions) {
+    async execute <TResult = any> (script: string, options?: DdbExecuteOptions) {
         return (await this.eval(script, options))
-            .data<TResult>()
+            .data<TResult>(options)
     }
     
     

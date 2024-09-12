@@ -100,5 +100,8 @@
     },
     "iife 执行的脚本行数应该至少为 2 行": {
         "en": "The number of script lines executed by iife should be at least 2"
+    },
+    "iotany sub vector 不支持非 vector 类型": {
+        "en": "iotany sub vector does not support non-vector types"
     }
 }

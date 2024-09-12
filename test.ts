@@ -1,4 +1,4 @@
-import { deepEqual } from 'assert/strict'
+import { deepEqual, deepStrictEqual } from 'assert/strict'
 
 import { assert, defer, fread, inspect, MyProxy, ramdisk, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
@@ -8,7 +8,6 @@ import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
     type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
-    type DdbIotAnyVector,
 } from './index.ts'
 
 
@@ -17,8 +16,8 @@ set_inspect_options()
 
 const fpd_root = import.meta.dirname.fpd
 
-const url = 'ws://192.168.0.200:20023' as const
-// const url = 'ws://192.168.0.122:8849' as const
+// const url = 'ws://192.168.0.200:20023' as const
+const url = 'ws://192.168.1.56:8848' as const
 // const url = 'ws://127.0.0.1:8848' as const
 
 const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
@@ -30,11 +29,11 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
     let ddb = new DDB(url, ddb_options)
     
     const tests = [
-        test_parse_iot_vector_type,
-        // test_pack_iot_any_vector,
+        // test_repl,
         
         // test_keywords,
         // test_types,
+        // test_iot_vector,
         // test_reconnection,
         // test_connection_error,
         // test_print,
@@ -513,67 +512,20 @@ async function test_from_stdjson (ddb: DDB) {
     )
 }
 
-async function test_parse_iot_vector_type (ddb: DDB) {
+async function test_iot_vector (ddb: DDB) {
+    const obj = await ddb.eval(
+        'tt=select * from loadTable("dfs://db", `pt)\n' +
+        'tt[`id3]\n'
+    )
     
-    let script = 
-//     'dbName = "dfs://db"\n' +
-//     'login(`admin,`123456)\n' +
-//     '\n' +
-//     'if (existsDatabase(dbName)) {\n' +
-//     '    dropDatabase(dbName)\n' +
-//     '}\n' +
-//     '\n' +
-//     `db = database(dbName, RANGE, 0 100, engine='TSDB')\n` +
-//     '\n' +
-//     'create table "dfs://db"."pt" (\n' +
-//     '    id INT,\n' +
-//     '    ticket SYMBOL,\n' +
-//     '    id2 SYMBOL,\n' +
-//     '    id3 IOTANY\n' +
-//     ')\n' +
-//     'partitioned by id,\n' +
-//     'sortColumns=[`ticket, `id],\n' +
-//     'sortKeyMappingFunction=[hashBucket{, 1000}],\n' +
-//     'latestKeyCache=true\n' +
-//     '\n' +
-//     'pt=loadTable(dbName, `pt)\n' +
-//     '\n' +
-//     'schema(loadTable(dbName, `pt))\n' +
-//     '\n' +
-//     'for (i in 1..3) {\n' +
-//     `    t=table(take(1,100) as id, take("aa"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
-//     '    loadTable(dbName, `pt).append!(t)\n' +
-//     '    flushTSDBCache()\n' +
-//     '}\n' +
-//     '\n' +
-//     'for (i in 1..3) {\n' +
-//     `    t=table(take(1,100) as id, take("bb"+string(0..100), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, double(1..100) as id3)\n` +
-//     '    loadTable(dbName, `pt).append!(t)\n' +
-//     '    flushTSDBCache()\n' +
-//     '}\n' +
-//     '\n' +
-//     'for (i in 1..10) {\n' +
-//     '    if (i % 2 == 0) {\n' +
-//     `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, rand(200.0, 100) as id3)\n` +
-//     '    } else {\n' +
-//     `        t=table(take(1,100) as id, take(lpad(string(i), 8, "0"), 100) as ticket, take(string(char('A'+1..20)), 100) as id2, int(1..100) as id3)\n` +
-//     '    }\n' +
-//     '    loadTable(dbName, `pt).append!(t)\n' +
-// //    `    flushTSDBCache()\n` +
-//     '}\n' +
-//     '\n' +
-    'tt=select * from loadTable("dfs://db", `pt)\n' +
-    'table(tt[`id3])\n'
-    
-    
-    try {
-        const tst = await ddb.execute(script)
-        console.log('🚀 ~ test_parse_iot_vector_type ~ tst:', tst)
-        await ddb.upload(['iotAnyVector'], [tst])
-        await ddb.execute('print(iotAnyVector)')
-    } catch (error) {
-        console.log('error', error)
-    }
+    console.log('obj:', obj)
+    console.log('data:', obj.data())
+    await ddb.upload(['a'], [obj])
+    await ddb.execute('print(a)')
+    deepStrictEqual(
+        await ddb.execute('a'),
+        obj.data()
+    )
 }
 
 

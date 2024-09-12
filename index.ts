@@ -1414,13 +1414,16 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 ]
             }
             
+            
             case DdbType.iotany: {
                 // 构造 indexes
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 let i_value_start = 0
+                
                 const size = Number(dv.getBigUint64(i_value_start, le))
-                const indexes = new Array(size * 2)
                 i_value_start += 8
+                
+                const indexes = new Array(size * 2)
                 
                 for (let i = 0;  i < size;  i++) {
                     const type = dv.getUint32(i_value_start, le)
@@ -1455,17 +1458,16 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     sub_vec.set(sub_type, vector)
                 }
                 
-                let value = new Array(size)
-                
-                 // 根据 indexes 数组构建最终的 value 数组
-                 for (let i = 0;  i < size;  i++)
-                    value[i] = (
-                        sub_vec.get(indexes[i * 2] as DdbType)
-                    )[indexes[i * 2 + 1]]
-                
-                return [i_value_start, value]
+                return [
+                    i_value_start,
+                    // 根据 indexes 数组构建最终的 value 数组
+                    seq(
+                        size,
+                        i => (
+                                sub_vec.get(indexes[i * 2] as DdbType)
+                            )[indexes[i * 2 + 1]])
+                ]
             }
-    
             
             
             // 25 01 type = decimal32, form = vector
@@ -5211,7 +5213,7 @@ export class DDB {
                                 }
                                 
                                 
-                                data.data.forEach(row => { win.data.push(row) })   
+                                data.data.forEach(row => { win.data.push(row) })
                                 
                                 win.objs.push(obj)
                                 

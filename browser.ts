@@ -94,7 +94,6 @@ export enum DdbType {
     decimal128 = 39,
     
     object = 40,
-    // pynone = 41,
     iotany = 41,
     
     symbol_extended = 145,  // 128 + DdbType.symbol
@@ -407,9 +406,11 @@ export interface DdbMatrixData {
     data: any[][]
 }
 
+
 export type IotVectorItemValue = [number | string | bigint | boolean][]
 
 export type DdbIotAnyVector  = DdbObj<IotVectorItemValue>
+
 
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
 export class DdbObj <TValue extends DdbValue = DdbValue> {
@@ -996,6 +997,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         const rows = dv.getUint32(0, le)
         
         let i_items_start = 8
+        
         if (type < 64 || type >= 128) {  // 普通数组
             const [len_items, value] = this.parse_vector_items(
                 buf.subarray(i_items_start),
@@ -1409,13 +1411,16 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 ]
             }
             
+            
             case DdbType.iotany: {
                 // 构造 indexes
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 let i_value_start = 0
+                
                 const size = Number(dv.getBigUint64(i_value_start, le))
-                const indexes = new Array(size * 2)
                 i_value_start += 8
+                
+                const indexes = new Array(size * 2)
                 
                 for (let i = 0;  i < size;  i++) {
                     const type = dv.getUint32(i_value_start, le)
@@ -1450,17 +1455,17 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     sub_vec.set(sub_type, vector)
                 }
                 
-                let value = new Array(size)
-                
-                 // 根据 indexes 数组构建最终的 value 数组
-                 for (let i = 0;  i < size;  i++)
-                     value[i] = (
-                        sub_vec.get(indexes[i * 2] as DdbType)
-                    )[indexes[i * 2 + 1]]
-                
-                return [i_value_start, value]
+                return [
+                    i_value_start,
+                    // 根据 indexes 数组构建最终的 value 数组
+                    seq(
+                        size,
+                        i => (
+                                sub_vec.get(indexes[i * 2] as DdbType)
+                            )[indexes[i * 2 + 1]])
+                ]
             }
-    
+            
             
             // 25 01 type = decimal32, form = vector
             // 02 00 00 00 01 00 00 00
@@ -1997,6 +2002,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     bufs[i] = (value as DdbObj[])[i].pack()
                 return bufs
             }
+            
             
             case DdbType.symbol_extended: {
                 const { base_id, base, data } = value as DdbSymbolExtendedValue
@@ -3030,7 +3036,6 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                     obj.le,
                     options
                 )
-                    
             
             case DdbType.decimal32:
             case DdbType.decimal64:
@@ -3322,10 +3327,10 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             
             case DdbType.any:
                 return (value as DdbObj[]).map(x => x.data(options))
-                
+            
             case DdbType.iotany:
                 return value as any[]
-                
+            
             default:
                 throw new Error(String(DdbType[type] || type) + '[]' + t(' 暂时不支持转换为 js 对象'))
         }
@@ -4979,7 +4984,7 @@ export class DDB {
         let simple = true
         let has_ddbobj = false
         if (args)
-            for (const arg of args) 
+            for (const arg of args)
                 if (arg && arg instanceof DdbObj)
                     has_ddbobj = true
                 else {
@@ -4991,7 +4996,6 @@ export class DDB {
                         break
                     }
                 }
-            
         
         if (!simple) {
             if (has_ddbobj)
@@ -5221,7 +5225,7 @@ export class DDB {
                                 }
                                 
                                 
-                                data.data.forEach(row => { win.data.push(row) })    
+                                data.data.forEach(row => { win.data.push(row) })
                                 
                                 win.objs.push(obj)
                                 

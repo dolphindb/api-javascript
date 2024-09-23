@@ -1417,8 +1417,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 const dv = new DataView(buf.buffer, buf.byteOffset)
                 let i_value_start = 0
                 
-                const size = Number(dv.getBigUint64(i_value_start, le))
-                i_value_start += 8
+                const size = Number(dv.getUint32(i_value_start, le))
+                i_value_start += 4
                 
                 const indexes = new Array(size * 2)
                 

@@ -1445,12 +1445,13 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     const sub_size = dv.getUint32(i_value_start, le)
                     i_value_start += 8 // 同时跳过 sub_size 和 cols
                     
-                    const [len, vector] = this.parse_vector_items(
+                    let [len, vector] = this.parse_vector_items(
                         buf.subarray(i_value_start),
                         le,
                         sub_type,
                         sub_size
                     )
+                    vector = converts(sub_type, vector, sub_size, le)
                     i_value_start += len
                     sub_vec.set(sub_type, vector)
                 }

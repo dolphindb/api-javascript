@@ -4964,18 +4964,18 @@ export class DDB {
         await (this.pinvoke ??= this.eval<DdbVoid>(
             this.python ?
                 '\n' +
-                'def invoke (func_name, args_json):\n' +
+                'def invoke (func, args_json):\n' +
                 '    args = fromStdJson(args_json)\n' +
                 '    if type(args) != ANY:\n' +
                 '        args = cast(args, ANY)\n' +
-                '    return unifiedCall(funcByName(func_name), args)\n'
+                '    return unifiedCall(func, args)\n'
             :
                 '\n' +
-                'def invoke (func_name, args_json) {\n' +
+                'def invoke (func, args_json) {\n' +
                 '    args = fromStdJson(args_json)\n' +
                 '    if (type(args) != ANY)\n' +
                 '        args = cast(args, ANY)\n' +
-                '    return unifiedCall(funcByName(func_name), args)\n' +
+                '    return unifiedCall(func, args)\n' +
                 '}\n'
             , { urgent: true }
         ))
@@ -5008,7 +5008,7 @@ export class DDB {
         
         const result = simple
             ? await this.call(func, args, options)
-            : await this.call('invoke', [func, JSON.stringify(args)], options)
+            : await this.call('invoke', [new DdbFunction(func, DdbFunctionType.UserDefinedFunc), JSON.stringify(args)], options)
         
         return result.data<TResult>(options)
     }

@@ -4963,23 +4963,23 @@ export class DDB {
     async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
         try {
             await (this.pinvoke ??= this.eval<DdbVoid>(
-            this.python ?
-                '\n' +
-                'def invoke (func, args_json):\n' +
-                '    args = fromStdJson(args_json)\n' +
-                '    if type(args) != ANY:\n' +
-                '        args = cast(args, ANY)\n' +
-                '    return unifiedCall(func, args)\n'
-            :
-                '\n' +
-                'def invoke (func, args_json) {\n' +
-                '    args = fromStdJson(args_json)\n' +
-                '    if (type(args) != ANY)\n' +
-                '        args = cast(args, ANY)\n' +
-                '    return unifiedCall(func, args)\n' +
-                '}\n'
-            , { urgent: true }
-        ))
+                this.python ?
+                    '\n' +
+                    'def invoke (func, args_json):\n' +
+                    '    args = fromStdJson(args_json)\n' +
+                    '    if type(args) != ANY:\n' +
+                    '        args = cast(args, ANY)\n' +
+                    '    return unifiedCall(func, args)\n'
+                    :
+                    '\n' +
+                    'def invoke (func, args_json) {\n' +
+                    '    args = fromStdJson(args_json)\n' +
+                    '    if (type(args) != ANY)\n' +
+                    '        args = cast(args, ANY)\n' +
+                    '    return unifiedCall(func, args)\n' +
+                    '}\n'
+                , { urgent: true }
+            ))
         } catch (e) {
             // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
             this.pinvoke = undefined

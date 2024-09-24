@@ -4961,7 +4961,8 @@ export class DDB {
             - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
     async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
-        await (this.pinvoke ??= this.eval<DdbVoid>(
+        try {
+            await (this.pinvoke ??= this.eval<DdbVoid>(
             this.python ?
                 '\n' +
                 'def invoke (func, args_json):\n' +
@@ -4979,6 +4980,11 @@ export class DDB {
                 '}\n'
             , { urgent: true }
         ))
+        } catch (e) {
+            // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
+            this.pinvoke = undefined
+            throw e
+        }
         
         // 检查 args 是否全部为简单参数，是则直接调用 call，避免 invoke 间接调用
         // 逻辑类似 DdbObj.to_ddbobjs, 需要同步修改

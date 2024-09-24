@@ -4963,15 +4963,15 @@ export class DDB {
     
     
     /** 调用 dolphindb 函数，传入 js 原生数组作为参数，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）  
-    - func: 函数名  
-    - args?: `[ ]` 调用参数，可以是 js 原生数组，参数在中间且想用 server 函数的默认参数值时可以传 null 占位  
-    - options?: 调用选项  
-        - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
-        - node?: 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法)  
-        - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)  
-        - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
-        - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
-    async invoke<TResult = any>(func: string, args?: any[], options?: DdbInvokeOptions) {
+        - func: 函数名  
+        - args?: `[ ]` 调用参数，可以是 js 原生数组，参数在中间且想用 server 函数的默认参数值时可以传 null 占位  
+        - options?: 调用选项  
+            - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
+            - node?: 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法)  
+            - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)  
+            - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
+            - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
+    async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
         try {
             await (this.pinvoke ??= this.eval<DdbVoid>(
                 this.python ?
@@ -5013,21 +5013,22 @@ export class DDB {
                     has_ddbobj = true
                 else {
                     const type = typeof arg
-                    if (type === 'string' || type === 'boolean') { }
+                    if (type === 'string' || type === 'boolean')
+                        { }
                     else {
                         simple = false
                         break
                     }
                 }
-                
+        
         if (!simple && has_ddbobj)
             throw new Error(t('调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象'))
-            
-            
+        
+        
         const result = simple
             ? await this.call(func, args, options)
             : await this.call('invoke', [func, JSON.stringify(args)], options)
-            
+        
         return result.data<TResult>(options)
     }
     
@@ -5242,6 +5243,7 @@ export class DDB {
                                             ))
                                     }
                                 }
+                                
                                 
                                 win.data.push(...data.data)
                                 

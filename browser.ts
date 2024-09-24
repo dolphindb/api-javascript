@@ -4329,6 +4329,7 @@ export class DDB {
     /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
     pinvoke: Promise<DdbVoid>
     
+    /** 首次定义 jsrpc 的 promise，保证并发调用 rpc 时只定义一次 jsrpc */
     pjsrpc: Promise<DdbVoid>
     
     

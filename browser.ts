@@ -4242,7 +4242,6 @@ export interface DdbOptions {
 export interface DdbCallOptions extends DdbEvalOptions {
     node?: string
     nodes?: string[]
-    func_type?: DdbFunctionType
     add_node_alias?: boolean
     skip_connection_check?: boolean
     on_more_messages?: DdbRpcOptions['on_more_messages']
@@ -4329,6 +4328,8 @@ export class DDB {
     
     /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
     pinvoke: Promise<DdbVoid>
+    
+    prpc: Promise<DdbVoid>
     
     
     get connected () {
@@ -4901,7 +4902,6 @@ export class DDB {
             urgent,
             node,
             nodes,
-            func_type,
             add_node_alias,
             listener,
             parse_object,
@@ -4910,14 +4910,30 @@ export class DDB {
         }: DdbCallOptions = { }
     ) {
         if (node) {
-            assert(func_type in DdbFunctionType, t('指定 node 时必须设置 func_type'))
+            try {
+                await (this.prpc ??= this.eval<DdbVoid>(
+                    this.python ?
+                        '\n' +
+                        'def jrpc (nodeAlias, func_name, args):\n' +
+                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args)\n'
+                        :
+                        '\n' +
+                        'def jrpc (nodeAlias, func_name, args) {\n' +
+                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args)\n' +
+                        '}\n'
+                    , { urgent: true }
+                ))
+            } catch (e) {
+                this.prpc = undefined
+                throw e
+            }
             
             args = [
                 node,
-                new DdbFunction(func, func_type),
-                ...args
+                func,
+                new DdbVectorAny(args)
             ]
-            func = 'rpc'
+            func = 'jrpc'
         }
         
         if (nodes) {
@@ -5004,13 +5020,10 @@ export class DDB {
                     }
                 }
         
-        if (!simple) {
+        if (!simple) 
             if (has_ddbobj)
                 throw new Error(t('调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象'))
             
-            if (options?.node)
-                options.func_type = DdbFunctionType.UserDefinedFunc
-        }
         
         const result = simple
             ? await this.call(func, args, options)

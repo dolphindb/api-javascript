@@ -4331,6 +4331,7 @@ export class DDB {
     
     prpc: Promise<DdbVoid>
     
+    p_invokerpc: Promise<DdbVoid>
     
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocket.OPEN
@@ -4909,16 +4910,19 @@ export class DDB {
             on_more_messages
         }: DdbCallOptions = { }
     ) {
+        let rpc_args
+        let rpc_func
+        const is_invoke = func === 'invoke'
         if (node) {
             try {
                 await (this.prpc ??= this.eval<DdbVoid>(
                     this.python ?
                         '\n' +
-                        'def jrpc (nodeAlias, func_name, args):\n' +
+                        'def jsrpc (nodeAlias, func_name, args):\n' +
                         '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args)\n'
                         :
                         '\n' +
-                        'def jrpc (nodeAlias, func_name, args) {\n' +
+                        'def jsrpc (nodeAlias, func_name, args) {\n' +
                         '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args)\n' +
                         '}\n'
                     , { urgent: true }
@@ -4928,16 +4932,45 @@ export class DDB {
                 throw e
             }
             
-            args = [
-                node,
-                func,
-                new DdbVectorAny(args)
-            ]
-            func = 'jrpc'
+            if (is_invoke)
+                try {
+                    await (this.p_invokerpc ??= this.eval<DdbVoid>(
+                        this.python ?
+                            '\n' +
+                            'def invoke_rpc (nodeAlias, func_name, args):\n' +
+                            '    return rpc(nodeAlias, unifiedCall, invoke_for_rpc, [funcByName(func_name), args])\n'
+                            :
+                            '\n' +
+                            'def invoke_rpc (nodeAlias, func_name, args) {\n' +
+                            '    return rpc(nodeAlias, unifiedCall, invoke_for_rpc, [funcByName(func_name), args])\n' +
+                            '}\n'
+                        , { urgent: true }
+                    ))
+                } catch (e) {
+                    this.p_invokerpc = undefined
+                    throw e
+                }
+            
+            if (is_invoke) {
+                rpc_args ??= [
+                    node,
+                    args[0],
+                    args[1]
+                ]
+                rpc_func ??= 'invoke_rpc'
+            } else {
+                rpc_args ??= [
+                    node,
+                    func,
+                    new DdbVectorAny(args)
+                ]
+                rpc_func ??= 'jsrpc'
+            }
+            
         }
         
-        if (nodes) {
-            args = [
+        if (nodes) {           
+            rpc_args ??= [
                 new DdbVectorString(nodes),
                 func,
                 new DdbVectorAny(args),
@@ -4951,12 +4984,14 @@ export class DDB {
                     return [ ]
                 })()
             ]
-            func = 'pnode_run'
+            rpc_func ??= 'pnode_run'
         }
-        
+    
+        rpc_func ??= func
+        rpc_args ??= args
         return this.rpc<TResult>('function', {
-            func,
-            args,
+            func: rpc_func,
+            args: rpc_args,
             urgent,
             listener,
             parse_object,
@@ -4981,18 +5016,29 @@ export class DDB {
             await (this.pinvoke ??= this.eval<DdbVoid>(
                 this.python ?
                     '\n' +
-                    'def invoke (func, args_json):\n' +
+                    'def invoke_for_rpc (func, args_json):\n' +
                     '    args = fromStdJson(args_json)\n' +
                     '    if type(args) != ANY:\n' +
                     '        args = cast(args, ANY)\n' +
-                    '    return unifiedCall(func, args)\n'
+                    '    return unifiedCall(func, args)\n' +
+                    'def invoke (func_name, args_json):\n' +
+                    '    args = fromStdJson(args_json)\n' +
+                    '    if type(args) != ANY:\n' +
+                    '        args = cast(args, ANY)\n' +
+                    '    return unifiedCall(funcByName(func_name), args)\n'
                     :
                     '\n' +
-                    'def invoke (func, args_json) {\n' +
+                    'def invoke_for_rpc (func, args_json) {\n' +
                     '    args = fromStdJson(args_json)\n' +
                     '    if (type(args) != ANY)\n' +
                     '        args = cast(args, ANY)\n' +
                     '    return unifiedCall(func, args)\n' +
+                    '}\n' +
+                    'def invoke (func_name, args_json) {\n' +
+                    '    args = fromStdJson(args_json)\n' +
+                    '    if (type(args) != ANY)\n' +
+                    '        args = cast(args, ANY)\n' +
+                    '    return unifiedCall(funcByName(func_name), args)\n' +
                     '}\n'
                 , { urgent: true }
             ))
@@ -5027,7 +5073,7 @@ export class DDB {
         
         const result = simple
             ? await this.call(func, args, options)
-            : await this.call('invoke', [new DdbFunction(func, DdbFunctionType.UserDefinedFunc), JSON.stringify(args)], options)
+            : await this.call('invoke', [func, JSON.stringify(args)], options)
         
         return result.data<TResult>(options)
     }

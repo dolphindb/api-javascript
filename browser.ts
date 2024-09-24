@@ -4329,7 +4329,8 @@ export class DDB {
     /** 首次定义 invoke 的 promise，保证并发调用 rpc 时只定义一次 invoke */
     pinvoke: Promise<DdbVoid>
     
-    prpc: Promise<DdbVoid>
+    pjsrpc: Promise<DdbVoid>
+    
     
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocket.OPEN
@@ -4879,8 +4880,6 @@ export class DDB {
                 When the node alias is set, it is sent to the corresponding node in the cluster for execution (using the rpc method in DolphinDB)
             - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)  
                 When setting multiple node aliases, send them to the corresponding multiple nodes in the cluster for execution (using the pnodeRun method in DolphinDB)
-            - func_type?: 设置 node 参数时必传，需指定函数类型，其它情况下不传  
-                It must be passed when setting the node parameter, the function type needs to be specified, and it is not passed in other cases
             - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
                 Select to pass when setting the nodes parameter, otherwise not pass
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage)  
@@ -4908,42 +4907,44 @@ export class DDB {
             on_more_messages
         }: DdbCallOptions = { }
     ) {
-        let args_: (DdbObj | string | boolean)[]
-        let func_: string
+        let func_ = func
+        let args_ = args
+        
         if (node) {
             try {
-                await (this.prpc ??= this.eval<DdbVoid>(
+                await (this.pjsrpc ??= this.eval<DdbVoid>(
                     this.python ?
                         '\n' +
-                        'def jsrpc (nodeAlias, func_name, args):\n' +
+                        'def jsrpc (node, func_name, args):\n' +
                         '    args_ = args\n' +
                         '    if func_name == "invoke":\n' +
                         '        args_[0] = funcByName(args[0])\n' +
-                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args_)\n'
+                        '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n'
                         :
                         '\n' +
-                        'def jsrpc (nodeAlias, func_name, args) {\n' +
+                        'def jsrpc (node, func_name, args) {\n' +
                         '    args_ = args\n' +
                         '    if (func_name == "invoke")\n' +
                         '        args_[0] = funcByName(args[0])\n' +
-                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args_)\n' +
+                        '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n' +
                         '}\n'
                     , { urgent: true }
                 ))
-            } catch (e) {
-                this.prpc = undefined
-                throw e
+            } catch (error) {
+                this.pjsrpc = undefined
+                throw error
             }
             
+            func_ = 'jsrpc'
             args_ = [
                 node,
                 func,
                 new DdbVectorAny(args)
             ]
-            func_ = 'jsrpc'
         }
         
         if (nodes) {
+            func_ = 'pnode_run'
             args_ = [
                 new DdbVectorString(nodes),
                 func,
@@ -4958,11 +4959,8 @@ export class DDB {
                     return [ ]
                 })()
             ]
-            func_ = 'pnode_run'
         }
-    
-        func_ ??= func
-        args_ ??= args
+        
         return this.rpc<TResult>('function', {
             func: func_,
             args: args_,
@@ -4982,7 +4980,6 @@ export class DDB {
             - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
             - node?: 设置结点 alias 时发送到集群中对应的结点执行 (使用 DolphinDB 中的 rpc 方法)  
             - nodes?: 设置多个结点 alias 时发送到集群中对应的多个结点执行 (使用 DolphinDB 中的 pnodeRun 方法)  
-            - func_type?: 设置 node 参数且参数数组为空时必传，需指定函数类型，其它情况下不传  
             - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
     async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
@@ -5011,10 +5008,10 @@ export class DDB {
                     '}\n'
                 , { urgent: true }
             ))
-        } catch (e) {
+        } catch (error) {
             // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
             this.pinvoke = undefined
-            throw e
+            throw error
         }
         
         // 检查 args 是否全部为简单参数，是则直接调用 call，避免 invoke 间接调用
@@ -5035,10 +5032,9 @@ export class DDB {
                     }
                 }
         
-        if (!simple) 
-            if (has_ddbobj)
-                throw new Error(t('调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象'))
-            
+        if (!simple && has_ddbobj)
+            throw new Error(t('调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象'))
+        
         
         const result = simple
             ? await this.call(func, args, options)

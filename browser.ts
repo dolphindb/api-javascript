@@ -4331,8 +4331,6 @@ export class DDB {
     
     prpc: Promise<DdbVoid>
     
-    p_invokerpc: Promise<DdbVoid>
-    
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocket.OPEN
     }
@@ -4910,20 +4908,25 @@ export class DDB {
             on_more_messages
         }: DdbCallOptions = { }
     ) {
-        let rpc_args
-        let rpc_func
-        const is_invoke = func === 'invoke'
+        let args_: (DdbObj | string | boolean)[]
+        let func_: string
         if (node) {
             try {
                 await (this.prpc ??= this.eval<DdbVoid>(
                     this.python ?
                         '\n' +
                         'def jsrpc (nodeAlias, func_name, args):\n' +
-                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args)\n'
+                        '    args_ = args\n' +
+                        '    if func_name == "invoke":\n' +
+                        '        args_[0] = funcByName(args[0])\n' +
+                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args_)\n'
                         :
                         '\n' +
                         'def jsrpc (nodeAlias, func_name, args) {\n' +
-                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args)\n' +
+                        '    args_ = args\n' +
+                        '    if (func_name == "invoke")\n' +
+                        '        args_[0] = funcByName(args[0])\n' +
+                        '    return rpc(nodeAlias, unifiedCall, funcByName(func_name), args_)\n' +
                         '}\n'
                     , { urgent: true }
                 ))
@@ -4932,45 +4935,16 @@ export class DDB {
                 throw e
             }
             
-            if (is_invoke)
-                try {
-                    await (this.p_invokerpc ??= this.eval<DdbVoid>(
-                        this.python ?
-                            '\n' +
-                            'def invoke_rpc (nodeAlias, func_name, args):\n' +
-                            '    return rpc(nodeAlias, unifiedCall, invoke_for_rpc, [funcByName(func_name), args])\n'
-                            :
-                            '\n' +
-                            'def invoke_rpc (nodeAlias, func_name, args) {\n' +
-                            '    return rpc(nodeAlias, unifiedCall, invoke_for_rpc, [funcByName(func_name), args])\n' +
-                            '}\n'
-                        , { urgent: true }
-                    ))
-                } catch (e) {
-                    this.p_invokerpc = undefined
-                    throw e
-                }
-            
-            if (is_invoke) {
-                rpc_args ??= [
-                    node,
-                    args[0],
-                    args[1]
-                ]
-                rpc_func ??= 'invoke_rpc'
-            } else {
-                rpc_args ??= [
-                    node,
-                    func,
-                    new DdbVectorAny(args)
-                ]
-                rpc_func ??= 'jsrpc'
-            }
-            
+            args_ = [
+                node,
+                func,
+                new DdbVectorAny(args)
+            ]
+            func_ = 'jsrpc'
         }
         
-        if (nodes) {           
-            rpc_args ??= [
+        if (nodes) {
+            args_ = [
                 new DdbVectorString(nodes),
                 func,
                 new DdbVectorAny(args),
@@ -4984,14 +4958,14 @@ export class DDB {
                     return [ ]
                 })()
             ]
-            rpc_func ??= 'pnode_run'
+            func_ = 'pnode_run'
         }
     
-        rpc_func ??= func
-        rpc_args ??= args
+        func_ ??= func
+        args_ ??= args
         return this.rpc<TResult>('function', {
-            func: rpc_func,
-            args: rpc_args,
+            func: func_,
+            args: args_,
             urgent,
             listener,
             parse_object,
@@ -5016,29 +4990,24 @@ export class DDB {
             await (this.pinvoke ??= this.eval<DdbVoid>(
                 this.python ?
                     '\n' +
-                    'def invoke_for_rpc (func, args_json):\n' +
+                    'def invoke (func, args_json):\n' +
                     '    args = fromStdJson(args_json)\n' +
+                    '    func_ = func\n' +
+                    '    if type(func) == STRING:\n' +
+                    '        func_ = funcByName(func)\n' +
                     '    if type(args) != ANY:\n' +
                     '        args = cast(args, ANY)\n' +
-                    '    return unifiedCall(func, args)\n' +
-                    'def invoke (func_name, args_json):\n' +
-                    '    args = fromStdJson(args_json)\n' +
-                    '    if type(args) != ANY:\n' +
-                    '        args = cast(args, ANY)\n' +
-                    '    return unifiedCall(funcByName(func_name), args)\n'
+                    '    return unifiedCall(func_, args)\n'
                     :
                     '\n' +
-                    'def invoke_for_rpc (func, args_json) {\n' +
+                    'def invoke (func, args_json) {\n' +
                     '    args = fromStdJson(args_json)\n' +
+                    '    func_ = func\n' +
+                    '    if (type(func) == STRING)\n' +
+                    '        func_ = funcByName(func)\n' +
                     '    if (type(args) != ANY)\n' +
                     '        args = cast(args, ANY)\n' +
-                    '    return unifiedCall(func, args)\n' +
-                    '}\n' +
-                    'def invoke (func_name, args_json) {\n' +
-                    '    args = fromStdJson(args_json)\n' +
-                    '    if (type(args) != ANY)\n' +
-                    '        args = cast(args, ANY)\n' +
-                    '    return unifiedCall(funcByName(func_name), args)\n' +
+                    '    return unifiedCall(func_, args)\n' +
                     '}\n'
                 , { urgent: true }
             ))

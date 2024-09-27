@@ -103,5 +103,8 @@
     },
     "iotany sub vector 不支持非 vector 类型": {
         "en": "iotany sub vector does not support non-vector types"
+    },
+    "iotany 的 meta vector 长度至少为 2": {
+        "en": "The length of the iotany meta vector is at least 2"
     }
 }

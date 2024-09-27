@@ -1413,57 +1413,32 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             
             
             case DdbType.iotany: {
-                // 构造 indexes
-                const dv = new DataView(buf.buffer, buf.byteOffset)
-                let i_value_start = 0
+                const [len, anys] = this.parse_vector_items(buf, le, DdbType.any, length)
+                const metas = anys[0].data()
                 
-                const size = Number(dv.getUint32(i_value_start, le))
-                i_value_start += 4
+                assert(metas.length >= 2, t('iotany 的 meta vector 长度至少为 2'))
                 
-                const indexes = new Array(size * 2)
+                const size = metas[0]
+                // let sub_vec_count = meta_vec[1]
                 
-                for (let i = 0;  i < size;  i++) {
-                    const type = dv.getUint32(i_value_start, le)
-                    i_value_start += 4
-                    const idx = dv.getUint32(i_value_start, le)
-                    i_value_start += 4
-                    indexes[i * 2] = type
-                    indexes[i * 2 + 1] = idx
-                }
+                let sub_vecs = new Map<DdbType, DdbVectorValue>()
                 
-                // 构造 sub vector
-                const type_size = dv.getUint32(i_value_start, le)
-                i_value_start += 4
-                const sub_vec = new Map<DdbType, DdbVectorValue>()
-                for (let i = 0;  i < type_size;  i++) {
-                    const flag = dv.getUint16(i_value_start, le)
-                    i_value_start += 2
-                    const form = flag >> 8
-                    const sub_type = flag & 0xff as DdbType
-                    assert(form === DdbForm.vector, t('iotany sub vector 不支持非 vector 类型'))
-                    
-                    const sub_size = dv.getUint32(i_value_start, le)
-                    i_value_start += 8 // 同时跳过 sub_size 和 cols
-                    
-                    let [len, vector] = this.parse_vector_items(
-                        buf.subarray(i_value_start),
-                        le,
+                for (let i = 1;  i < length;  i++) {
+                    const sub_vector = anys[i]
+                    const sub_type = sub_vector.type
+                    sub_vecs.set(
                         sub_type,
-                        sub_size
+                        converts(sub_type, sub_vector.data(), sub_vector.length, le)
                     )
-                    vector = converts(sub_type, vector, sub_size, le)
-                    i_value_start += len
-                    sub_vec.set(sub_type, vector)
                 }
                 
                 return [
-                    i_value_start,
-                    // 根据 indexes 数组构建最终的 value 数组
+                    len,
                     seq(
                         size,
                         i => (
-                                sub_vec.get(indexes[i * 2] as DdbType)
-                            )[indexes[i * 2 + 1]])
+                                sub_vecs.get(metas[i + size + 2] as DdbType)
+                            )[metas[i + 2]])
                 ]
             }
             

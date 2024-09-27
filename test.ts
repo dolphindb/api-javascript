@@ -1,6 +1,6 @@
 import { deepEqual, deepStrictEqual } from 'assert/strict'
 
-import { assert, defer, fread, inspect, MyProxy, ramdisk, set_inspect_options, WebSocketConnectionError } from 'xshell'
+import { assert, defer, fread, fwrite, inspect, MyProxy, ramdisk, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.ts'
 
@@ -17,7 +17,7 @@ set_inspect_options()
 const fpd_root = import.meta.dirname.fpd
 
 // const url = 'ws://192.168.0.200:20023' as const
-const url = 'ws://192.168.1.56:8848' as const
+const url = 'ws://192.168.0.69:8902' as const
 // const url = 'ws://127.0.0.1:8848' as const
 
 const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
@@ -29,18 +29,18 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
     let ddb = new DDB(url, ddb_options)
     
     const tests = [
-        // test_repl,
+        test_repl,
         
-        test_keywords,
-        test_types,
-        test_iot_vector,
-        test_reconnection,
-        test_connection_error,
-        test_print,
-        test_time,
-        test_streaming,
-        test_error,
-        test_invoke
+        // test_keywords,
+        // test_types,
+        // test_iot_vector,
+        // test_reconnection,
+        // test_connection_error,
+        // test_print,
+        // test_time,
+        // test_streaming,
+        // test_error,
+        // test_invoke
     ]
     
     for (const fn_test of tests)
@@ -83,17 +83,13 @@ async function get_printed (ddb: DDB, code: string) {
 
 
 async function test_repl (ddb: DDB) {
-    let _ddb = new DDB(url, ddb_options)
-    try {
-        await _ddb.execute(
-            'clearCachedModules()\n' +
-            'use autoInspection'
+    fwrite(
+        'T:/keys.json',
+        Object.keys(
+            (await ddb.call('getConfig'))
+                .data()
         )
-        await _ddb.execute('scheduleJob("6253392463056112", "巡检描述", runPlan{"6253392463056112"}, minute("09:39m"), date("2024.09.02"), date("2124.09.02"), "W", [1])')
-        // await _ddb.invoke('scheduleJob', ['6253392463056112', '巡检描述', 'runPlan{"6253392463056112"}', 'minute("09:39m")', 'date("2024.09.02")', 'date("2124.09.02")', 'W', [1] ])
-    } catch (error) {
-        console.log('error', error)
-    }
+    )
 }
 
 

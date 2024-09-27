@@ -29,8 +29,8 @@
         "JavaScript"
     ],
     "devDependencies": {
-        "@types/node": "^22.5.5",
-        "eslint": "^9.11.0",
+        "@types/node": "^22.7.3",
+        "eslint": "^9.11.1",
         "typescript": "^5.6.2"
     },
     "dependencies": {

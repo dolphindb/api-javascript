@@ -16,8 +16,8 @@ set_inspect_options()
 
 const fpd_root = import.meta.dirname.fpd
 
-// const url = 'ws://192.168.0.200:20023' as const
-const url = 'ws://192.168.0.69:8850' as const
+const url = 'ws://192.168.0.200:20023' as const
+// const url = 'ws://192.168.0.69:8902' as const
 // const url = 'ws://127.0.0.1:8848' as const
 
 const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
@@ -29,18 +29,18 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
     let ddb = new DDB(url, ddb_options)
     
     const tests = [
-        test_iot_vector,
+        // test_repl,
+        // test_iot_vector
         
-        // test_keywords,
-        // test_types,
-        // test_iot_vector,
-        // test_reconnection,
-        // test_connection_error,
-        // test_print,
-        // test_time,
-        // test_streaming,
-        // test_error,
-        // test_invoke
+        test_keywords,
+        test_types,
+        test_reconnection,
+        test_connection_error,
+        test_print,
+        test_time,
+        test_streaming,
+        test_error,
+        test_invoke
     ]
     
     for (const fn_test of tests)
@@ -83,13 +83,7 @@ async function get_printed (ddb: DDB, code: string) {
 
 
 async function test_repl (ddb: DDB) {
-    fwrite(
-        'T:/keys.json',
-        Object.keys(
-            (await ddb.call('getConfig'))
-                .data()
-        )
-    )
+    
 }
 
 

@@ -1015,9 +1015,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 type,
                 length: i_items_start + len_items,
                 cols: 1,
-                rows,
+                rows: type === DdbType.iotany ? (value as IotVectorItemValue).length : rows,
                 value,
-                ... type === DdbType.iotany ? { buffer: buf, rows: len_items } : { }
+                ... type === DdbType.iotany ? { buffer: buf } : { }
             })
         } else {  // array vector
             // av = array(INT[], 0, 3)
@@ -1416,7 +1416,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             
             
             case DdbType.iotany: {
-                const [_, anys] = this.parse_vector_items(buf, le, DdbType.any, length)
+                const [len, anys] = this.parse_vector_items(buf, le, DdbType.any, length)
                 const metas = anys[0].data()
                 
                 assert(metas.length >= 2, t('iotany 的 meta vector 长度至少为 2'))
@@ -1436,7 +1436,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 }
                 
                 return [
-                    size,
+                    len,
                     seq(
                         size,
                         i => (

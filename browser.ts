@@ -4618,49 +4618,54 @@ export class DDB {
         
         
         if (func === 'pnode_run')
-            await (this.ppnode_run ??= this.eval<DdbVoid>(
-                this.python ?
-                    '\n' +
-                    'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
-                    '    nargs = size(args)\n' +
-                    '    func = funcByName(func_name)\n' +
-                    '    \n' +
-                    '    if not nargs:\n' +
-                    '        return pnodeRun(func, nodes, add_node_alias)\n' +
-                    '    \n' +
-                    '    args_partial = [ ]\n' +
-                    '    args_partial.append(func)\n' +
-                    '    for a in args:\n' +
-                    '        args_partial.append(a)\n' +
-                    '    \n' +
-                    '    return pnodeRun(\n' +
-                    '        unifiedCall(partial, args_partial),\n' +
-                    '        nodes,\n' +
-                    '        add_node_alias\n' +
-                    '    )\n'
-                :
-                    // 这个开头的空行很重要，应该可以绕过 webLoginRequired = true 时禁止执行代码
-                    // 搜一下 APISocketConsole::execute
-                    // https://dolphindb1.atlassian.net/browse/D20-4991
-                    '\n' +
-                    'def pnode_run (nodes, func_name, args, add_node_alias = true) {\n' +
-                    '    nargs = size(args)\n' +
-                    '    func = funcByName(func_name)\n' +
-                    '    \n' +
-                    '    if (!nargs)\n' +
-                    '        return pnodeRun(func, nodes, add_node_alias)\n' +
-                    '    \n' +
-                    '    args_partial = array(any, 1 + nargs, 1 + nargs)\n' +
-                    '    args_partial[0] = func\n' +
-                    '    args_partial[1:] = args\n' +
-                    '    return pnodeRun(\n' +
-                    '        unifiedCall(partial, args_partial),\n' +
-                    '        nodes,\n' +
-                    '        add_node_alias\n' +
-                    '    )\n' +
-                    '}\n',
-                { urgent: true }
-            ))
+            try {
+                await (this.ppnode_run ??= this.eval<DdbVoid>(
+                    this.python ?
+                        '\n' +
+                        'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
+                        '    nargs = size(args)\n' +
+                        '    func = funcByName(func_name)\n' +
+                        '    \n' +
+                        '    if not nargs:\n' +
+                        '        return pnodeRun(func, nodes, add_node_alias)\n' +
+                        '    \n' +
+                        '    args_partial = [ ]\n' +
+                        '    args_partial.append(func)\n' +
+                        '    for a in args:\n' +
+                        '        args_partial.append(a)\n' +
+                        '    \n' +
+                        '    return pnodeRun(\n' +
+                        '        unifiedCall(partial, args_partial),\n' +
+                        '        nodes,\n' +
+                        '        add_node_alias\n' +
+                        '    )\n'
+                    :
+                        // 这个开头的空行很重要，应该可以绕过 webLoginRequired = true 时禁止执行代码
+                        // 搜一下 APISocketConsole::execute
+                        // https://dolphindb1.atlassian.net/browse/D20-4991
+                        '\n' +
+                        'def pnode_run (nodes, func_name, args, add_node_alias = true) {\n' +
+                        '    nargs = size(args)\n' +
+                        '    func = funcByName(func_name)\n' +
+                        '    \n' +
+                        '    if (!nargs)\n' +
+                        '        return pnodeRun(func, nodes, add_node_alias)\n' +
+                        '    \n' +
+                        '    args_partial = array(any, 1 + nargs, 1 + nargs)\n' +
+                        '    args_partial[0] = func\n' +
+                        '    args_partial[1:] = args\n' +
+                        '    return pnodeRun(\n' +
+                        '        unifiedCall(partial, args_partial),\n' +
+                        '        nodes,\n' +
+                        '        add_node_alias\n' +
+                        '    )\n' +
+                        '}\n',
+                    { urgent: true }
+                ))
+            } catch (error) {
+                this.ppnode_run = undefined
+                throw error
+            }
         
         
         // this 上的当前配置需要在 message 到达后使用，先保存起来
@@ -4959,37 +4964,6 @@ export class DDB {
             - add_node_alias?: 设置 nodes 参数时选传，其它情况不传  
             - listener?: 处理本次 rpc 期间的消息 (DdbMessage) */
     async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
-        try {
-            await (this.pinvoke ??= this.eval<DdbVoid>(
-                this.python ?
-                    '\n' +
-                    'def invoke (func, args_json):\n' +
-                    '    args = fromStdJson(args_json)\n' +
-                    '    func_ = func\n' +
-                    '    if type(func) == STRING:\n' +
-                    '        func_ = funcByName(func)\n' +
-                    '    if type(args) != ANY:\n' +
-                    '        args = cast(args, ANY)\n' +
-                    '    return unifiedCall(func_, args)\n'
-                    :
-                    '\n' +
-                    'def invoke (func, args_json) {\n' +
-                    '    args = fromStdJson(args_json)\n' +
-                    '    func_ = func\n' +
-                    '    if (type(func) == STRING)\n' +
-                    '        func_ = funcByName(func)\n' +
-                    '    if (type(args) != ANY)\n' +
-                    '        args = cast(args, ANY)\n' +
-                    '    return unifiedCall(func_, args)\n' +
-                    '}\n'
-                , { urgent: true }
-            ))
-        } catch (error) {
-            // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
-            this.pinvoke = undefined
-            throw error
-        }
-        
         // 检查 args 是否全部为简单参数，是则直接调用 call，避免 invoke 间接调用
         // 逻辑类似 DdbObj.to_ddbobjs, 需要同步修改
         let simple = true
@@ -5008,13 +4982,47 @@ export class DDB {
                     }
                 }
         
-        if (!simple && has_ddbobj)
-            throw new Error(t('调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象'))
+        let result: DdbObj
         
-        
-        const result = simple
-            ? await this.call(func, args, options)
-            : await this.call('invoke', [func, JSON.stringify(args)], options)
+        if (simple)
+            result = await this.call(func, args, options)
+        else {
+            if (has_ddbobj)
+                throw new Error(t('调用 ddb.invoke 的参数中不能同时有 DdbObj 与复杂 js 原生对象'))
+            
+            try {
+                await (this.pinvoke ??= this.eval<DdbVoid>(
+                    this.python ?
+                        '\n' +
+                        'def invoke (func, args_json):\n' +
+                        '    args = fromStdJson(args_json)\n' +
+                        '    func_ = func\n' +
+                        '    if type(func) == STRING:\n' +
+                        '        func_ = funcByName(func)\n' +
+                        '    if type(args) != ANY:\n' +
+                        '        args = cast(args, ANY)\n' +
+                        '    return unifiedCall(func_, args)\n'
+                        :
+                        '\n' +
+                        'def invoke (func, args_json) {\n' +
+                        '    args = fromStdJson(args_json)\n' +
+                        '    func_ = func\n' +
+                        '    if (type(func) == STRING)\n' +
+                        '        func_ = funcByName(func)\n' +
+                        '    if (type(args) != ANY)\n' +
+                        '        args = cast(args, ANY)\n' +
+                        '    return unifiedCall(func_, args)\n' +
+                        '}\n'
+                    , { urgent: true }
+                ))
+            } catch (error) {
+                // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
+                this.pinvoke = undefined
+                throw error
+            }
+            
+            result = await this.call('invoke', [func, JSON.stringify(args)], options)
+        }
         
         return result.data<TResult>(options)
     }

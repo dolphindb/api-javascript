@@ -1414,33 +1414,37 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 ]
             }
             
+            
             case DdbType.iotany: {
-                let [len, any_vector] = this.parse_vector_items(buf, le, DdbType.any, length)
-                let meta_vec = any_vector[0].data()
+                const [len, anys] = this.parse_vector_items(buf, le, DdbType.any, length)
+                const metas = anys[0].data()
                 
-                assert(meta_vec.length >= 2, t('iotany 的 meta vector 长度至少为 2'))
+                assert(metas.length >= 2, t('iotany 的 meta vector 长度至少为 2'))
                 
-                let size = meta_vec[0]
+                const size = metas[0]
                 // let sub_vec_count = meta_vec[1]
                 
-                const sub_vec = new Map<DdbType, DdbVectorValue>()
+                let sub_vecs = new Map<DdbType, DdbVectorValue>()
                 
                 for (let i = 1;  i < length;  i++) {
-                    let sub_vector = any_vector[i]
-                    let sub_type = sub_vector.type
-                    let sub_values = converts(sub_type, sub_vector.data(), sub_vector.length, le) 
-                    sub_vec.set(sub_type, sub_values)
+                    const sub_vector = anys[i]
+                    const sub_type = sub_vector.type
+                    sub_vecs.set(
+                        sub_type,
+                        converts(sub_type, sub_vector.data(), sub_vector.length, le)
+                    )
                 }
- 
+                
                 return [
                     len,
                     seq(
                         size,
                         i => (
-                                sub_vec.get(meta_vec[i + size + 2] as DdbType)
-                            )[meta_vec[i + 2]])
+                                sub_vecs.get(metas[i + size + 2] as DdbType)
+                            )[metas[i + 2]])
                 ]
             }
+            
             
             // 25 01 type = decimal32, form = vector
             // 02 00 00 00 01 00 00 00

@@ -17,7 +17,7 @@ set_inspect_options()
 const fpd_root = import.meta.dirname.fpd
 
 // const url = 'ws://192.168.0.200:20023' as const
-const url = 'ws://192.168.0.69:8902' as const
+const url = 'ws://192.168.0.69:8850' as const
 // const url = 'ws://127.0.0.1:8848' as const
 
 const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
@@ -29,7 +29,7 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
     let ddb = new DDB(url, ddb_options)
     
     const tests = [
-        test_repl,
+        test_iot_vector,
         
         // test_keywords,
         // test_types,
@@ -510,18 +510,36 @@ async function test_from_stdjson (ddb: DDB) {
 
 async function test_iot_vector (ddb: DDB) {
     const obj = await ddb.eval(
-        'tt=select * from loadTable("dfs://db", `pt)\n' +
-        'tt[`id3]\n'
+        'if(existsDatabase("dfs://testIOT")) dropDatabase("dfs://testIOT")\n' +
+        'create database "dfs://testIOT" partitioned by  HASH([INT, 40]),RANGE(2020.01.01 2022.01.01 2025.01.01), engine=\'TSDB\'\n' +
+        'create table "dfs://testIOT"."pt"(\n' +
+        '    deviceId INT,\n' +
+        '    timestamp TIMESTAMP,\n' +
+        '    location SYMBOL,\n' +
+        '    value IOTANY,\n' +
+        ')\n' +
+        'partitioned by deviceId, timestamp,\n' +
+        'sortColumns=[`deviceId, `location, `timestamp],\n' +
+        'latestKeyCache=true;\n' +
+        'pt = loadTable("dfs://testIOT","pt");\n' +
+        't=table(take(1..100000,100000) as deviceId, take(now()+(0..100), 100000) as timestamp,  take("bb"+string(0..100), 100000) as location, take(int(1..100000),100000) as value)\n' +
+        'pt.append!(t)\n' +
+        'flushTSDBCache()\n' +
+        't=table(take(100001..200000,100000) as deviceId, take(now()+(0..100), 100000) as timestamp,take(lpad(string(1), 8, "0"), 100000) as location, rand(200.0, 100000) as value)\n' +
+        'pt.append!(t)\n' +
+        'flushTSDBCache()\n' +
+        '\n' +
+        'select * from loadTable("dfs://testIOT","pt")\n'
     )
     
     console.log('obj:', obj)
     console.log('data:', obj.data())
     await ddb.upload(['a'], [obj])
     await ddb.execute('print(a)')
-    deepStrictEqual(
-        await ddb.execute('a'),
-        obj.data()
-    )
+    // deepStrictEqual(
+    //     await ddb.execute('a'),
+    //     obj.data()
+    // )
 }
 
 

@@ -1428,7 +1428,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     const sub_type = sub_vector.type
                     sub_vecs.set(
                         sub_type,
-                        converts(sub_type, sub_vector.data(), sub_vector.length, le)
+                        sub_vector.data()
                     )
                 }
                 

@@ -30,7 +30,8 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
     
     const tests = [
         // test_repl,
-        // test_iot_vector
+        
+        // test_iot_vector,
         
         test_keywords,
         test_types,
@@ -530,10 +531,13 @@ async function test_iot_vector (ddb: DDB) {
     console.log('data:', obj.data())
     await ddb.upload(['a'], [obj])
     await ddb.execute('print(a)')
-    // deepStrictEqual(
-    //     await ddb.execute('a'),
-    //     obj.data()
-    // )
+    deepStrictEqual(
+        Object.assign(
+            await ddb.execute('a'), 
+            { name: 'pt' }
+        ),
+        obj.data()
+    )
 }
 
 

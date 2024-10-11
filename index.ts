@@ -3136,7 +3136,7 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
                         // http://facweb.cs.depaul.edu/sjost/it212/documents/ascii-pr.htm
                         (32 <= (value as number) && (value as number) <= 126)
                             ? String.fromCharCode(value as number)
-                            : value
+                            : `\\${value}`
                 : value
         
         case DdbType.bool:

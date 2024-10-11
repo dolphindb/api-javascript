@@ -3146,12 +3146,14 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
             return value === DdbVoidType.null ? null : undefined
         
         case DdbType.char:
-            return char === 'string' ?  
-                value === null || value === nulls.int8 ? '' :  
-                    (32 <= (value as number) && (value as number) <= 126) ?
-                        String.fromCharCode(value as number)
-                            :
-                        value
+            return char === 'string'
+                ? value === null || value === nulls.int8 
+                    ? ''
+                    :   // ascii printable
+                        // http://facweb.cs.depaul.edu/sjost/it212/documents/ascii-pr.htm
+                        (32 <= (value as number) && (value as number) <= 126)
+                            ? String.fromCharCode(value as number)
+                            : `\\${value}`
                 : value
         
         case DdbType.bool:

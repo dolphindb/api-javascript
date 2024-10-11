@@ -3402,7 +3402,10 @@ export class DdbString extends DdbObj<string> {
 }
 
 export class DdbLong extends DdbObj<bigint> {
-    constructor (value: bigint | null) {
+    constructor (value: bigint | number | null) {
+        if (typeof value === 'number')
+            value = BigInt(value)
+        
         super({
             form: DdbForm.scalar,
             type: DdbType.long,
@@ -3432,7 +3435,19 @@ export class DdbDateTime extends DdbObj<number> {
 }
 
 export class DdbTimeStamp extends DdbObj<bigint> {
-    constructor (value: bigint | null) {
+    /** @example
+        new DdbTimeStamp(new Date().getTime()) 
+        new DdbTimeStamp(dayjs().valueOf()) */
+    constructor (value?: bigint | null | number) {
+        if (value === undefined)
+            value = new Date().getTime()
+        
+        if (typeof value === 'number')
+            value = BigInt(
+                -(1000 * 60 * new Date(value).getTimezoneOffset()) +
+                value
+            )
+        
         super({
             form: DdbForm.scalar,
             type: DdbType.timestamp,

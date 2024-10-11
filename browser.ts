@@ -3133,9 +3133,11 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 export interface ConvertOptions {
     /** `'string'` blob 类型数据的格式 */
     blob?: 'string' | 'binary'
-    /** char 类型数据的格式: string 解析成对应的 char，number 直接返回 char code */
+    
+    /** `'string'` char 类型数据的格式: string 解析成 string[]，number 解析为 number[] */
     char?: 'string' | 'number'
-    /** timestamp 类型转换为字符串表示时显示到秒还是毫秒 */
+    
+    /** `'ms'` timestamp 类型转换为字符串表示时显示到秒还是毫秒 */
     timestamp?: 's' | 'ms'
 }
 

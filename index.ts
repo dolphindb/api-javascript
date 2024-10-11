@@ -3114,9 +3114,11 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 export interface ConvertOptions {
     /** `'string'` blob 类型数据的格式 */
     blob?: 'string' | 'binary'
-    /** char 类型数据的格式: string 解析成对应的 char，number 直接返回 char code */
+    
+    /** `'string'` char 类型数据的格式: string 解析成 string[]，number 解析为 number[] */
     char?: 'string' | 'number'
-    /** timestamp 类型转换为字符串表示时显示到秒还是毫秒 */
+    
+    /** `'ms'` timestamp 类型转换为字符串表示时显示到秒还是毫秒 */
     timestamp?: 's' | 'ms'
 }
 
@@ -3127,12 +3129,14 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
             return value === DdbVoidType.null ? null : undefined
         
         case DdbType.char:
-            return char === 'string' ?  
-                value === null || value === nulls.int8 ? '' :  
-                    (32 <= (value as number) && (value as number) <= 126) ?
-                        String.fromCharCode(value as number)
-                            :
-                        value
+            return char === 'string'
+                ? value === null || value === nulls.int8 
+                    ? ''
+                    :   // ascii printable
+                        // http://facweb.cs.depaul.edu/sjost/it212/documents/ascii-pr.htm
+                        (32 <= (value as number) && (value as number) <= 126)
+                            ? String.fromCharCode(value as number)
+                            : value
                 : value
         
         case DdbType.bool:

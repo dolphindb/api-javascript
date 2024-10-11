@@ -3335,6 +3335,15 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
 }
 
 
+export class DdbVoid extends DdbObj<undefined> {
+    constructor (value = DdbVoidType.undefined) {
+        super({
+            form: DdbForm.scalar,
+            type: DdbType.void,
+            value,
+        })
+    }
+}
 
 
 export class DdbBool extends DdbObj<boolean> {

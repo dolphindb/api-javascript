@@ -403,7 +403,7 @@ function get_tm_language (python = false) {
             },
             
             decorator: {
-                match: '^@(testing|state|transform)',
+                match: '^@(testing|state|transform|jit)',
                 name: 'meta.decorator.dolphindb',
             },
             

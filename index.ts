@@ -2155,7 +2155,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     }
                     case DdbType.char: {
                         const value = dv.getInt8(offset)
-                        tensor.push(value === nulls.int8 ? null : value)
+                        tensor.push(convert(dataType, value, le) as string)
                         break
                     }
                     case DdbType.short: {

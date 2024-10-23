@@ -1,5 +1,20 @@
 # Release Notes
 
+## English | [中文](./CHANGELOG.zh.md)
+
+## Version: 3.0.200
+#### New Features
+- Added parameter offset for streaming subscription to set the position of the first message where the subscription begins.
+- Added support for IOTANY vectors.
+
+#### Improvments
+- Optimized the performance of invoke method.
+
+#### Issues Fixed
+- Fixed an issue where invoke failed to execute functions defined on remote nodes.
+- Fixed disconnection issues when uploading strings with \0 to server.
+
+
 ## Version: 3.0.100
 #### New Features
 - Added support for heartbeat mechanism to prevent automatic disconnection due to prolonged inactivity.

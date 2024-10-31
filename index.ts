@@ -4133,7 +4133,7 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
     error?: Error
 }
 
-export const winsize = 10_0000 as const
+export const winsize = 10000 as const
 
 
 export interface DdbEvalOptions {

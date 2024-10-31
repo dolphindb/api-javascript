@@ -1441,7 +1441,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         size,
                         i => (
                                 sub_vecs.get(metas[i + size + 2] as DdbType)
-                            )[metas[i + 2]])
+                            )?.[metas[i + 2]] ?? null)
                 ]
             }
             

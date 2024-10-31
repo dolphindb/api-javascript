@@ -1436,11 +1436,10 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     len,
                     seq(
                         size,
-                        i => ( 
-                            metas[i + size + 2] as DdbType === DdbType.void 
-                                ? null
-                                : sub_vecs.get(metas[i + size + 2] as DdbType)[metas[i + 2]]
-                            )                         
+                        i => {
+                                const type = metas[i + size + 2] as DdbType
+                                return type === DdbType.void ? null : sub_vecs.get(type)[metas[i + 2]]
+                            }                        
                         )
                 ]
             }

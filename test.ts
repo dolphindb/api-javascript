@@ -8,7 +8,6 @@ import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
     type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
-    date2ms,
 } from './index.ts'
 
 
@@ -30,7 +29,7 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
     let ddb = new DDB(url, ddb_options)
     
     const tests = [
-        test_repl,
+        // test_repl,
         
         // test_iot_vector,
         
@@ -84,15 +83,8 @@ async function get_printed (ddb: DDB, code: string) {
 }
 
 
-async function test_repl () {
-    let ddb = new DDB('ws://183.134.101.134:8200', { username: 'testUser2', password: '123456' })
+async function test_repl (ddb: DDB) {
     
-    const start = '2015.01.01'
-    const end = '2024.12.31'
-    
-    const tb = await ddb.execute(`query(${start}, ${end}, "*")`)
-    
-    console.log(tb.data)
 }
 
 

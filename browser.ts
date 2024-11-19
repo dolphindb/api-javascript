@@ -3132,11 +3132,14 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
 
 
 export interface ConvertOptions {
-    /** `'string'` blob 类型数据的格式 */
+    /** `'string'` blob 转换格式 */
     blob?: 'string' | 'binary'
     
-    /** `'string'` char 类型数据的格式: string 解析成 string[]，number 解析为 number[] */
+    /** `'string'` char 转换格式: string 转为 string[]，number 转为 number[] */
     char?: 'string' | 'number'
+    
+    /** `'strings'` char vector 转换格式: strings 转为 string[], binary 转为 Uint8Array */
+    chars?: 'strings' | 'binary'
     
     /** `'ms'` timestamp 类型转换为字符串表示时显示到秒还是毫秒 */
     timestamp?: 's' | 'ms'
@@ -3231,12 +3234,11 @@ export function convert (type: DdbType, value: DdbValue, le: boolean, { blob = '
 
 
 /** 转换一个向量到 js 原生数组 */
-export function converts (type: DdbType, value: DdbVectorValue, rows: number, le: boolean, options?: ConvertOptions): any[] {
+export function converts (type: DdbType, value: DdbVectorValue, rows: number, le: boolean, options?: ConvertOptions): any[] | Uint8Array {
     if (type < 64 || type >= 128)
         switch (type) {
             // 可以直接用下标取值再转换的类型
             case DdbType.bool:
-            case DdbType.char:
             
             case DdbType.short:
             case DdbType.int:
@@ -3267,7 +3269,12 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
             case DdbType.blob:
             case DdbType.compressed:
                 return Array.prototype.map.call(value, (x: number | bigint) => convert(type, x, le, options))
-                
+            
+            case DdbType.char:
+                if (options?.chars === 'binary')
+                    return value as Uint8Array
+                else
+                    return Array.prototype.map.call(value, (x: number | bigint) => convert(type, x, le, options))
             
             case DdbType.void:
                 return [ ]
@@ -3851,7 +3858,7 @@ export function datetime2ms (datetime: number | null): number | null {
         return null
     
     const date = new Date(1000 * datetime)
-    return dayjs(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+    return new Date(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
 }
 
 export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:mm:ss') {
@@ -3869,7 +3876,7 @@ export function timestamp2ms (timestamp: bigint | number | null): number | null 
         return null
     
     const date = new Date(Number(timestamp))
-    return dayjs(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+    return new Date(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
 }
 
 
@@ -3967,7 +3974,7 @@ export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
     
     const date = new Date(Number(nanotimestamp / 1000000n))
     return BigInt(
-            dayjs(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+            new Date(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
         ) * 1000000n + nanotimestamp % 1000000n
 }
 

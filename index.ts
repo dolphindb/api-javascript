@@ -4998,10 +4998,8 @@ export class DDB {
                     const type = typeof arg
                     if (type === 'string' || type === 'boolean')
                         { }
-                    else {
+                    else
                         simple = false
-                        break
-                    }
                 }
         
         let result: DdbObj

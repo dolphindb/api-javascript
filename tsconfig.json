@@ -22,11 +22,12 @@
         
         
         // --- emit
-        "noEmit": true,
+        "noEmit": false,
         "declaration": true,
         "emitDeclarationOnly": false,
         "noEmitOnError": false,
         "listEmittedFiles": true,
+        "rewriteRelativeImportExtensions": true,
         
         // --- source maps
         "sourceMap": true,

@@ -29,7 +29,7 @@
         "JavaScript"
     ],
     "devDependencies": {
-        "@types/node": "^22.9.3",
+        "@types/node": "^22.9.4",
         "eslint": "^9.15.0",
         "typescript": "^5.7.2"
     },

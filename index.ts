@@ -1,6 +1,6 @@
 import type { InspectOptions as UtilInspectOptions } from 'util'
 
-import dayjs from 'dayjs'
+import { default as dayjs, type Dayjs } from 'dayjs'
 import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
 
@@ -10,7 +10,7 @@ const { fromByteArray: buf2ipaddr } = ipaddrjs
 import {
     concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, seq, zip_object,
     WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocket, type WebSocketConnectionError,
-    decode, delay
+    decode, delay, check
 } from 'xshell'
 
 import { t } from './i18n/index.ts'
@@ -3425,46 +3425,91 @@ export class DdbDouble extends DdbObj<number> {
 }
 
 export class DdbDateTime extends DdbObj<number> {
-    constructor (value: number | null) {
+    constructor (value?: null | number | string | Date | Dayjs) {
         super({
             form: DdbForm.scalar,
             type: DdbType.datetime,
-            value
+            value: (() => {
+                if (value === null)
+                    return null
+                
+                const date = value2date(value, 'DdbDateTime')
+                
+                return (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000
+            })()
         })
     }
 }
 
 export class DdbTimeStamp extends DdbObj<bigint> {
-    /** @example
-        new DdbTimeStamp(new Date().getTime()) 
-        new DdbTimeStamp(dayjs().valueOf()) */
-    constructor (value?: bigint | null | number) {
-        if (value === undefined)
-            value = new Date().getTime()
-        
-        if (typeof value === 'number')
-            value = BigInt(
-                -(1000 * 60 * new Date(value).getTimezoneOffset()) +
-                value
-            )
-        
+    constructor (value?: null | number | string | Date | Dayjs) {
         super({
             form: DdbForm.scalar,
             type: DdbType.timestamp,
-            value
+            value: (() => {
+                if (value === null)
+                    return null
+                
+                const date = value2date(value, 'DdbTimeStamp')
+                
+                return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset())
+            })()
         })
     }
 }
 
 export class DdbNanoTimeStamp extends DdbObj<bigint> {
-    constructor (value: bigint | null) {
+    constructor (value: null | number | string | Date | Dayjs) {
         super({
             form: DdbForm.scalar,
             type: DdbType.nanotimestamp,
-            value
+            value: (() => {
+                if (value === null)
+                    return null
+                
+                if (typeof value === 'string')
+                    return str2nanotimestamp(value)
+                
+                const date = value2date(value, 'DdbNanoTimeStamp')
+                
+                return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
+            })()
         })
     }
 }
+
+export class DdbDate extends DdbObj<number> {
+    constructor (value?: null | number | string | Date | Dayjs) {
+        super({
+            form: DdbForm.scalar,
+            type: DdbType.date,
+            value: (() => {
+                if (value === null)
+                    return null
+                
+                const date = value2date(value, 'DdbDate')
+                
+                return Math.floor(
+                    (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24))
+            })()
+        })
+    }
+}
+
+
+function value2date (value: undefined | number | string | Date | Dayjs, classname: string) {
+    if (value === undefined)
+        return new Date()
+    else if (typeof value === 'number' || typeof value === 'string')
+        return new Date(value)
+    else if (value instanceof Date)
+        return value
+    else if (dayjs.isDayjs(value))
+        return new Date(value.valueOf())
+    else
+        throw new Error(t('value 不能转换为 {{classname}}', { classname }))
+}
+
 
 export class DdbBlob extends DdbObj<Uint8Array> {
     constructor (value: Uint8Array | ArrayBuffer) {
@@ -4019,15 +4064,15 @@ export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SS
     if (!str || str === 'null')
         return nulls.int64
     
-    assert(str.length === format.length, t('nanotimestamp 字符串长度必须等于格式串长度'))
+    check(str.length === format.length, t('nanotimestamp 字符串长度必须等于格式串长度'))
     
     const i_second_start = format.indexOf('ss')
-    assert(i_second_start !== -1, t('格式串必须包含秒的格式 (ss)'))
+    check(i_second_start !== -1, t('格式串必须包含秒的格式 (ss)'))
     
     const i_second_end = i_second_start + 2
     
     const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    assert(i_nanosecond_start !== -1, t('格式串必须包含纳秒的格式 (SSSSSSSSS)'))
+    check(i_nanosecond_start !== -1, t('格式串必须包含纳秒的格式 (SSSSSSSSS)'))
     
     const ms = dayjs(
         str.slice(0, i_second_end),

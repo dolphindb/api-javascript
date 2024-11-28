@@ -18,12 +18,12 @@ importers:
         specifier: ^2.8.1
         version: 2.8.1
       xshell:
-        specifier: ^1.0.202
-        version: 1.0.202
+        specifier: ^1.0.203
+        version: 1.0.203
     devDependencies:
       '@types/node':
-        specifier: ^22.10.0
-        version: 22.10.0
+        specifier: ^22.10.1
+        version: 22.10.1
       eslint:
         specifier: ^9.15.0
         version: 9.15.0
@@ -981,8 +981,8 @@ packages:
   '@types/node-sass@4.11.7':
     resolution: {integrity: sha512-QY0sXZGPRzJ2obo66f9zB6S0Uo9PRdcoPKPbyftSoKXub90s4ut/JK3fYHOqmhYhRRVEB3P5o5rEnq2/bWBdeg==}
 
-  '@types/node@22.10.0':
-    resolution: {integrity: sha512-XC70cRZVElFHfIUB40FgZOBbgJYFKKMa5nb9lxcwYstFG/Mi+/Y0bGS+rs6Dmhmkpq4pnNiLiuZAbc02YCOnmA==}
+  '@types/node@22.10.1':
+    resolution: {integrity: sha512-qKgsUwfHZV2WCWLAnVP1JqnpE6Im6h3Y0+fYgMTasNQ7V++CBX5OT1as0g0f+OyubbFqhf6XVNIsmN4IIhEgGQ==}
 
   '@types/sass-loader@8.0.9':
     resolution: {integrity: sha512-OAzsrLMYVMprsR5Je2eIGqwsJ6FulUG5fHkzPemv5ejhyX05lpqNw5tbvdJqZi31RFELVeoR9yij17Xu6Qk1xA==}
@@ -3215,9 +3215,9 @@ packages:
   undici-types@6.20.0:
     resolution: {integrity: sha512-Ny6QZ2Nju20vw1SRHe3d9jVu6gJ+4e3+MMpqu7pqE5HT6WsTSlce++GQmK5UXS8mzV8DSYHrQH+Xrf2jVcuKNg==}
 
-  undici@7.0.0-alpha.7:
-    resolution: {integrity: sha512-hpdWJGzjwfEHI1vEZk2yk1yvlrk+nzN/EebhV7I2uZPtz1PPJ1kEVSN1eZd/FQNw1SNPrfMVa8hAtaYhkHxkfw==}
-    engines: {node: '>=18.17'}
+  undici@7.0.0:
+    resolution: {integrity: sha512-c4xi3kWnQJrb7h2q8aJYKvUzmz7boCgz1cUCC6OwdeM5Tr2P0hDuthr2iut4ggqsz+Cnh20U/LoTzbKIdDS/Nw==}
+    engines: {node: '>=20.18.1'}
 
   unescape@1.0.1:
     resolution: {integrity: sha512-O0+af1Gs50lyH1nUu3ZyYS1cRh01Q/kUKatTOkSs7jukXE6/NebucDVxyiDsA9AQ4JC1V1jUH9EO8JX2nMDgGQ==}
@@ -3382,8 +3382,8 @@ packages:
     resolution: {integrity: sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA==}
     engines: {node: '>=4.0'}
 
-  xshell@1.0.202:
-    resolution: {integrity: sha512-5KqJoM0xr4PFbStCR9eizifwQggAEF6A3YGqsaSluMPwC3xcLxe1B0AqvIKwrze+M4yuW+grniUGhT5+bqFC0w==}
+  xshell@1.0.203:
+    resolution: {integrity: sha512-25zBE6CzSAYd5LdGtO7KR+yzyljbsXRzknB1W1ZyDDiJ/RWx//4M2h5k46ZCM0X1PKkNlhcc+qqvZjARhknnXw==}
     hasBin: true
 
   xtend@4.0.2:
@@ -4553,15 +4553,15 @@ snapshots:
 
   '@types/node-sass@4.11.7':
     dependencies:
-      '@types/node': 22.10.0
+      '@types/node': 22.10.1
 
-  '@types/node@22.10.0':
+  '@types/node@22.10.1':
     dependencies:
       undici-types: 6.20.0
 
   '@types/sass-loader@8.0.9':
     dependencies:
-      '@types/node': 22.10.0
+      '@types/node': 22.10.1
       '@types/node-sass': 4.11.7
       '@types/webpack': 4.41.38
       sass: 1.81.0
@@ -4576,13 +4576,13 @@ snapshots:
 
   '@types/webpack-sources@3.2.3':
     dependencies:
-      '@types/node': 22.10.0
+      '@types/node': 22.10.1
       '@types/source-list-map': 0.1.6
       source-map: 0.7.4
 
   '@types/webpack@4.41.38':
     dependencies:
-      '@types/node': 22.10.0
+      '@types/node': 22.10.1
       '@types/tapable': 1.0.12
       '@types/uglify-js': 3.17.5
       '@types/webpack-sources': 3.2.3
@@ -4591,7 +4591,7 @@ snapshots:
 
   '@types/ws@8.5.13':
     dependencies:
-      '@types/node': 22.10.0
+      '@types/node': 22.10.1
 
   '@typescript-eslint/eslint-plugin@8.16.0(@typescript-eslint/parser@8.16.0(eslint@9.15.0)(typescript@5.7.2))(eslint@9.15.0)(typescript@5.7.2)':
     dependencies:
@@ -6035,7 +6035,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 22.10.0
+      '@types/node': 22.10.1
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -7013,7 +7013,7 @@ snapshots:
 
   undici-types@6.20.0: {}
 
-  undici@7.0.0-alpha.7: {}
+  undici@7.0.0: {}
 
   unescape@1.0.1:
     dependencies:
@@ -7236,7 +7236,7 @@ snapshots:
 
   xmlbuilder@11.0.1: {}
 
-  xshell@1.0.202:
+  xshell@1.0.203:
     dependencies:
       '@babel/core': 7.26.0
       '@babel/parser': 7.26.2
@@ -7294,7 +7294,7 @@ snapshots:
       tslib: 2.8.1
       typescript: 5.7.2
       ua-parser-js: 2.0.0
-      undici: 7.0.0-alpha.7
+      undici: 7.0.0
       vinyl: 3.0.0
       vinyl-fs: 4.0.0
       webpack: 5.96.1

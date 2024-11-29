@@ -3465,17 +3465,42 @@ export class DdbDate extends DdbObj<number> {
 }
 
 
-function value2date (value: undefined | number | string | Date | Dayjs, classname: string) {
+function get_ddb_time_value (
+    classname: 'DdbDateTime' | 'DdbTimeStamp' | 'DdbNanoTimeStamp' | 'DdbDate',
+    value: null | number | string | Date | Dayjs,
+): number | bigint | null {
+    if (value === null)
+        return null
+    
+    if (classname === 'DdbNanoTimeStamp' && typeof value === 'string')
+        return str2nanotimestamp(value)
+    
+    let date: Date
+    
     if (value === undefined)
-        return new Date()
+        date = new Date()
     else if (typeof value === 'number' || typeof value === 'string')
-        return new Date(value)
+        date = new Date(value)
     else if (value instanceof Date)
-        return value
+        date = value
     else if (dayjs.isDayjs(value))
-        return new Date(value.valueOf())
+        date = new Date(value.valueOf())
     else
         throw new Error(t('value 不能转换为 {{classname}}', { classname }))
+    
+    switch (classname) {
+        case 'DdbDateTime':
+            return (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000
+        
+        case 'DdbTimeStamp':
+            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset())
+        
+        case 'DdbNanoTimeStamp':
+            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
+        
+        case 'DdbDate':
+            return Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24))
+    }
 }
 
 
@@ -5577,32 +5602,6 @@ function generate_array_type (baseType: string, dimensions: number[]): string {
     return result
 }
 
-function get_ddb_time_value (
-    date_type: 'DdbDateTime' | 'DdbTimeStamp' | 'DdbNanoTimeStamp' | 'DdbDate',
-    value: null | number | string | Date | Dayjs,
-): number | bigint | null {
-    if (value === null)
-        return null
-    
-    if (date_type === 'DdbNanoTimeStamp' && typeof value === 'string')
-        return str2nanotimestamp(value)
-    
-    const date = value2date(value, date_type)
-    
-    switch (date_type) {
-        case 'DdbDateTime':
-            return (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000
-        
-        case 'DdbTimeStamp':
-            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset())
-        
-        case 'DdbNanoTimeStamp':
-            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
-        
-        case 'DdbDate':
-            return Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24))
-    }
-}
 
 // 大端
 // const dataBE = new ArrayBuffer(16)

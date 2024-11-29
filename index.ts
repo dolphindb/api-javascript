@@ -3459,7 +3459,7 @@ export class DdbTimeStamp extends DdbObj<bigint> {
 }
 
 export class DdbNanoTimeStamp extends DdbObj<bigint> {
-    constructor (value: null | number | string | Date | Dayjs) {
+    constructor (value?: null | number | string | Date | Dayjs) {
         super({
             form: DdbForm.scalar,
             type: DdbType.nanotimestamp,

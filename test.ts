@@ -16,7 +16,7 @@ set_inspect_options()
 
 const fpd_root = import.meta.dirname.fpd
 
-const url = 'ws://192.168.0.200:20023' as const
+const url = 'ws://192.168.0.37:20023' as const
 // const url = 'ws://192.168.0.69:8902' as const
 // const url = 'ws://127.0.0.1:8848' as const
 
@@ -377,13 +377,13 @@ async function test_types (ddb: DDB) {
     // )
     
     // 测试 Invalid Date
-    await ddb.upload(['x'], [new DdbTimeStamp(10000000000000000)])
+    await ddb.upload(['x'], [new DdbTimeStamp('2024.11.11')])
     
     assert(
         inspect(
             await ddb.eval('x'), 
             { colors: false }
-        ) === 'timestamp(Invalid Date)'
+        ) === 'timestamp(2024.11.11 00:00:00.000)'
     )
     
     console.log('测试大数据')

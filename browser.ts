@@ -3896,7 +3896,7 @@ export function datetime2ms (datetime: number | null): number | null {
         return null
     
     const date = new Date(1000 * datetime)
-    return new Date(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+    return new Date(`${_datetime_formatter.format(date)}.${String(date.getUTCMilliseconds()).padStart(3, '0')}`).valueOf()
 }
 
 export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:mm:ss') {
@@ -3914,7 +3914,7 @@ export function timestamp2ms (timestamp: bigint | number | null): number | null 
         return null
     
     const date = new Date(Number(timestamp))
-    return new Date(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+    return new Date(`${_datetime_formatter.format(date)}.${String(date.getUTCMilliseconds()).padStart(3, '0')}`).valueOf()
 }
 
 
@@ -4012,7 +4012,7 @@ export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
     
     const date = new Date(Number(nanotimestamp / 1000000n))
     return BigInt(
-            new Date(`${_datetime_formatter.format(date)}.${date.getUTCMilliseconds()}`).valueOf()
+            new Date(`${_datetime_formatter.format(date)}.${String(date.getUTCMilliseconds()).padStart(3, '0')}`).valueOf()
         ) * 1000000n + nanotimestamp % 1000000n
 }
 

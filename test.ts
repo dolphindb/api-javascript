@@ -377,7 +377,7 @@ async function test_types (ddb: DDB) {
     // )
     
     // 测试 Invalid Date
-    await ddb.upload(['x'], [new DdbTimeStamp(10000000000000000n)])
+    await ddb.upload(['x'], [new DdbTimeStamp(10000000000000000)])
     
     assert(
         inspect(

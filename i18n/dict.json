@@ -106,5 +106,8 @@
     },
     "iotany 的 meta vector 长度至少为 2": {
         "en": "The length of the iotany meta vector is at least 2"
+    },
+    "value 不能转换为 {{classname}}": {
+        "en": "value cannot be converted to {{classname}}"
     }
 }

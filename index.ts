@@ -3429,7 +3429,7 @@ export class DdbDateTime extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.datetime,
-            value: process_date_value(value, date => (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000, 'DdbDateTime')
+            value: get_ddb_time_value('DdbDateTime', value)
         })
     }
 }
@@ -3439,7 +3439,7 @@ export class DdbTimeStamp extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.timestamp,
-            value: process_date_value(value, date => BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()), 'DdbTimeStamp')
+            value: get_ddb_time_value('DdbTimeStamp', value)
         })
     }
 }
@@ -3449,7 +3449,7 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.nanotimestamp,
-            value: process_date_value(value, date => BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n, 'DdbNanoTimeStamp')
+            value: get_ddb_time_value('DdbNanoTimeStamp', value)
         })
     }
 }
@@ -3459,11 +3459,7 @@ export class DdbDate extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.date,
-            value: process_date_value(
-                value,
-                date => Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24)),
-                'DdbDate'
-            )
+            value: get_ddb_time_value('DdbDate', value)
         })
     }
 }
@@ -5581,10 +5577,9 @@ function generate_array_type (baseType: string, dimensions: number[]): string {
     return result
 }
 
-function process_date_value (
+function get_ddb_time_value (
+    date_type: 'DdbDateTime' | 'DdbTimeStamp' | 'DdbNanoTimeStamp' | 'DdbDate',
     value: null | number | string | Date | Dayjs,
-    date_process_func: (date) => number | bigint,
-    date_type: 'DdbDateTime' | 'DdbTimeStamp' | 'DdbNanoTimeStamp' | 'DdbDate'
 ): number | bigint | null {
     if (value === null)
         return null
@@ -5594,7 +5589,20 @@ function process_date_value (
         
     const date = value2date(value, date_type)
     
-    return date_process_func(date)
+    switch (date_type) {
+        case 'DdbDateTime':
+            return (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000
+            
+        case 'DdbTimeStamp':
+            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset())
+            
+        case 'DdbNanoTimeStamp':
+            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
+            
+        case 'DdbDate':
+            return Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24))
+    }
+    
 }
 
 // 大端

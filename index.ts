@@ -5583,26 +5583,25 @@ function get_ddb_time_value (
 ): number | bigint | null {
     if (value === null)
         return null
-        
+    
     if (date_type === 'DdbNanoTimeStamp' && typeof value === 'string')
         return str2nanotimestamp(value)
-        
+    
     const date = value2date(value, date_type)
     
     switch (date_type) {
         case 'DdbDateTime':
             return (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000
-            
+        
         case 'DdbTimeStamp':
             return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset())
-            
+        
         case 'DdbNanoTimeStamp':
             return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
-            
+        
         case 'DdbDate':
             return Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24))
     }
-    
 }
 
 // 大端

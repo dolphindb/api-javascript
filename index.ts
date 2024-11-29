@@ -3429,14 +3429,7 @@ export class DdbDateTime extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.datetime,
-            value: (() => {
-                if (value === null)
-                    return null
-                
-                const date = value2date(value, 'DdbDateTime')
-                
-                return (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000
-            })()
+            value: process_date_value(value, date => (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000, 'DdbDateTime')
         })
     }
 }
@@ -3446,14 +3439,7 @@ export class DdbTimeStamp extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.timestamp,
-            value: (() => {
-                if (value === null)
-                    return null
-                
-                const date = value2date(value, 'DdbTimeStamp')
-                
-                return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset())
-            })()
+            value: process_date_value(value, date => BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()), 'DdbTimeStamp')
         })
     }
 }
@@ -3463,17 +3449,7 @@ export class DdbNanoTimeStamp extends DdbObj<bigint> {
         super({
             form: DdbForm.scalar,
             type: DdbType.nanotimestamp,
-            value: (() => {
-                if (value === null)
-                    return null
-                
-                if (typeof value === 'string')
-                    return str2nanotimestamp(value)
-                
-                const date = value2date(value, 'DdbNanoTimeStamp')
-                
-                return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
-            })()
+            value: process_date_value(value, date => BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n, 'DdbNanoTimeStamp')
         })
     }
 }
@@ -3483,15 +3459,11 @@ export class DdbDate extends DdbObj<number> {
         super({
             form: DdbForm.scalar,
             type: DdbType.date,
-            value: (() => {
-                if (value === null)
-                    return null
-                
-                const date = value2date(value, 'DdbDate')
-                
-                return Math.floor(
-                    (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24))
-            })()
+            value: process_date_value(
+                value,
+                date => Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24)),
+                'DdbDate'
+            )
         })
     }
 }
@@ -5607,6 +5579,22 @@ function generate_array_type (baseType: string, dimensions: number[]): string {
         result += `[${dimension}]`
     })
     return result
+}
+
+function process_date_value (
+    value: null | number | string | Date | Dayjs,
+    date_process_func: (date) => number | bigint,
+    date_type: 'DdbDateTime' | 'DdbTimeStamp' | 'DdbNanoTimeStamp' | 'DdbDate'
+): number | bigint | null {
+    if (value === null)
+        return null
+        
+    if (date_type === 'DdbNanoTimeStamp' && typeof value === 'string')
+        return str2nanotimestamp(value)
+        
+    const date = value2date(value, date_type)
+    
+    return date_process_func(date)
 }
 
 // 大端

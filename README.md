@@ -607,6 +607,11 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
 }
 ```
 
+To close streaming data subscription, use the following two methods to disconnect:
+- Automatically disconnect by closing the browser page
+- Manually disconnect by calling `sddb.disconnect()`
+
+
 ## Development Method
 
 ```shell

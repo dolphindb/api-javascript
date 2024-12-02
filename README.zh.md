@@ -589,6 +589,10 @@ export interface StreamingMessage <TRows = any> extends StreamingParams {
 }
 ```
 
+关闭流数据订阅使用下面两种断开连接的方法
+- 关闭浏览器页面自动断开连接
+- 调用 `sddb.disconnect()` 手动断开连接
+
 
 ### 开发方法
 

@@ -5166,17 +5166,12 @@ export class DDB {
             buf.subarray(0, ilf0)
         ).split(' ')
         
-        /** session id */
-        const sid = parts[0]
-        if (sid !== this.sid) {
-            console.log(t('session id 从 {{sid}} 变为 {{sid_}}', { sid: this.sid, sid_: sid }))
-            this.sid = sid
-        }
+        this.sid = parts[0]
         
-        /** 返回对象的数量 */
-        const nobj = Number(parts[1])
+        // 返回对象的数量
+        // const nobj = Number(parts[1])
         
-        /** 大小端: 协议中大端为 0, 小端为 1 */
+        // 大小端: 协议中大端为 0, 小端为 1
         this.le = Number(parts[2]) !== 0
         
         const ils1 = ilf0 + 1

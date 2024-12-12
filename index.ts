@@ -415,6 +415,9 @@ export type IotVectorItemValue = [number | string | bigint | boolean][]
 export type DdbIotAnyVector  = DdbObj<IotVectorItemValue>
 
 
+export type JsSimpleType = DdbObj | string | boolean | null | undefined
+
+
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
 export class DdbObj <TValue extends DdbValue = DdbValue> {
     static dec = new TextDecoder('utf-8')
@@ -2510,10 +2513,16 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    /** 自动转换 js string, boolean 为 DdbObj */
-    static to_ddbobj (value: DdbObj | string | boolean): DdbObj {
+    /** 自动转换 JsSimpleType 为 DdbObj */
+    static to_ddbobj (value: JsSimpleType): DdbObj {
         if (value && value instanceof DdbObj)
             return value
+        
+        if (value === undefined)
+            return new DdbVoid()
+        
+        if (value === null)
+            return new DdbVoid(DdbVoidType.null)
         
         const type = typeof value
         
@@ -2531,7 +2540,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     /** 转换 js 数组为 DdbObj[] */
-    static to_ddbobjs (values: (DdbObj | string | boolean)[]) {
+    static to_ddbobjs (values: JsSimpleType[]) {
         return values.map(value => this.to_ddbobj(value))
     }
     
@@ -3347,6 +3356,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
 }
 
 
+/** 构造 void 类型，默认为 `DdbVoidType.undefined` */
 export class DdbVoid extends DdbObj<undefined> {
     constructor (value = DdbVoidType.undefined) {
         super({
@@ -5032,10 +5042,12 @@ export class DDB {
             for (const arg of args)
                 if (arg && arg instanceof DdbObj)
                     has_ddbobj = true
-                else {
+                else if (arg === undefined || arg === null) {
+                    // simple
+                } else {
                     const type = typeof arg
                     if (type === 'string' || type === 'boolean')
-                        { }
+                        { }  // simple
                     else
                         simple = false
                 }

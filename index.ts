@@ -415,7 +415,7 @@ export type IotVectorItemValue = [number | string | bigint | boolean][]
 export type DdbIotAnyVector  = DdbObj<IotVectorItemValue>
 
 
-export type JsSimpleType = DdbObj | string | boolean | null | undefined
+export type Convertable = DdbObj | string | boolean | null | undefined
 
 
 /** 可以表示所有 DolphinDB 数据库中的数据类型  Can represent data types in all DolphinDB databases */
@@ -2513,8 +2513,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     }
     
     
-    /** 自动转换 JsSimpleType 为 DdbObj */
-    static to_ddbobj (value: JsSimpleType): DdbObj {
+    /** 自动转换 Convertable 为 DdbObj */
+    static to_ddbobj (value: Convertable): DdbObj {
         if (value && value instanceof DdbObj)
             return value
         
@@ -2540,7 +2540,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     
     
     /** 转换 js 数组为 DdbObj[] */
-    static to_ddbobjs (values: JsSimpleType[]) {
+    static to_ddbobjs (values: Convertable[]) {
         return values.map(value => this.to_ddbobj(value))
     }
     
@@ -5036,7 +5036,7 @@ export class DDB {
     async invoke <TResult = any> (func: string, args?: any[], options?: DdbInvokeOptions) {
         // 检查 args 是否全部为简单参数，是则直接调用 call，避免 invoke 间接调用
         // 逻辑类似 DdbObj.to_ddbobjs, 需要同步修改
-        let simple = true
+        let convertable = true
         let has_ddbobj = false
         if (args)
             for (const arg of args)
@@ -5049,12 +5049,12 @@ export class DDB {
                     if (type === 'string' || type === 'boolean')
                         { }  // simple
                     else
-                        simple = false
+                        convertable = false
                 }
         
         let result: DdbObj
         
-        if (simple)
+        if (convertable)
             result = await this.call(func, args, options)
         else {
             if (has_ddbobj)

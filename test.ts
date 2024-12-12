@@ -1,6 +1,6 @@
 import { deepEqual, deepStrictEqual } from 'assert/strict'
 
-import { assert, defer, fread, fwrite, inspect, MyProxy, ramdisk, set_inspect_options, WebSocketConnectionError } from 'xshell'
+import { assert, check, defer, inspect, MyProxy, ramdisk, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
 import { keywords } from './language.ts'
 
@@ -596,5 +596,14 @@ async function test_invoke (ddb: DDB) {
         (await ddb.invoke<DdbTableData>('objs', [true]))
             .columns.includes('shared')
     )
+    
+    await ddb.execute(
+        'def foo (a = 1, b = 2) {\n' +
+        '    return (a, b)\n' +
+        '}\n'
+    )
+    
+    const [a, b] = await ddb.invoke<[number, number]>('foo', [undefined, new DdbInt(3)])
+    check(a === 1 && b === 3)
 }
 

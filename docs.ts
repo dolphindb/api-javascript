@@ -66,11 +66,9 @@ export class DocsProvider {
         if (query.length === 1) {
             const c = query[0].toLowerCase()
             functions = this.functions.filter((func, i) =>
-                this.functions_lower[i].startsWith(c)
-            )
+                this.functions_lower[i].startsWith(c))
             _constants = constants.filter((constant, i) =>
-                this.constants_lower[i].startsWith(c)
-            )
+                this.constants_lower[i].startsWith(c))
         } else {
             const query_lower = query.toLowerCase()
             

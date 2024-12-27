@@ -612,12 +612,12 @@ To close streaming data subscription, use the following two methods to disconnec
 - Manually disconnect by calling `sddb.disconnect()`
 
 
-## Development Method
+### Development method
 
 ```shell
 # Install the latest version of nodejs (see above)
 
-# Install pnpm package manager
+# Install the pnpm package manager
 npm install -g pnpm
 
 git clone https://github.com/dolphindb/api-javascript.git
@@ -630,13 +630,13 @@ pnpm install
 # Copy .vscode/settings.template.json to .vscode/settings.json
 cp .vscode/settings.template.json .vscode/settings.json
 
-# Refer to the scripts in package.json
+# Refer to scripts in package.json
 
 # Build
 pnpm run build
 
-# Lint
-pnpm run lint
+# Format code and automatically fix code errors
+pnpm run fix
 
 # Test
 pnpm run test
@@ -644,6 +644,6 @@ pnpm run test
 # Scan entries
 pnpm run scan
 # Manually complete untranslated entries
-# Run the scan again to update the dictionary file dict.json
+# Run scan again to update the dictionary file dict.json
 pnpm run scan
 ```

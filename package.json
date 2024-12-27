@@ -1,13 +1,13 @@
 {
     "name": "dolphindb",
     "description": "DolphinDB JavaScript API",
-    "version": "3.0.211",
+    "version": "3.0.212",
     "type": "module",
     "main": "./index.js",
     "browser": "./browser.js",
     "scripts": {
         "build": "tsc",
-        "test": "node ./test.ts",
+        "test": "node --experimental-transform-types ./test.ts",
         "lint": "eslint \"**/*.{ts,tsx}\"",
         "fix": "eslint --fix \"**/*.{ts,tsx}\"",
         "scan": "i18n-scan --input \"**/*.{ts,tsx}\""

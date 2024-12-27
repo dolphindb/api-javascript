@@ -606,6 +606,9 @@ git clone https://github.com/dolphindb/api-javascript.git
 
 cd api-javascript
 
+# 国内网络推荐配置 registry 
+pnpm config set registry https://registry.npmmirror.com
+
 # 安装项目依赖
 pnpm install
 
@@ -617,8 +620,8 @@ cp .vscode/settings.template.json .vscode/settings.json
 # 构建
 pnpm run build
 
-# lint
-pnpm run lint
+# 格式化代码并自动修复代码错误
+pnpm run fix
 
 # 测试
 pnpm run test

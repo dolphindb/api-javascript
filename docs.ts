@@ -60,47 +60,10 @@ export class DocsProvider {
     
     /** 根据用户输入提供补全列表，返回匹配的关键字、常量和函数 */
     complete (query: string) {
-        let functions: string[]
-        let _constants: string[]
-        
-        if (query.length === 1) {
-            const c = query[0].toLowerCase()
-            functions = this.functions.filter((func, i) =>
-                this.functions_lower[i].startsWith(c))
-            _constants = constants.filter((constant, i) =>
-                this.constants_lower[i].startsWith(c))
-        } else {
-            const query_lower = query.toLowerCase()
-            
-            functions = this.functions.filter((func, i) => {
-                const func_lower = this.functions_lower[i]
-                let j = 0
-                for (const c of query_lower) {
-                    j = func_lower.indexOf(c, j) + 1
-                    if (!j)  // 找不到则 j === 0
-                        return false
-                }
-                
-                return true
-            })
-            
-            _constants = constants.filter((constant, i) => {
-                const constant_lower = this.constants_lower[i]
-                let j = 0
-                for (const c of query_lower) {
-                    j = constant_lower.indexOf(c, j) + 1
-                    if (!j)  // 找不到则 j === 0
-                        return false
-                }
-                
-                return true
-            })
-        }
-        
         return {
             keywords: keywords.filter(kw => kw.startsWith(query)),
-            constants: _constants,
-            functions,
+            constants: fuzzyfilter(query, constants as any as string[], this.constants_lower),
+            functions: fuzzyfilter(query, this.functions, this.functions_lower),
         }
     }
     
@@ -291,3 +254,37 @@ function find_active_param_index (text: string, param_start_at: number) {
     // 是否为对象方法调用，若是，参数索引+1（对象会变成第一个参数）
     return is_member_call ? index + 1 : index
 }
+
+
+/** 模糊过滤字符串列表或对象列表，常用于根据用户输入补全或搜索过滤  
+    - query: 查询字符串，要求为全小写
+    - list: 要过滤的列表
+    - list_lower?: 要过滤的列表对应的全小写字符串列表形式，传入时可复用缓存，加快搜索速度 */
+function fuzzyfilter (
+    query: string, 
+    list: string[],
+    list_lower: string[],
+) {
+    if (!query)
+        return list
+    
+    if (query.length === 1) {
+        const c = query[0]
+        return list.filter((_, i) =>
+            list_lower[i].startsWith(c))
+    }
+    
+    const query_lower = query.toLowerCase()
+    
+    return list.filter((_, i) => {
+        const str_lower = list_lower[i]
+        let j = 0
+        for (const c of query_lower) {
+            j = str_lower.indexOf(c, j) + 1
+            if (!j)  // 找不到则 j === 0
+                return false
+        }
+        return true
+    })
+}
+

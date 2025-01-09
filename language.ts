@@ -239,6 +239,7 @@ export const constants = [
     'TABLE_INSERT',
     'TABLE_UPDATE',
     'TABLE_DELETE',
+    'TABLE_SENSITIVE_VIEW',
     
     'DBOBJ_CREATE',
     'DBOBJ_DELETE',
@@ -250,6 +251,7 @@ export const constants = [
     'DB_READ',
     'DB_UPDATE',
     'DB_WRITE',
+    'DB_SENSITIVE_VIEW',
     
     'CATALOG_MANAGE',
     'CATALOG_READ',

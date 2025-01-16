@@ -2311,7 +2311,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         }
                                         
                                         default:
-                                            items[i] = format(type_, data[acc_len + i], this.le, options)
+                                            items[i] = format(type_, data[acc_len + i], this.le, { grouping: false, ...options })
                                             break
                                     }
                                 

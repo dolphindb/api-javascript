@@ -4251,7 +4251,7 @@ type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 export interface DdbRpcOptions extends DdbEvalOptions {
     script?: string
     func?: string
-    args?: (DdbObj | string | boolean)[]
+    args?: Convertable[]
     vars?: string[]
     skip_connection_check?: boolean
     on_more_messages?: (buffer: Uint8Array) => void

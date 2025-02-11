@@ -2246,6 +2246,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         // av
                         const type_ = this.type - 64
                         
+                        const options_without_grouping = { ...options, grouping: false }
+                        
                         const limit = 10
                         
                         const nullstr = inspect(null, options)
@@ -2311,7 +2313,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         }
                                         
                                         default:
-                                            items[i] = format(type_, data[acc_len + i], this.le, { grouping: false, ...options })
+                                            items[i] = format(type_, data[acc_len + i], this.le, options_without_grouping)
                                             break
                                     }
                                 

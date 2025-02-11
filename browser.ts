@@ -2240,7 +2240,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         // av
                         const type_ = this.type - 64
                         
-                        const options_without_grouping = { ...options, grouping: false }
+                        options = { ...options, grouping: false }
                         
                         const limit = 10
                         
@@ -2305,7 +2305,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         }
                                         
                                         default:
-                                            items[i] = format(type_, data[acc_len + i], this.le, options_without_grouping)
+                                            items[i] = format(type_, data[acc_len + i], this.le, options)
                                             break
                                     }
                                 

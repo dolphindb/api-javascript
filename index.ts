@@ -3676,6 +3676,31 @@ export class DdbVectorSymbol extends DdbObj <DdbSymbolExtendedValue> {
     }
 }
 
+export class DdbVectorChar extends DdbObj <Int8Array> {
+    constructor (chars?: Uint8Array | Int8Array | ArrayBuffer, name?: string) {
+        let ints: Int8Array
+        if (!chars)
+            ints = new Int8Array()
+        else if (chars instanceof ArrayBuffer)
+            ints = new Int8Array(chars)
+        else if (chars instanceof Uint8Array)
+            ints = new Int8Array(chars.buffer, chars.byteOffset, chars.byteLength)
+        else {
+            check(chars instanceof Int8Array)
+            ints = chars
+        }
+        
+        super({
+            form: DdbForm.vector,
+            type: DdbType.char,
+            rows: ints.length,
+            cols: 1,
+            value: ints,
+            name
+        })
+    }
+}
+
 export class DdbSetInt extends DdbObj<Int32Array> {
     constructor (ints: (number | null)[] | Set<number> | Int32Array) {
         super({
@@ -4207,7 +4232,7 @@ type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 export interface DdbRpcOptions extends DdbEvalOptions {
     script?: string
     func?: string
-    args?: (DdbObj | string | boolean)[]
+    args?: Convertable[]
     vars?: string[]
     skip_connection_check?: boolean
     on_more_messages?: (buffer: Uint8Array) => void

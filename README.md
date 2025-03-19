@@ -508,6 +508,37 @@ async upload (
 ): Promise<void>
 ```
 
+
+### Upload and insert data into the table
+```ts
+// Load or create a table in the session corresponding to the connection
+await ddb.execute('t = table(1..10 as id, take(["A001", "B001"], 10) as sym, rand(10.0, 10) as val)')
+// await ddb.execute('t = loadTable(database("dfs://path-to-db"), "table_name")')
+
+console.log(
+    'Number of rows inserted:',
+    // Use tableInsert to insert data
+    await ddb.invoke<number>(
+        'tableInsert',
+        [
+            't',
+            
+            // Data
+            new DdbTable([
+                // First column
+                new DdbVectorInt([1, 2, 3]),
+                
+                // Second column
+                new DdbVectorSymbol(['a', 'b', 'c']),
+                
+                // The third column
+                new DdbVectorDouble([1.1, 1.2, 1.3]),
+            ])
+        ]
+    )
+)
+```
+
 ### Other Examples
 
 ```ts

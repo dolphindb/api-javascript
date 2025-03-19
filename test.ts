@@ -8,13 +8,14 @@ import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
     type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
+    DdbVectorInt, DdbTable,
 } from './index.ts'
 
 
 set_inspect_options()
 
 
-const fpd_root = import.meta.dirname.fpd
+// const fpd_root = import.meta.dirname.fpd
 
 const url = 'ws://192.168.0.37:20023' as const
 // const url = 'ws://192.168.0.69:8902' as const
@@ -41,7 +42,8 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
         test_time,
         test_streaming,
         test_error,
-        test_invoke
+        test_invoke,
+        test_append_table,
     ]
     
     for (const fn_test of tests)
@@ -605,5 +607,34 @@ async function test_invoke (ddb: DDB) {
     
     const [a, b] = await ddb.invoke<[number, number]>('foo', [undefined, new DdbInt(3)])
     check(a === 1 && b === 3)
+}
+
+
+async function test_append_table (ddb: DDB) {
+    // 在连接对应的会话中加载或创建表
+    await ddb.execute('t = table(1..10 as id, take(["A001", "B001"], 10) as sym, rand(10.0, 10) as val)')
+    // await ddb.execute('t = loadTable(database("dfs://path-to-db"), "table_name")')
+    
+    assert(
+        // 使用 tableInsert 插入数据
+        await ddb.invoke<number>(
+            'tableInsert',
+            [
+                't',
+                
+                // 数据
+                new DdbTable([
+                    // 第一列
+                    new DdbVectorInt([1, 2, 3]),
+                    
+                    // 第二列
+                    new DdbVectorSymbol(['a', 'b', 'c']),
+                    
+                    // 第三列
+                    new DdbVectorDouble([1.1, 1.2, 1.3]),
+                ])
+            ]
+        ) === 3
+    )
 }
 

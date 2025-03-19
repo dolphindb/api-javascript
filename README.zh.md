@@ -489,6 +489,36 @@ async upload (
 ```
 
 
+### 向表中上传并插入数据
+```ts
+// 在连接对应的会话中加载或创建表
+await ddb.execute('t = table(1..10 as id, take(["A001", "B001"], 10) as sym, rand(10.0, 10) as val)')
+// await ddb.execute('t = loadTable(database("dfs://path-to-db"), "table_name")')
+
+console.log(
+    '插入的行数:',
+    // 使用 tableInsert 插入数据
+    await ddb.invoke<number>(
+        'tableInsert',
+        [
+            't',
+            
+            // 数据
+            new DdbTable([
+                // 第一列
+                new DdbVectorInt([1, 2, 3]),
+                
+                // 第二列
+                new DdbVectorSymbol(['a', 'b', 'c']),
+                
+                // 第三列
+                new DdbVectorDouble([1.1, 1.2, 1.3]),
+            ])
+        ]
+    )
+)
+```
+
 ### 其他例子
 
 ```ts

@@ -4297,6 +4297,7 @@ export interface DdbOptions {
     username?: string
     password?: string
     python?: boolean
+    kdb?: boolean
     sql?: SqlStandard
     streaming?: StreamingParams
     verbose?: boolean
@@ -4354,6 +4355,9 @@ export class DDB {
     
     /** python session flag (2048) */
     python = false
+    
+    /** kdb session flag (4096) */
+    kdb = false
     
     /** 表示本次会话执行的 SQL 标准 */
     sql = SqlStandard.DolphinDB
@@ -4415,6 +4419,7 @@ export class DDB {
             - username?: DolphinDB 登录用户名，默认 `'admin'`  DolphinDB username, default `'admin'`
             - password?: DolphinDB 登录密码，默认 `'123456'`  DolphinDB password, default `'123456'`
             - python?: 设置 python session flag，默认 `false`  set python session flag, default `false`
+            - kdb?: 设置 kdb session flag，默认 `false`  set kdb session flag, default `false`
             - streaming?: 设置该选项后，该 WebSocket 连接只用于流数据  When this option is set, the WebSocket connection is only used for streaming data
             - verbose?: 是否打印每个 rpc 的信息用于调试
             - sql?: 设置当前会话执行的 sql 标准, 请使用 SqlStandard 枚举进行传参，默认 `DolphinDB`
@@ -4446,6 +4451,9 @@ export class DDB {
         
         if (options.python !== undefined)
             this.python = options.python
+        
+        if (options.kdb !== undefined)
+            this.kdb = options.kdb
         
         if (options.sql !== undefined)
             this.sql = options.sql
@@ -4506,7 +4514,7 @@ export class DDB {
                 
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
                 this.lwebsocket.resource = await connect_websocket(url, {
-                    protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : undefined,
+                    protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : this.kdb ? ['kdb'] : undefined,
                     
                     proxy: this.proxy,
                     
@@ -4648,6 +4656,10 @@ export class DDB {
         // python session
         if (this.python)
             flag += 2048
+        
+        // kdb session
+        if (this.kdb)
+            flag += 4096
         
         // sql standrd
         flag += 2**19 * this.sql

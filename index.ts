@@ -2933,7 +2933,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         
         case DdbType.complex: {
             const [x, y] = value as [number, number]
-            return `${format(DdbType.double, x, le, options)}+${format(DdbType.double, y, le, options)}i`
+            return `${format(DdbType.double, x, le, options)}${y >= 0 ? '+' : ''}${format(DdbType.double, y, le, options)}i`
         }
         
         case DdbType.duration: {

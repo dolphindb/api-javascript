@@ -244,6 +244,8 @@ export const constants = [
     'DBOBJ_CREATE',
     'DBOBJ_DELETE',
     
+    'COMPUTE_GROUP_EXEC',
+    
     'DB_DELETE',
     'DB_INSERT',
     'DB_MANAGE',

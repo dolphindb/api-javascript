@@ -5010,7 +5010,14 @@ export class DDB {
                         '    if func_name == "invoke":\n' +
                         '        args_[0] = funcByName(args[0])\n' +
                         '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n'
-                        :
+                    : this.kdb ? 
+                        '\n' +
+                        'jsrpc: {[node; func_name; args]\n' +
+                        '    args_: args;\n' +
+                        '    if[func_name="invoke"; args_[0]:funcByName[args[0]]];\n' +
+                        '    rpc[node; unifiedCall; funcByName[func_name]; args_]\n' +
+                        '}\n'
+                    :
                         '\n' +
                         'def jsrpc (node, func_name, args) {\n' +
                         '    args_ = args\n' +

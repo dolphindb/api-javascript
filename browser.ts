@@ -4790,7 +4790,7 @@ export class DDB {
         
         
         // this 上的当前配置需要在 message 到达后使用，先保存起来
-        const _listeners = [...this.listeners].reverse()
+        const _listeners = [...this.listeners]
         
         
         // rpc 请求期间需要独占 websocket，所以设计了一个锁，申请之后才能使用
@@ -4888,8 +4888,8 @@ export class DDB {
                             const message = this.parse_message(buffer, error)
                             
                             listener?.(message, this)
-                            for (const listener of _listeners)
-                                listener(message, this)
+                            for (let i = _listeners.length - 1;  i >= 0;  --i)
+                                _listeners[i](message, this)
                             
                             const { type, data } = message
                             

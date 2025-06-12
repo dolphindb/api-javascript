@@ -4602,7 +4602,7 @@ export class DDB {
         
         cancellable = true,
         priority = urgent ? 8 : 4,
-        parallelism = 8,
+        parallelism = 64,
         root_id = '',
         limit,
     }: {

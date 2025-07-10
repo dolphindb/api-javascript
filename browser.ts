@@ -3697,6 +3697,12 @@ export class DDB {
     /** 首次定义 jsrpc 的 promise，保证并发调用 rpc 时只定义一次 jsrpc */
     pjsrpc: Promise<DdbVoid>
     
+    /** 函数定义缓存 */
+    definitions = new Map<string, string>()
+    
+    /** 函数定义锁，保证并发调用时不重复定义，直接返回第一次定义的结果 */
+    pdefinitions = new Map<string, Promise<string>>()
+    
     
     get connected () {
         return !this.error && this.lwebsocket.resource?.readyState === WebSocket.OPEN
@@ -4674,6 +4680,48 @@ export class DDB {
                 }
             )).data()
         )
+    }
+    
+    
+    /** 定义函数并保存，避免下次重复执行定义，会自动提取脚本中的函数名，作为缓存 key，
+        也同时作为返回值
+        - definition: 函数完整定义 
+        @example
+        await ddb.invoke(
+            await ddb.define(
+                'def foo (bar) {\n' +
+                '    print(bar)\n' +
+                '}\n'),
+            ['hello']) */
+    async define (definition: string) {
+        const matches = /\bdef (\w+)\s?\(/.exec(definition)
+        
+        if (!matches)
+            throw new Error(t('DDB.define 方法传入的 definition 不符合函数定义格式'))
+        
+        const func_name = matches[1]
+        
+        // 已定义成功
+        if (this.definitions.has(func_name))
+            return func_name
+        
+        // 防止并发调用 define 时多次重复定义
+        let promise = this.pdefinitions.get(func_name)
+        
+        if (!promise)
+            this.pdefinitions.set(
+                func_name,
+                promise = this.execute(definition))
+        
+        await promise
+        
+        this.definitions.set(func_name, definition)
+        
+        // 成功定义之后，definitions 中有了，就不需要通过 promise 来防止并发了，清理掉
+        // 定义失败时 rejected promise 直接作为后续调用的结果返回
+        this.pdefinitions.delete(func_name)
+        
+        return func_name
     }
 }
 

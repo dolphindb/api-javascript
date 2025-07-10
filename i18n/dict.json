@@ -109,5 +109,8 @@
     },
     "value 不能转换为 {{classname}}": {
         "en": "value cannot be converted to {{classname}}"
+    },
+    "DDB.define 方法传入的 definition 不符合函数定义格式": {
+        "en": "The definition passed in by the DDB.define method does not conform to the function definition format"
     }
 }

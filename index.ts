@@ -4682,10 +4682,10 @@ export class DDB {
                 '}\n'),
             ['hello']) */
     async define (definition: string) {
-        const matches = /\bdef (\w+)\s?\(/.exec(definition)
+        const matches = /\bdef (\w+) \(/.exec(definition)
         
         if (!matches)
-            throw new Error(t('DDB.define 方法传入的 definition 不符合函数定义格式'))
+            throw new Error(t('DDB.define 方法传入的 definition 不符合函数定义格式 def xxx ()'))
         
         const func_name = matches[1]
         

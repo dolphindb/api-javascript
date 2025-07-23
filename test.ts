@@ -17,7 +17,7 @@ set_inspect_options()
 
 // const fpd_root = import.meta.dirname.fpd
 
-const url = 'ws://192.168.0.37:20023' as const
+const url = 'ws://192.168.0.54:20002' as const
 // const url = 'ws://192.168.0.69:8902' as const
 // const url = 'ws://127.0.0.1:8848' as const
 

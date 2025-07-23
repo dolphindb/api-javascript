@@ -11,13 +11,16 @@ import {
 import { t } from './i18n/index.ts'
 
 import {
-    date2str, datehour2str, datetime2str, ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm, DdbFunctionType, DdbType, 
-    DdbVoidType, dictables, generate_array_type, get_big_int_128, get_ddb_time_value, get_duration_unit, get_type_name, 
-    int1282str, ipaddr2str, is_decimal_null_value, is_decimal_type, minute2str, month2str, nanotime2str, nanotimestamp2str, 
-    nulls, second2str, set_big_int_128, time2str, timestamp2str, uuid2str, type ConvertOptions, type DdbDecimal128Value, 
-    type DdbDecimal32Value, type DdbDecimal32VectorValue, type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
-    type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, type DdbScalarValue, 
-    type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, type DdbTensorValue, type IotVectorItemValue, type TensorData
+    date2str, datehour2str, datetime2str, ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm,
+    DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_pattern, generate_array_type,
+    get_big_int_128, get_ddb_time_value, get_duration_unit, get_type_name, int1282str, ipaddr2str, 
+    is_decimal_null_value, is_decimal_type, minute2str, month2str, nanotime2str, nanotimestamp2str, 
+    nulls, second2str, set_big_int_128, time2str, timestamp2str, uuid2str, type ConvertOptions, 
+    type DdbDecimal128Value, type DdbDecimal32Value, type DdbDecimal32VectorValue, 
+    type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
+    type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
+    type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
+    type DdbTensorValue, type IotVectorItemValue, type TensorData
 } from './common.ts'
 
 export * from './common.ts'
@@ -4354,7 +4357,7 @@ export class DDB {
     
     
     /** 调用 dolphindb 函数，传入 js 原生数组作为参数，返回 js 原生对象或值（调用 DdbObj.data() 后的结果）  
-        - func: 函数名  
+        - func: 函数名，或者函数完整实现，会间接调用 define 进行预定义  
         - args?: `[ ]` 调用参数，可以是 js 原生数组，参数在中间且想用 server 函数的默认参数值时可以传 null 占位  
         - options?: 调用选项  
             - urgent?: 紧急 flag。使用 urgent worker 执行，防止被其它作业阻塞  
@@ -4382,6 +4385,9 @@ export class DDB {
                 }
         
         let result: DdbObj
+        
+        if (function_definition_pattern.test(func))
+            func = await this.define(func)
         
         if (convertable)
             result = await this.call(func, args, options)
@@ -4682,7 +4688,7 @@ export class DDB {
                 '}\n'),
             ['hello']) */
     async define (definition: string) {
-        const matches = /\bdef (\w+) \(/.exec(definition)
+        const matches = function_definition_pattern.exec(definition)
         
         if (!matches)
             throw new Error(t('DDB.define 方法传入的 definition 不符合函数定义格式 def xxx ()'))

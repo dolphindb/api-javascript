@@ -818,3 +818,5 @@ export interface ConvertOptions {
 export const winsize = 10000 as const
 
 export type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
+
+export const function_definition_pattern = /\bdef (\w+) \(/

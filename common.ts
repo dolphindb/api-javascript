@@ -812,6 +812,9 @@ export interface ConvertOptions {
     
     /** `'ms'` timestamp 类型转换为字符串表示时显示到秒还是毫秒 */
     timestamp?: 's' | 'ms'
+    
+    /** `'data'` 表格类型返回格式: data 转为 TResult, full 转为 DdbTableData */
+    table?: 'data' | 'full'
 }
 
 

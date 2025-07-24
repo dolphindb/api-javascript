@@ -534,12 +534,8 @@ async function test_iot_vector (ddb: DDB) {
     await ddb.upload(['a'], [obj])
     await ddb.execute('print(a)')
     deepStrictEqual(
-        Object.assign(
-            await ddb.execute('a'), 
-            { name: 'pt' }
-        ),
-        obj.data()
-    )
+        await ddb.execute('a'),
+        obj.data())
 }
 
 
@@ -595,17 +591,16 @@ async function test_invoke (ddb: DDB) {
     
     assert(
         // await ddb.invoke<DdbTableData>('defs')
-        (await ddb.invoke<DdbTableData>('objs', [true]))
+        (await ddb.invoke<DdbTableData>('objs', [true], { table: 'full' }))
             .columns.includes('shared')
     )
     
-    await ddb.execute(
+    const [a, b] = await ddb.invoke<[number, number]>(
         'def foo (a = 1, b = 2) {\n' +
         '    return (a, b)\n' +
-        '}\n'
-    )
+        '}\n', 
+        [undefined, new DdbInt(3)])
     
-    const [a, b] = await ddb.invoke<[number, number]>('foo', [undefined, new DdbInt(3)])
     check(a === 1 && b === 3)
 }
 

@@ -1722,9 +1722,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
     /** 将 DdbObj 转换为 js 原生数据类型  
         - 标量对应 number, bigint 或者字符串 (其中时间类型转换为常用的字符串表示)
         - 数组对应 js 原生数组
-        - 表格对应 DdbTableData
+        - 表格对应 TResult, 可以传入 table: 'full' 配置返回包含列名，列类型的 DdbTableData 结构
         - 矩阵对应 DdbMatrixData
-        - 字典对应普通的 js 对象 Record<string, any> 
+        - 字典对应普通的 js 对象 Record<string, any>
         - 图对应 DdbChartValue */
     data <TResult extends any[]> (this: DdbVectorObj, options?: ConvertOptions): TResult
     data <TResult = any> (this: DdbObj, options?: ConvertOptions): TResult
@@ -1745,18 +1745,23 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             case DdbForm.table: {
                 const cols = value as DdbVectorObj[]
                 const jscols = cols.map(col => col.data(options))
-                const keys = cols.map(({ name }) => name)
+                const columns = cols.select('name')
                 
-                return {
-                    name: name || '',
-                    columns: cols.map(({ name }) => name),
-                    types: cols.map(({ type }) => type),
-                    data: seq(rows, i =>
-                        zip_object(
-                            keys,
-                            seq(cols.length, j => jscols[j][i])
-                        ))
-                } satisfies DdbTableData as TResult
+                const data = seq(rows, i =>
+                    zip_object(
+                        columns,
+                        seq(cols.length, j => jscols[j][i])
+                    ))
+                
+                return options?.table === 'full' ?
+                    {
+                        name: name || '',
+                        columns,
+                        types: cols.select('type'),
+                        data
+                    } satisfies DdbTableData as TResult
+                :
+                    data as TResult
             }
             
             case DdbForm.dict: {
@@ -4622,7 +4627,7 @@ export class DDB {
                             }
                             
                             if (first) {
-                                schema = data = obj.data<DdbTableData>()
+                                schema = data = obj.data<DdbTableData>({ table: 'full' })
                                 data.name ||= this.streaming.table
                                 first = false
                             } else {
@@ -4630,7 +4635,7 @@ export class DDB {
                                 
                                 // 用了流数据过滤功能后，必然发 table
                                 if (obj.form === DdbForm.table) {
-                                    data = obj.data<DdbTableData>()
+                                    data = obj.data<DdbTableData>({ table: 'full' })
                                     data.name ||= schema.name
                                     
                                     rows = data.data.length

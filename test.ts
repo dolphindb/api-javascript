@@ -166,7 +166,7 @@ async function test_error (ddb: DDB) {
     
     
     // --- 首次连接失败也会抛出 DdbConnectionError
-    let ddbtest2 = new DDB('ws://dolphindb.com/')
+    let ddbtest2 = new DDB('ws://dolphindb123.com/')
     let connection_error2: DdbConnectionError
     try {
         await ddbtest2.connect()

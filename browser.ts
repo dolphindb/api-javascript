@@ -4696,7 +4696,9 @@ export class DDB {
     
     /** 定义函数并保存，避免下次重复执行定义，会自动提取脚本中的函数名，作为缓存 key，
         也同时作为返回值
-        - definition: 函数完整定义 
+        - definition: 函数完整定义
+        - options?:
+            - urgent?: 紧急 flag，确保提交的脚本使用 urgent worker 处理，防止被其它作业阻塞  
         @example
         await ddb.invoke(
             await ddb.define(
@@ -4704,7 +4706,7 @@ export class DDB {
                 '    print(bar)\n' +
                 '}\n'),
             ['hello']) */
-    async define (definition: string) {
+    async define (definition: string, { urgent }: { urgent?: boolean } = { }) {
         const matches = function_definition_pattern.exec(definition)
         
         if (!matches)
@@ -4722,7 +4724,7 @@ export class DDB {
         if (!promise)
             this.pdefinitions.set(
                 func_name,
-                promise = this.execute(definition))
+                promise = this.execute(definition, { urgent }))
         
         await promise
         

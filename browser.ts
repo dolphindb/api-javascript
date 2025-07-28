@@ -4404,7 +4404,7 @@ export class DDB {
         let result: DdbObj
         
         if (function_definition_pattern.test(func))
-            func = await this.define(func)
+            func = await this.define(func, { urgent: options?.urgent })
         
         if (convertable)
             result = await this.call(func, args, options)

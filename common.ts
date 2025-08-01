@@ -44,6 +44,8 @@ export enum DdbForm {
     /** sysobj */
     object = 9,
     tensor = 10,
+    
+    extobj = 11
 }
 
 
@@ -93,6 +95,9 @@ export enum DdbType {
     
     object = 40,
     iotany = 41,
+    
+    instrument = 42,
+    market_data = 43,
     
     symbol_extended = 145,  // 128 + DdbType.symbol
 }
@@ -206,6 +211,13 @@ export interface DdbSymbolExtendedValue {
     base_id: number
     base: string[]
     data: Uint32Array
+}
+
+
+export interface DdbExtObjValue {
+    type: Uint8Array
+    version: number
+    data: Uint8Array
 }
 
 

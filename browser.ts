@@ -17,7 +17,7 @@ import {
     type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
-    type DdbTensorValue, type IotVectorItemValue, type TensorData
+    type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue
 } from './common.ts'
 
 export * from './common.ts'
@@ -97,7 +97,7 @@ export interface DdbChartValue {
 }
 
 
-export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue | DdbTensorValue
+export type DdbValue = DdbScalarValue | DdbVectorValue | DdbMatrixValue | DdbDictValue | DdbChartValue | DdbTensorValue | DdbExtObjValue
 
 
 export type DdbStringObj = DdbObj<string>
@@ -283,8 +283,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     let col = this.parse_vector(
                         buf_data.subarray(i_start + 2),
                         le,
-                        type
-                    )
+                        type)
                     
                     col.length += 2
                     
@@ -527,6 +526,29 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         preserve_value: preserveValue,
                         elem_count: Number(elemCount), 
                         data: dataBuffer
+                    }
+                })
+            }
+            
+            case DdbForm.extobj: {
+                const dv = new DataView(buf_data.buffer, buf_data.byteOffset, buf_data.byteLength)
+                
+                const version_and_size = dv.getUint32(4, le)
+                
+                const length = version_and_size & 0x00ffffff
+                
+                return new this({
+                    le,
+                    form,
+                    type,
+                    
+                    // 低 24 位为 size
+                    length: i_data + 8 + length,
+                    
+                    value: {
+                        type: buf_data.subarray(0, 4),
+                        version: (version_and_size >>> 24) & 0xff,
+                        data: buf_data.subarray(8, 8 + length)
                     }
                 })
             }
@@ -1469,16 +1491,14 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         Uint8Array.of(0),
                         ...DdbObj.pack_vector_body(
                             (this.value as DdbObj[]).map((col, i) => 
-                                col.name || `col${i}`
-                            ),
+                                col.name || `col${i}`),
                             DdbType.string,
                             this.cols
                         ),
                         
                         // column vectors
                         ...(this.value as DdbObj[]).map(col => 
-                            col.pack()
-                        )
+                            col.pack())
                     ]
                 
                 
@@ -1568,8 +1588,17 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     return [uint8Array]
                 }
                 
+                case DdbForm.extobj: {
+                    const { data, type: exttype, version } = value as DdbExtObjValue
+                    
+                    let version_and_size = new Uint8Array(4)
+                    version_and_size.dataview.setUint32(0, (version << 24) | data.length, this.le)
+                    
+                    return [exttype, version_and_size, data]
+                }
+                
                 default:
-                    throw new Error(t('vector {{type}} 暂不支持序列化', { type: get_type_name(type) }))
+                    throw new Error(t('{{form}} 暂不支持序列化', { form: DdbForm[form] || `form ${form}` }))
             }
         })()
         
@@ -1810,8 +1839,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     data, 
                 } = this.value as DdbTensorValue
                 
-                const dataByte: number = ddb_tensor_bytes[data_type]                
-                const returnData: DdbTensorData = { 
+                const dataByte: number = ddb_tensor_bytes[data_type]
+                
+                return { 
                     data_type, 
                     tensor_type, 
                     device_type,
@@ -1822,13 +1852,15 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     preserve_value,
                     elem_count,
                     data: DdbObj.parse_tensor({ currentDim: 0, dimensions, rawData: data, le: this.le, dataByte, dataType: data_type, shape, strides })
-                }
-                
-                return returnData satisfies DdbTensorData as TResult
+                } satisfies DdbTensorData as TResult
             }
             
+            case DdbForm.extobj:
+                // return (this.value as DdbExtObjValue).data as TResult
+                return `ExtObj<${get_type_name(type)}>` as TResult
+            
             default:
-                throw new Error(t('{{form}} {{type}} 暂不支持 data()', { form, type: get_type_name(type) }))
+                throw new Error(t('{{form}} {{type}} 暂不支持 data()', { form: DdbForm[form] || form, type: get_type_name(type) }))
         }
     }
     

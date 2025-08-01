@@ -115,5 +115,8 @@
     },
     "DDB.define 方法传入的 definition 不符合函数定义格式 def xxx ()": {
         "en": "The definition passed in by the DDB.define method does not conform to the function definition format def xxx ()"
+    },
+    "{{form}} 暂不支持序列化": {
+        "en": "{{form}} does not support serialization yet"
     }
 }

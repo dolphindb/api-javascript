@@ -8,7 +8,7 @@ import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
     type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
-    DdbVectorInt, DdbTable,
+    DdbVectorInt, DdbTable, type DdbExtObjValue,
 } from './index.ts'
 
 
@@ -17,7 +17,8 @@ set_inspect_options()
 
 // const fpd_root = import.meta.dirname.fpd
 
-const url = 'ws://192.168.0.54:20002' as const
+const url = 'ws://192.168.0.54:8848' as const
+// const url = 'ws://192.168.0.125:8848' as const
 // const url = 'ws://192.168.0.69:8902' as const
 // const url = 'ws://127.0.0.1:8848' as const
 
@@ -33,6 +34,7 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
         // test_repl,
         
         // test_iot_vector,
+        // test_extobj,
         
         test_keywords,
         test_types,
@@ -74,8 +76,8 @@ async function get_printed (ddb: DDB, code: string) {
                             resolve(data)
                         }
                     }
-                }
-            )
+                })
+            
             if (!resolved)
                 reject(new Error('未输出 print 消息'))
         } catch (error) {
@@ -631,5 +633,68 @@ async function test_append_table (ddb: DDB) {
             ]
         ) === 3
     )
+}
+
+
+async function test_extobj (ddb: DDB) {
+    const instrument = await ddb.eval(
+        'parseInstrument({ \n' +
+        '    "productType": "Option",\n' +
+        '    "optionType": "EuropeanOption",\n' +
+        '    "version": 0,\n' +
+        '    "instrumentId": "0001",\n' +
+        '    "nominal": 100.0,\n' +
+        '    "strike": 100.0,\n' +
+        '    "maturity": 2022.08.09,\n' +
+        '    "dayCountConvention": "ActualActual",\n' +
+        '    "payoffType": "Call",\n' +
+        '    "priceCurrency": "CNY",\n' +
+        '    "underlying": "EU_0001"\n' +
+        '})\n')
+    
+    // console.log(instrument)
+    
+    check(instrument.data() === 'ExtObj<instrument>')
+    check((instrument.value as DdbExtObjValue).version === 0)
+    check((instrument.value as DdbExtObjValue).data.length)
+    
+    check(
+        await ddb.invoke<string>('typestr', [instrument]) === 
+        'INSTRUMENT')
+    
+    const ext_table = await ddb.eval<DdbTableObj>('select * from loadTable("dfs://db", "pt")')
+    
+    check(ext_table.data()[0].value === 'ExtObj<instrument>')
+    
+    const market_data = await ddb.eval(
+        'aod = 2025.07.01\n' +
+        'parseMktData({\n' +
+        '    "mktDataType": "Curve",\n' +
+        '    "curveType": "IrYieldCurve",\n' +
+        '    "version": 0, \n' +
+        '    "referenceDate": aod,\n' +
+        '    "currency": "CNY",\n' +
+        '    "dayCountConvention": "Actual365",\n' +
+        '    "compounding": "Continuous",\n' +
+        '    "interpMethod": "LinearInterp",\n' +
+        '    "extrapMethod": "FlatExtrap",\n' +
+        '    "dates":[2025.07.07,2025.07.10,2025.07.17,2025.07.24,2025.08.04,2025.09.03,2025.10.09,2026.01.05,\n' +
+        '        2026.04.03,2026.07.03,2027.01.04,2027.07.05,2028.07.03],\n' +
+        '    "values":[0.015785,0.015931,0.016183,0.016381,0.016493,0.016503,0.016478,0.016234,0.016321,\n' +
+        '        0.016378,0.015508,0.015185,0.014901],\n' +
+        '    "settlement": aod+2\n' +
+        '})\n')
+    
+    check(market_data.data() === 'ExtObj<market_data>')
+    check((market_data.value as DdbExtObjValue).version === 0)
+    
+    // console.log(market_data)
+    
+    // --- 暂不支持上传 extobj 的 any vector
+    // console.log(
+    //     await ddb.invoke<any>('print', [ext_table.value[3]]))
+    
+    // console.log(
+    //     ext_table.value[3].data())
 }
 

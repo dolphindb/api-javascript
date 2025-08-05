@@ -3352,11 +3352,10 @@ export class DdbVectorBool extends DdbObj <Int8Array> {
         
         let value = new Int8Array(length)
         
-        if (length)
-            for (let i = 0;  i < length;  ++i) {
-                const x = bools[i]
-                value[i] = empty(x) ? nulls.int8 : x ? 1 : 0
-            }
+        for (let i = 0;  i < length;  ++i) {
+            const x = bools[i]
+            value[i] = empty(x) ? nulls.int8 : x ? 1 : 0
+        }
         
         super({
             form: DdbForm.vector,

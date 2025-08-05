@@ -3387,25 +3387,25 @@ export class DdbVectorBool extends DdbObj <Int8Array> {
 }
 
 export class DdbVectorDatetime extends DdbObj <Int32Array> {
-    constructor (datetimes: ConvertableDdbTimeValue[], name?: string) {
+    constructor (datetimes?: ConvertableDdbTimeValue[], name?: string) {
         super(get_times_ddbobj(DdbType.datetime, datetimes, name))
     }
 }
 
 export class DdbVectorTimeStamp extends DdbObj <BigInt64Array> {
-    constructor (timestamps: ConvertableDdbTimeValue[], name?: string) {
+    constructor (timestamps?: ConvertableDdbTimeValue[], name?: string) {
         super(get_times_ddbobj(DdbType.timestamp, timestamps, name))
     }
 }
 
 export class DdbVectorNanoTimeStamp extends DdbObj <BigInt64Array> {
-    constructor (nanotimestamps: ConvertableDdbTimeValue[], name?: string) {
+    constructor (nanotimestamps?: ConvertableDdbTimeValue[], name?: string) {
         super(get_times_ddbobj(DdbType.nanotimestamp, nanotimestamps, name))
     }
 }
 
 export class DdbVectorDate extends DdbObj <BigInt64Array> {
-    constructor (dates: ConvertableDdbTimeValue[], name?: string) {
+    constructor (dates?: ConvertableDdbTimeValue[], name?: string) {
         super(get_times_ddbobj(DdbType.date, dates, name))
     }
 }

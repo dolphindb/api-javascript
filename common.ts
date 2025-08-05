@@ -408,29 +408,27 @@ export function get_time_ddbobj (type: DdbType, js_value: ConvertableDdbTimeValu
 
 export function get_times_ddbobj (
     type: DdbType,
-    js_values: ConvertableDdbTimeValue[],
+    js_values?: ConvertableDdbTimeValue[],
     name?: string
 ) {
     const length = js_values?.length || 0
     
-    const int64 = DdbType.timestamp || type === DdbType.nanotimestamp
+    const int64 = type === DdbType.timestamp || type === DdbType.nanotimestamp
     
-    let values = type === int64 ? new BigInt64Array(length) : new Int32Array(length)
+    let values = int64 ? new BigInt64Array(length) : new Int32Array(length)
     
-    if (length) {
-        const converter = ddb_time_converters[type]
+    const converter = ddb_time_converters[type]
+    
+    for (let i = 0;  i < length;  ++i) {
+        const value = js_values[i]
         
-        for (let i = 0;  i < length;  ++i) {
-            const value = js_values[i]
-            
-            values[i] = empty(value) ?
-                    int64 ? nulls.int64 : nulls.int32
+        values[i] = empty(value) ?
+                int64 ? nulls.int64 : nulls.int32
+            :
+                type === DdbType.nanotimestamp && typeof value === 'string' ?
+                    str2nanotimestamp(value)
                 :
-                    type === DdbType.nanotimestamp && typeof value === 'string' ?
-                        str2nanotimestamp(value)
-                    :
-                        converter(value_to_date(value, type))
-        }
+                    converter(value_to_date(value, type))
     }
     
     return {

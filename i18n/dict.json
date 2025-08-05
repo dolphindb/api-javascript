@@ -118,5 +118,8 @@
     },
     "{{form}} 暂不支持序列化": {
         "en": "{{form}} does not support serialization yet"
+    },
+    "value 不能转换为 {{typename}}": {
+        "en": "value cannot be converted to {{typename}}"
     }
 }

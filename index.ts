@@ -5,7 +5,7 @@ import type { Dayjs } from 'dayjs'
 import {
     concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, seq, zip_object,
     WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocket, type WebSocketConnectionError,
-    decode, delay, check
+    decode, delay, check, empty
 } from 'xshell'
 
 import { t } from './i18n/index.ts'
@@ -13,14 +13,15 @@ import { t } from './i18n/index.ts'
 import {
     date2str, datehour2str, datetime2str, ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm,
     DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_pattern, generate_array_type,
-    get_big_int_128, get_ddb_time_value, get_duration_unit, get_type_name, int1282str, ipaddr2str, 
+    get_big_int_128, get_time_ddbobj, get_duration_unit, get_type_name, int1282str, ipaddr2str, 
     is_decimal_null_value, is_decimal_type, minute2str, month2str, nanotime2str, nanotimestamp2str, 
     nulls, second2str, set_big_int_128, time2str, timestamp2str, uuid2str, type ConvertOptions, 
     type DdbDecimal128Value, type DdbDecimal32Value, type DdbDecimal32VectorValue, 
     type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
-    type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue
+    type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
+    type ConvertableDdbTimeValue, get_times_ddbobj
 } from './common.ts'
 
 export * from './common.ts'
@@ -925,9 +926,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     new Int8Array(
                         buf.buffer.slice(
                             buf.byteOffset,
-                            buf.byteOffset + length
-                        )
-                    )
+                            buf.byteOffset + length))
                 ]
             
             case DdbType.short:
@@ -956,9 +955,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     new Int32Array(
                         buf.buffer.slice(
                             buf.byteOffset,
-                            buf.byteOffset + 4 * length
-                        )
-                    )
+                            buf.byteOffset + 4 * length))
                 ]
             
             
@@ -3139,41 +3136,25 @@ export class DdbDouble extends DdbObj<number> {
 
 export class DdbDateTime extends DdbObj<number> {
     constructor (value?: null | number | string | Date | Dayjs) {
-        super({
-            form: DdbForm.scalar,
-            type: DdbType.datetime,
-            value: get_ddb_time_value('DdbDateTime', value)
-        })
+        super(get_time_ddbobj(DdbType.datetime, value))
     }
 }
 
 export class DdbTimeStamp extends DdbObj<bigint> {
     constructor (value?: null | number | string | Date | Dayjs) {
-        super({
-            form: DdbForm.scalar,
-            type: DdbType.timestamp,
-            value: get_ddb_time_value('DdbTimeStamp', value)
-        })
+        super(get_time_ddbobj(DdbType.timestamp, value))
     }
 }
 
 export class DdbNanoTimeStamp extends DdbObj<bigint> {
     constructor (value?: null | number | string | Date | Dayjs) {
-        super({
-            form: DdbForm.scalar,
-            type: DdbType.nanotimestamp,
-            value: get_ddb_time_value('DdbNanoTimeStamp', value)
-        })
+        super(get_time_ddbobj(DdbType.nanotimestamp, value))
     }
 }
 
 export class DdbDate extends DdbObj<number> {
     constructor (value?: null | number | string | Date | Dayjs) {
-        super({
-            form: DdbForm.scalar,
-            type: DdbType.date,
-            value: get_ddb_time_value('DdbDate', value)
-        })
+        super(get_time_ddbobj(DdbType.date, value))
     }
 }
 
@@ -3362,6 +3343,53 @@ export class DdbVectorChar extends DdbObj <Int8Array> {
             value: ints,
             name
         })
+    }
+}
+
+export class DdbVectorBool extends DdbObj <Int8Array> {
+    constructor (bools?: (boolean | null)[], name?: string) {
+        const length = bools?.length || 0
+        
+        let value = new Int8Array(length)
+        
+        if (length)
+            for (let i = 0;  i < length;  ++i) {
+                const x = bools[i]
+                value[i] = empty(x) ? nulls.int8 : x ? 1 : 0
+            }
+        
+        super({
+            form: DdbForm.vector,
+            type: DdbType.bool,
+            rows: length,
+            cols: 1,
+            value,
+            name
+        })
+    }
+}
+
+export class DdbVectorDatetime extends DdbObj <Int32Array> {
+    constructor (datetimes: ConvertableDdbTimeValue[], name?: string) {
+        super(get_times_ddbobj(DdbType.datetime, datetimes, name))
+    }
+}
+
+export class DdbVectorTimeStamp extends DdbObj <BigInt64Array> {
+    constructor (timestamps: ConvertableDdbTimeValue[], name?: string) {
+        super(get_times_ddbobj(DdbType.timestamp, timestamps, name))
+    }
+}
+
+export class DdbVectorNanoTimeStamp extends DdbObj <BigInt64Array> {
+    constructor (nanotimestamps: ConvertableDdbTimeValue[], name?: string) {
+        super(get_times_ddbobj(DdbType.nanotimestamp, nanotimestamps, name))
+    }
+}
+
+export class DdbVectorDate extends DdbObj <BigInt64Array> {
+    constructor (dates: ConvertableDdbTimeValue[], name?: string) {
+        super(get_times_ddbobj(DdbType.date, dates, name))
     }
 }
 

@@ -8,7 +8,7 @@ import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
     type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
-    DdbVectorInt, DdbTable, type DdbExtObjValue,
+    DdbVectorInt, DdbTable, type DdbExtObjValue
 } from './index.ts'
 
 
@@ -31,21 +31,21 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
     let ddb = new DDB(url, ddb_options)
     
     const tests = [
-        // test_repl,
+        test_repl,
         
         // test_iot_vector,
         // test_extobj,
         
-        test_keywords,
-        test_types,
-        test_reconnection,
-        test_connection_error,
-        test_print,
-        test_time,
-        test_streaming,
-        test_error,
-        test_invoke,
-        test_append_table,
+        // test_keywords,
+        // test_types,
+        // test_reconnection,
+        // test_connection_error,
+        // test_print,
+        // test_time,
+        // test_streaming,
+        // test_error,
+        // test_invoke,
+        // test_append_table,
     ]
     
     for (const fn_test of tests)
@@ -315,13 +315,12 @@ async function test_time (ddb: DDB) {
     
     
     console.log('测试 month2ms')
-    assert(
+    check(
         month2ms(
             (
                 await ddb.eval<DdbObj<number>>('2022.12M')
             ).value
-        ) === new Date('2022.12.01').valueOf()
-    )
+        ) === new Date('2022.12.01').valueOf())
 }
 
 

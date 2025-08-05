@@ -2,7 +2,7 @@ import { default as dayjs, type Dayjs } from 'dayjs'
 import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
 
-import 'xshell/prototype.common.js'
+import { empty } from 'xshell/prototype.common.js'
 import { check } from 'xshell/utils.common.js'
 
 import ipaddrjs from 'ipaddr.js'
@@ -361,41 +361,85 @@ export function get_duration_unit (code: number) {
 }
 
 
-export function get_ddb_time_value (
-    classname: 'DdbDateTime' | 'DdbTimeStamp' | 'DdbNanoTimeStamp' | 'DdbDate',
-    value: null | number | string | Date | Dayjs,
-): number | bigint | null {
-    if (value === null)
-        return null
+export type ConvertableDdbTimeValue = undefined | null | number | string | Date | Dayjs
+
+export const ddb_time_converters = {
+    [DdbType.date]: (date: Date) =>
+        Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24)),
     
-    if (classname === 'DdbNanoTimeStamp' && typeof value === 'string')
-        return str2nanotimestamp(value)
+    [DdbType.datetime]: (date: Date) =>
+        (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000,
     
-    let date: Date
+    [DdbType.timestamp]: (date: Date) =>
+        BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()),
     
-    if (value === undefined)
-        date = new Date()
-    else if (typeof value === 'number' || typeof value === 'string')
-        date = new Date(value)
+    [DdbType.nanotimestamp]: (date: Date) =>
+        BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
+} as Record<DdbType, (date: Date) => number | bigint>
+
+
+function value_to_date (value: ConvertableDdbTimeValue, type: DdbType) {
+    if (typeof value === 'number' || typeof value === 'string')
+        return new Date(value)
     else if (value instanceof Date)
-        date = value
+        return value
     else if (dayjs.isDayjs(value))
-        date = new Date(value.valueOf())
+        return new Date(value.valueOf())
     else
-        throw new Error(t('value 不能转换为 {{classname}}', { classname }))
+        throw new Error(t('value 不能转换为 {{typename}}', { typename: get_type_name(type) }))
+}
+
+
+export function get_time_ddbobj (type: DdbType, js_value: ConvertableDdbTimeValue) {
+    return {
+        form: DdbForm.scalar,
+        type,
+        value: js_value === null ?
+                null
+            :
+                type === DdbType.nanotimestamp && typeof js_value === 'string' ?
+                    str2nanotimestamp(js_value)
+                :
+                    ddb_time_converters[type](
+                        js_value === undefined ? new Date() : value_to_date(js_value, type))
+    }
+}
+
+
+export function get_times_ddbobj (
+    type: DdbType,
+    js_values: ConvertableDdbTimeValue[],
+    name?: string
+) {
+    const length = js_values?.length || 0
     
-    switch (classname) {
-        case 'DdbDateTime':
-            return (date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / 1000
+    const int64 = DdbType.timestamp || type === DdbType.nanotimestamp
+    
+    let values = type === int64 ? new BigInt64Array(length) : new Int32Array(length)
+    
+    if (length) {
+        const converter = ddb_time_converters[type]
         
-        case 'DdbTimeStamp':
-            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset())
-        
-        case 'DdbNanoTimeStamp':
-            return BigInt(date.getTime() - 1000 * 60 * date.getTimezoneOffset()) * 1000000n
-        
-        case 'DdbDate':
-            return Math.floor((date.getTime() - 1000 * 60 * date.getTimezoneOffset()) / (1000 * 3600 * 24))
+        for (let i = 0;  i < length;  ++i) {
+            const value = js_values[i]
+            
+            values[i] = empty(value) ?
+                    int64 ? nulls.int64 : nulls.int32
+                :
+                    type === DdbType.nanotimestamp && typeof value === 'string' ?
+                        str2nanotimestamp(value)
+                    :
+                        converter(value_to_date(value, type))
+        }
+    }
+    
+    return {
+        form: DdbForm.vector,
+        type,
+        rows: length,
+        cols: 1,
+        value: values,
+        name
     }
 }
 

@@ -18,8 +18,8 @@ importers:
         specifier: ^2.8.1
         version: 2.8.1
       xshell:
-        specifier: ^1.2.71
-        version: 1.2.71
+        specifier: ^1.2.72
+        version: 1.2.72
     devDependencies:
       '@types/node':
         specifier: ^24.0.12
@@ -3232,8 +3232,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  xshell@1.2.71:
-    resolution: {integrity: sha512-H2wf45lMGRDhtudKe0Auk1fLT9rqfTY/aj9VbJrhmPtSY7TjOH+B9Mipslop6n9wLX37TdIiAvZLXdS1Ilq+bg==}
+  xshell@1.2.72:
+    resolution: {integrity: sha512-0/5MlmtGv/FLQ10vqyItoOkOOiHUZaCom5lGQJGmSvAA4QtTRUswZki3UuCV5ymYb6gxdq/rDQyuJK22MP/AeQ==}
     hasBin: true
 
   xtend@4.0.2:
@@ -6961,7 +6961,7 @@ snapshots:
 
   ws@8.18.3: {}
 
-  xshell@1.2.71:
+  xshell@1.2.72:
     dependencies:
       '@babel/core': 7.28.0
       '@babel/parser': 7.28.0

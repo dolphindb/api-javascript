@@ -2,6 +2,27 @@
 
 ## English | [中文](./CHANGELOG.zh.md)
 
+## Version: 3.1.6
+#### Compatibility Changes
+Behavior change in invoke function:
+When invoke return a table, the default behavior has changed to automatically convert it into an array of objects. To retain the original DdbTableData structure, explicitly pass the option { table: 'full' } to restore the previous behavior.
+
+#### New Features
+- Added the define function to define and cache user-defined functions, avoiding redundant re-definitions.
+- Added support for uploading DATETIME, NANOTIMESTAMP, TIMESTAMP, and DATE scalars or vectors.
+- Added support for uploading BOOL vectors.
+
+#### Improvements
+- Improved the invoke function:
+    - Supported passing a function definition directly.
+    - Allowed undefined and null values as arguments when calling a functions with DolphinDB objects, booleans, or strings as parameters.
+- Adjust the maximum number of concurrently executed subjobs to 64.
+
+#### Issues Fixed
+- Fixed an issue where querying IOTANY columns containing null values caused errors.
+- Fixed an issue with incorrect formatting of the imaginary part in complex numbers.
+
+
 ## Version: 3.0.200
 #### New Features
 - Added parameter offset for streaming subscription to set the position of the first message where the subscription begins.

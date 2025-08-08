@@ -36,16 +36,16 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
         // test_iot_vector,
         // test_extobj,
         
-        // test_keywords,
-        // test_types,
-        // test_reconnection,
-        // test_connection_error,
-        // test_print,
-        // test_time,
-        // test_streaming,
-        // test_error,
-        // test_invoke,
-        // test_append_table,
+        test_keywords,
+        test_types,
+        test_reconnection,
+        test_connection_error,
+        test_print,
+        test_time,
+        test_streaming,
+        test_error,
+        test_invoke,
+        test_append_table
     ]
     
     for (const fn_test of tests)

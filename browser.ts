@@ -4133,10 +4133,11 @@ export class DDB {
                 (() => {
                     switch (type) {
                         case 'function':
-                            if (args.length)
-                                console.log(func, args.map(arg => arg.data()), rpc_id)
-                            else
-                                console.log(`${func}()`, rpc_id)
+                            if (this.verbose)
+                                if (args.length)
+                                    console.log(func, args.map(arg => arg.data()), rpc_id)
+                                else
+                                    console.log(`${func}()`, rpc_id)
                             
                             assert(!func.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
                             

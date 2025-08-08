@@ -21,7 +21,7 @@ import {
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
     type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
-    type ConvertableDdbTimeValue, get_times_ddbobj
+    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs
 } from './common.ts'
 
 export * from './common.ts'
@@ -3703,6 +3703,11 @@ export class DDB {
     /** kdb session flag (4096) */
     kdb = false
     
+    /** 是否为 dolphindb 语言 */
+    dolphindb = true
+    
+    language: 'dolphindb' | 'python' | 'kdb' = 'dolphindb'
+    
     /** 表示本次会话执行的 SQL 标准 */
     sql = SqlStandard.DolphinDB
     
@@ -3799,11 +3804,15 @@ export class DDB {
         if (options.password !== undefined)
             this.password = options.password
         
-        if (options.python !== undefined)
-            this.python = options.python
+        if (options.python !== undefined && (this.python = Boolean(options.python))) {
+            this.dolphindb = false
+            this.language = 'python'
+        }
         
-        if (options.kdb !== undefined)
-            this.kdb = options.kdb
+        if (options.kdb !== undefined && (this.kdb = Boolean(options.kdb))) {
+            this.dolphindb = false
+            this.language = 'kdb'
+        }
         
         if (options.sql !== undefined)
             this.sql = options.sql
@@ -3864,7 +3873,7 @@ export class DDB {
                 
                 // 连接建立之前应该不会有别的调用占用 this.lwebsocket
                 this.lwebsocket.resource = await connect_websocket(url, {
-                    protocols: this.streaming ? ['streaming'] : this.python ? ['python'] : this.kdb ? ['kdb'] : undefined,
+                    protocols: this.streaming ? ['streaming'] : this.dolphindb ? undefined : [this.language],
                     
                     proxy: this.proxy,
                     
@@ -4079,48 +4088,8 @@ export class DDB {
         if (func === 'pnode_run')
             try {
                 await (this.ppnode_run ??= this.eval<DdbVoid>(
-                    this.python ?
-                        '\n' +
-                        'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
-                        '    nargs = size(args)\n' +
-                        '    func = funcByName(func_name)\n' +
-                        '    \n' +
-                        '    if not nargs:\n' +
-                        '        return pnodeRun(func, nodes, add_node_alias)\n' +
-                        '    \n' +
-                        '    args_partial = [ ]\n' +
-                        '    args_partial.append(func)\n' +
-                        '    for a in args:\n' +
-                        '        args_partial.append(a)\n' +
-                        '    \n' +
-                        '    return pnodeRun(\n' +
-                        '        unifiedCall(partial, args_partial),\n' +
-                        '        nodes,\n' +
-                        '        add_node_alias\n' +
-                        '    )\n'
-                    :
-                        // 这个开头的空行很重要，应该可以绕过 webLoginRequired = true 时禁止执行代码
-                        // 搜一下 APISocketConsole::execute
-                        // https://dolphindb1.atlassian.net/browse/D20-4991
-                        '\n' +
-                        'def pnode_run (nodes, func_name, args, add_node_alias = true) {\n' +
-                        '    nargs = size(args)\n' +
-                        '    func = funcByName(func_name)\n' +
-                        '    \n' +
-                        '    if (!nargs)\n' +
-                        '        return pnodeRun(func, nodes, add_node_alias)\n' +
-                        '    \n' +
-                        '    args_partial = array(any, 1 + nargs, 1 + nargs)\n' +
-                        '    args_partial[0] = func\n' +
-                        '    args_partial[1:] = args\n' +
-                        '    return pnodeRun(\n' +
-                        '        unifiedCall(partial, args_partial),\n' +
-                        '        nodes,\n' +
-                        '        add_node_alias\n' +
-                        '    )\n' +
-                        '}\n',
-                    { urgent: true }
-                ))
+                    funcdefs.pnode_run[this.language], 
+                    { urgent: true }))
             } catch (error) {
                 this.ppnode_run = undefined
                 throw error
@@ -4356,30 +4325,8 @@ export class DDB {
         if (node) {
             try {
                 await (this.pjsrpc ??= this.eval<DdbVoid>(
-                    this.python ?
-                        '\n' +
-                        'def jsrpc (node, func_name, args):\n' +
-                        '    args_ = args\n' +
-                        '    if func_name == "invoke":\n' +
-                        '        args_[0] = funcByName(args[0])\n' +
-                        '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n'
-                    : this.kdb ? 
-                        '\n' +
-                        'jsrpc: {[node; func_name; args]\n' +
-                        '    args_: args;\n' +
-                        '    if[func_name="invoke"; args_[0]:funcByName[args[0]]];\n' +
-                        '    rpc[node; unifiedCall; funcByName[func_name]; args_]\n' +
-                        '}\n'
-                    :
-                        '\n' +
-                        'def jsrpc (node, func_name, args) {\n' +
-                        '    args_ = args\n' +
-                        '    if (func_name == "invoke")\n' +
-                        '        args_[0] = funcByName(args[0])\n' +
-                        '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n' +
-                        '}\n'
-                    , { urgent: true }
-                ))
+                    funcdefs.jsrpc[this.language], 
+                    { urgent: true }))
             } catch (error) {
                 this.pjsrpc = undefined
                 throw error
@@ -4464,29 +4411,8 @@ export class DDB {
             
             try {
                 await (this.pinvoke ??= this.eval<DdbVoid>(
-                    this.python ?
-                        '\n' +
-                        'def invoke (func, args_json):\n' +
-                        '    args = fromStdJson(args_json)\n' +
-                        '    func_ = func\n' +
-                        '    if type(func) == STRING:\n' +
-                        '        func_ = funcByName(func)\n' +
-                        '    if type(args) != ANY:\n' +
-                        '        args = cast(args, ANY)\n' +
-                        '    return unifiedCall(func_, args)\n'
-                        :
-                        '\n' +
-                        'def invoke (func, args_json) {\n' +
-                        '    args = fromStdJson(args_json)\n' +
-                        '    func_ = func\n' +
-                        '    if (type(func) == STRING)\n' +
-                        '        func_ = funcByName(func)\n' +
-                        '    if (type(args) != ANY)\n' +
-                        '        args = cast(args, ANY)\n' +
-                        '    return unifiedCall(func_, args)\n' +
-                        '}\n'
-                    , { urgent: true }
-                ))
+                    funcdefs.invoke[this.language],
+                    { urgent: true }))
             } catch (error) {
                 // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
                 this.pinvoke = undefined
@@ -4534,16 +4460,21 @@ export class DDB {
     
     /** 取消当前 session id 对应的所有 console jobs  Cancel all console jobs corresponding to the current session id */
     async cancel () {
-        let ddb = new DDB(this.url, this)
+        let ddb = new DDB(this.url, {
+            autologin: this.autologin,
+            username: this.username,
+            password: this.password,
+            proxy: this.proxy,
+            verbose: this.verbose
+        })
         
         try {
             // 因为是新建的连接，而且执行完脚本之后马上就关闭了，所以不用考虑变量泄漏的问题
             await ddb.eval(
                 `jobs = exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}\n` +
-                (this.python ? 'if size(jobs):\n' : 'if (size(jobs))\n') +
+                'if (size(jobs))\n' +
                 '    cancelConsoleJob(jobs)\n',
-                { urgent: true }
-            )
+                { urgent: true })
         } finally {
             ddb.disconnect()
         }

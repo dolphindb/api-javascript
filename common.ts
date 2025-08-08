@@ -877,3 +877,106 @@ export const winsize = 10000 as const
 export type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 
 export const function_definition_pattern = /\bdef (\w+) \(/
+
+
+export const funcdefs = {
+    invoke: {
+        dolphindb:
+            'def invoke (func, args_json) {\n' +
+            '    args = fromStdJson(args_json)\n' +
+            '    func_ = func\n' +
+            '    if (type(func) == STRING)\n' +
+            '        func_ = funcByName(func)\n' +
+            '    if (type(args) != ANY)\n' +
+            '        args = cast(args, ANY)\n' +
+            '    return unifiedCall(func_, args)\n' +
+            '}\n',
+        
+        python:
+            'def invoke (func, args_json):\n' +
+            '    args = fromStdJson(args_json)\n' +
+            '    func_ = func\n' +
+            '    if type(func) == STRING:\n' +
+            '        func_ = funcByName(func)\n' +
+            '    if type(args) != ANY:\n' +
+            '        args = cast(args, ANY)\n' +
+            '    return unifiedCall(func_, args)\n',
+        
+        kdb:
+            'invoke: {[fn; args_json]\n' +
+            '    args_: fromStdJson[args_json];\n' +
+            '    func_: fn;\n' +
+            '    if[typestr[fn] = `STRING;\n' +
+            '        func_: get toCharArray fn;\n' +
+            '        if[type[args_] <> 0] args_: cast[args_; 25]\n' +
+            '    ];\n' +
+            '    func_ . args_\n' +
+            '}\n'
+    },
+    
+    jsrpc: {
+        dolphindb:
+            'def jsrpc (node, func_name, args) {\n' +
+            '    args_ = args\n' +
+            '    if (func_name == "invoke")\n' +
+            '        args_[0] = funcByName(args[0])\n' +
+            '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n' +
+            '}\n',
+        
+        python:
+            'def jsrpc (node, func_name, args):\n' +
+            '    args_ = args\n' +
+            '    if func_name == "invoke":\n' +
+            '        args_[0] = funcByName(args[0])\n' +
+            '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n',
+        
+        kdb:
+            'jsrpc: {[node; func_name; args]\n' +
+            '    args_: args;\n' +
+            '    if[func_name="invoke"; args_[0]:funcByName[args[0]]];\n' +
+            '    rpc[node; unifiedCall; funcByName[func_name]; args_]\n' +
+            '}\n'
+    },
+    
+    pnode_run: {
+        dolphindb:
+            'def pnode_run (nodes, func_name, args, add_node_alias = true) {\n' +
+            '    nargs = size(args)\n' +
+            '    func = funcByName(func_name)\n' +
+            '    \n' +
+            '    if (!nargs)\n' +
+            '        return pnodeRun(func, nodes, add_node_alias)\n' +
+            '    \n' +
+            '    args_partial = array(any, 1 + nargs, 1 + nargs)\n' +
+            '    args_partial[0] = func\n' +
+            '    args_partial[1:] = args\n' +
+            '    return pnodeRun(\n' +
+            '        unifiedCall(partial, args_partial),\n' +
+            '        nodes,\n' +
+            '        add_node_alias\n' +
+            '    )\n' +
+            '}\n',
+        
+        python:
+            'def pnode_run (nodes, func_name, args, add_node_alias):\n' +
+            '    nargs = size(args)\n' +
+            '    func = funcByName(func_name)\n' +
+            '    \n' +
+            '    if not nargs:\n' +
+            '        return pnodeRun(func, nodes, add_node_alias)\n' +
+            '    \n' +
+            '    args_partial = [ ]\n' +
+            '    args_partial.append(func)\n' +
+            '    for a in args:\n' +
+            '        args_partial.append(a)\n' +
+            '    \n' +
+            '    return pnodeRun(\n' +
+            '        unifiedCall(partial, args_partial),\n' +
+            '        nodes,\n' +
+            '        add_node_alias\n' +
+            '    )\n',
+        
+        kdb:
+            ''
+    }
+} as const

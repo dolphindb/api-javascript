@@ -18,8 +18,8 @@ importers:
         specifier: ^2.8.1
         version: 2.8.1
       xshell:
-        specifier: ^1.2.73
-        version: 1.2.73
+        specifier: ^1.2.74
+        version: 1.2.74
     devDependencies:
       '@types/node':
         specifier: ^24.2.1
@@ -1048,10 +1048,6 @@ packages:
     peerDependencies:
       eslint: ^8.57.0 || ^9.0.0
       typescript: '>=4.8.4 <6.0.0'
-
-  '@typescript-eslint/types@8.38.0':
-    resolution: {integrity: sha512-wzkUfX3plUqij4YwWaJyqhiPE5UCRVlFpKn1oCRn2O1bJ592XxWJj8ROQ3JD5MYXLORW84063z3tZTb/cs4Tyw==}
-    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript-eslint/types@8.39.0':
     resolution: {integrity: sha512-ArDdaOllnCj3yn/lzKn9s0pBQYmmyme/v1HbGIGB0GB/knFI3fWMHloC+oYTJW46tVbYnGKTMDK4ah1sC2v0Kg==}
@@ -3236,8 +3232,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  xshell@1.2.73:
-    resolution: {integrity: sha512-eKdtnz4PwdnyQV7wjeBSdFC6zTLe9IWNPfBLmmyo94nHys4YhVexwrmvA7lpdAR3ycruNvMC8btrX4EHPfKFpQ==}
+  xshell@1.2.74:
+    resolution: {integrity: sha512-yv3MpbnufxgrrMQEGDzDD7S/2Bz8lHEcjqaCZ6dFyn6HwAjQG7YWcrSRtWBWQkELXYYqEKJbHWtzdLM1yhPP7g==}
     hasBin: true
 
   xtend@4.0.2:
@@ -4282,7 +4278,7 @@ snapshots:
   '@stylistic/eslint-plugin@5.2.3(eslint@9.33.0)':
     dependencies:
       '@eslint-community/eslint-utils': 4.7.0(eslint@9.33.0)
-      '@typescript-eslint/types': 8.38.0
+      '@typescript-eslint/types': 8.39.0
       eslint: 9.33.0
       eslint-visitor-keys: 4.2.1
       espree: 10.4.0
@@ -4505,8 +4501,6 @@ snapshots:
       typescript: 5.9.2
     transitivePeerDependencies:
       - supports-color
-
-  '@typescript-eslint/types@8.38.0': {}
 
   '@typescript-eslint/types@8.39.0': {}
 
@@ -6967,7 +6961,7 @@ snapshots:
 
   ws@8.18.3: {}
 
-  xshell@1.2.73:
+  xshell@1.2.74:
     dependencies:
       '@babel/core': 7.28.0
       '@babel/parser': 7.28.0

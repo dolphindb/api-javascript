@@ -876,7 +876,13 @@ export const winsize = 10000 as const
 
 export type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 
-export const function_definition_pattern = /\bdef (\w+) \(/
+const dolphindb_function_definition_pattern = /\bdef (\w+) \(/
+
+export const function_definition_patterns = {
+    dolphindb: dolphindb_function_definition_pattern,
+    python: dolphindb_function_definition_pattern,
+    kdb: /(\w+): \{\[/
+}
 
 
 export const funcdefs = {

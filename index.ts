@@ -12,7 +12,7 @@ import { t } from './i18n/index.ts'
 
 import {
     date2str, datehour2str, datetime2str, ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm,
-    DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_pattern, generate_array_type,
+    DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_patterns, generate_array_type,
     get_big_int_128, get_time_ddbobj, get_duration_unit, get_type_name, int1282str, ipaddr2str, 
     is_decimal_null_value, is_decimal_type, minute2str, month2str, nanotime2str, nanotimestamp2str, 
     nulls, second2str, set_big_int_128, time2str, timestamp2str, uuid2str, type ConvertOptions, 
@@ -4400,7 +4400,7 @@ export class DDB {
         
         let result: DdbObj
         
-        if (function_definition_pattern.test(func))
+        if (function_definition_patterns[this.language].test(func))
             func = await this.define(func, { urgent: options?.urgent })
         
         if (convertable)
@@ -4688,7 +4688,7 @@ export class DDB {
                 '}\n'),
             ['hello']) */
     async define (definition: string, { urgent }: { urgent?: boolean } = { }) {
-        const matches = function_definition_pattern.exec(definition)
+        const matches = function_definition_patterns[this.language].exec(definition)
         
         if (!matches)
             throw new Error(t('DDB.define 方法传入的 definition 不符合函数定义格式 def xxx ()'))

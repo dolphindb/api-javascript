@@ -977,6 +977,12 @@ export const funcdefs = {
             '    )\n',
         
         kdb:
-            ''
+            'pnode_run: {[nodes; func_name; args]\n' +
+            '    nargs_: count args;\n' +
+            '    func_: get toCharArray func_name;\n' +
+            '    if [nargs_=0; : pnodeRun[func_; nodes; 1b]];\n' +
+            '    args_partial_: func,args;\n' +
+            '    pnodeRun[unifiedCall[partial; args_partial_]; nodes; 1b]\n' +
+            '}\n'
     }
 } as const

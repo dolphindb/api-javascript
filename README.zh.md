@@ -98,8 +98,11 @@ let ddb = new DDB('ws://127.0.0.1:8848')
 // 使用 HTTPS 加密
 // let ddb = new DDB('wss://dolphindb.com')
 
-// 2.3 建立到 DolphinDB 的连接（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
-await ddb.connect()
+// 2.3 调用 DolphinDB add 函数，调用时自动连接到数据库（要求 DolphinDB 数据库版本不低于 1.30.16 或 2.00.4）
+console.log(await ddb.invoke('add', [1, 2]))  // 输出 3
+
+// 2.4 使用完毕，断开连接释放资源
+ddb.disconnect()
 ```
 
 #### 代码补全、函数提示数据
@@ -517,6 +520,11 @@ console.log(
         ]
     )
 )
+```
+
+### 关闭连接
+```ts
+ddb.disconnect()
 ```
 
 ### 其他例子

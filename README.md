@@ -102,8 +102,11 @@ let ddb = new DDB('ws://127.0.0.1:8848')
 // Use HTTPS encryption
 // let ddb = new DDB('wss://dolphindb.com')
 
-// 2.3 Establish a connection to DolphinDB (requires DolphinDB database version no less than 1.30.16 or 2.00.4)
-await ddb.connect()
+// 2.3 Call the DolphinDB add function, automatically connecting to the database (requires DolphinDB version 1.30.16 or 2.00.4 or higher)
+console.log(await ddb.invoke('add', [1, 2])) // Output 3
+
+// 2.4 Disconnect after use to release resources
+ddb.disconnect()
 ```
 
 #### Code completion and function prompt
@@ -538,6 +541,12 @@ console.log(
     )
 )
 ```
+
+### Close the connection
+```ts
+ddb.disconnect()
+```
+
 
 ### Other Examples
 

@@ -1394,7 +1394,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         case DdbType.handle:
                         case DdbType.datasource:
                         case DdbType.resource:
-                            assert(!(value as string).includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
+                            check(!(value as string).includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
                             
                             return [
                                 DdbObj.enc.encode(value as string),
@@ -1660,7 +1660,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 let bufs = new Array<Uint8Array>(length * 2)
                 for (let i = 0;  i < length;  i++) {
                     const s = (value as string[])[i]
-                    assert(!s.includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
+                    check(!s.includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
                     bufs[2 * i] = this.enc.encode(s)
                     bufs[2 * i + 1] = Uint8Array.of(0)
                 }
@@ -2673,7 +2673,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
 
 /** 格式化向量、集合中的第 index 项为字符串，空值返回 'null' 字符串  formatted vector, the index-th item in the collection is a string, a null value returns a 'null' string */
 export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
-    assert(index < obj.rows, 'index < obj.rows')
+    check(index < obj.rows, 'index < obj.rows')
     
     if (obj.type < 64 || obj.type >= 128)  // 普通数组
         switch (obj.type) {
@@ -2728,6 +2728,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                 
                 return options.colors ? green(str) : str
             }
+            
+            case DdbType.any:
+                return (obj.value[index] as DdbObj).toString(options)
             
             default:
                 return format(obj.type, obj.value[index], obj.le, options)
@@ -3154,7 +3157,7 @@ export class DdbDate extends DdbObj<number> {
 
 export class DdbBlob extends DdbObj<Uint8Array> {
     constructor (value: Uint8Array | ArrayBuffer) {
-        assert(value, t('new DdbBlob 不能传空的 value'))
+        check(value, t('new DdbBlob 不能传空的 value'))
         super({
             form: DdbForm.scalar,
             type: DdbType.blob,

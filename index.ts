@@ -2654,7 +2654,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
 
 /** 格式化向量、集合中的第 index 项为字符串，空值返回 'null' 字符串  formatted vector, the index-th item in the collection is a string, a null value returns a 'null' string */
 export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
-    assert(index < obj.rows, 'index < obj.rows')
+    check(index < obj.rows, 'index 应该 < obj.rows')
     
     if (obj.type < 64 || obj.type >= 128)  // 普通数组
         switch (obj.type) {
@@ -2709,6 +2709,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                 
                 return options.colors ? str.green : str
             }
+            
+            case DdbType.any:
+                return inspect(obj.value[index] as DdbObj, options)
             
             default:
                 return format(obj.type, obj.value[index], obj.le, options)
@@ -3134,7 +3137,7 @@ export class DdbDate extends DdbObj<number> {
 
 export class DdbBlob extends DdbObj<Uint8Array> {
     constructor (value: Uint8Array | ArrayBuffer) {
-        assert(value, t('new DdbBlob 不能传空的 value'))
+        check(value, t('new DdbBlob 不能传空的 value'))
         super({
             form: DdbForm.scalar,
             type: DdbType.blob,
@@ -4101,7 +4104,7 @@ export class DDB {
                                 else
                                     console.log(`${func}()`, rpc_id)
                             
-                            assert(!func.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
+                            check(!func.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
                             
                             return 'function\n' +
                                 `${func}\n` +
@@ -4112,7 +4115,7 @@ export class DDB {
                             if (this.verbose)
                                 console.log(script, rpc_id)
                             
-                            assert(!script.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
+                            check(!script.includes('\0'), t('发送至 DolphinDB 执行的脚本中间不能含有 \\0'))
                             
                             return 'script\n' +
                                 script
@@ -4426,7 +4429,7 @@ export class DDB {
             parse_object?: boolean
         } = { }
     ) {
-        assert(args.length && args.length === vars.length, t('variable 指令参数不能为空且参数名不能为空，且数量应该匹配'))
+        check(args.length && args.length === vars.length, t('variable 指令参数不能为空且参数名不能为空，且数量应该匹配'))
         return this.rpc('variable', { vars, args, listener, parse_object })
     }
     

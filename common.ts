@@ -1009,7 +1009,7 @@ export function get_number_formatter (decimals = null, grouping = true) {
     _decimals = decimals
     _grouping = grouping
     
-    number_formatter = new Intl.NumberFormat('en-US', {
+    return number_formatter = new Intl.NumberFormat('en-US', {
         ... decimals === null ? {
             maximumFractionDigits: 20
         } : {

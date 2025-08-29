@@ -17,7 +17,8 @@ import {
     type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
-    type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue, type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs
+    type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue, 
+    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter
 } from './common.ts'
 
 export * from './common.ts'
@@ -2446,38 +2447,12 @@ export interface InspectOptions {
 }
 
 
-/** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个 */
-let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
-
-
-let _decimals = 20
-
-let _grouping = true
-
-/** 缓存，为了优化性能，通常 options.decimals 都是不变的 */
-let _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
-
 
 /** 根据 DdbType 格式化单个元素 (value) 为字符串 */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { nullstr = false, colors = false, quote = false, grouping = true, timestamp = 'ms' } = options
+    const { nullstr = false, colors = false, quote = false, timestamp = 'ms' } = options
     
-    const formatter = (() => {
-        const decimals = options.decimals ?? _decimals
-        
-        if (decimals !== _decimals || grouping !== _grouping) {
-            _decimals = decimals
-            _grouping = grouping
-            default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping: grouping })
-            _formatter = new Intl.NumberFormat('en-US', {
-                maximumFractionDigits: decimals,
-                minimumFractionDigits: decimals,
-                useGrouping: grouping
-            })
-        }
-        
-        return options.decimals === undefined || options.decimals === null ? default_formatter : _formatter
-    })()
+    const number_formatter = get_number_formatter(options.decimals, options.grouping)
     
     function get_nullstr () {
         const str = value === DdbVoidType.default ? 'default' : 'null'
@@ -2544,7 +2519,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             if (value === null || value === nulls.int16)
                 return get_nullstr()
             else {
-                const str = default_formatter.format(value as number)
+                const str = number_formatter.format(value as number)
                 return colors ? green(str) : str
             }
         
@@ -2552,7 +2527,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             if (value === null || value === nulls.int32)
                 return get_nullstr()
             else {
-                const str = default_formatter.format(value as number)
+                const str = number_formatter.format(value as number)
                 return colors ? green(str) : str
             }
         
@@ -2560,7 +2535,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             if (value === null || value === nulls.int64)
                 return get_nullstr()
             else {
-                const str = default_formatter.format(value as bigint)
+                const str = number_formatter.format(value as bigint)
                 return colors ? green(str) : str
             }
         
@@ -2595,7 +2570,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             if (value === null || value === nulls.float32)
                 return get_nullstr()
             else {
-                const str = formatter.format(value as number)
+                const str = number_formatter.format(value as number)
                 return colors ? green(str) : str
             }
         
@@ -2603,7 +2578,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
             if (value === null || value === nulls.double)
                 return get_nullstr()
             else {
-                const str = formatter.format(value as number)
+                const str = number_formatter.format(value as number)
                 return colors ? green(str) : str
             }
         

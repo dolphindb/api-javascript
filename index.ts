@@ -21,7 +21,7 @@ import {
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
     type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
-    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs
+    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter
 } from './common.ts'
 
 export * from './common.ts'
@@ -2435,37 +2435,10 @@ export interface InspectOptions extends UtilInspectOptions {
 }
 
 
-/** 整数一定用这个 number formatter, InspectOptions.decimals 不传也用这个 */
-let default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
-
-
-let _decimals = 20
-
-let _grouping = true
-
-/** 缓存，为了优化性能，通常 options.decimals 都是不变的 */
-let _formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
-
-
 /** 根据 DdbType 格式化单个元素 (value) 为字符串，空值返回 'null' 字符串 */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { grouping = true, timestamp = 'ms' } = options
-    const formatter = (() => {
-        const decimals = options.decimals ?? _decimals
-        
-        if (decimals !== _decimals || grouping !== _grouping) {
-            _decimals = decimals
-            _grouping = grouping
-            default_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20, useGrouping: grouping })
-            _formatter = new Intl.NumberFormat('en-US', {
-                maximumFractionDigits: decimals,
-                minimumFractionDigits: decimals,
-                useGrouping: grouping
-            })
-        }
-        
-        return options.decimals === undefined || options.decimals === null ? default_formatter : _formatter
-    })()
+    const { timestamp = 'ms' } = options
+    const number_formatter = get_number_formatter(options.decimals, options.grouping)
     
     
     function format_time (
@@ -2526,27 +2499,27 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    default_formatter.format(value as number).green
+                    number_formatter.format(value as number).green
                 :
-                    default_formatter.format(value as number)
+                    number_formatter.format(value as number)
         
         case DdbType.int:
             return value === null || value === nulls.int32 ?
                 inspect(null, options)
             :
                 options.colors ?
-                    default_formatter.format(value as number).green
+                    number_formatter.format(value as number).green
                 :
-                    default_formatter.format(value as number)
+                    number_formatter.format(value as number)
         
         case DdbType.long:
             return value === null || value === nulls.int64 ?
                 inspect(null, options)
             :
                 options.colors ?
-                    default_formatter.format(value as bigint).green
+                    number_formatter.format(value as bigint).green
                 :
-                    default_formatter.format(value as bigint)
+                    number_formatter.format(value as bigint)
         
         case DdbType.date:
             return format_time(date2str, nulls.int32)
@@ -2580,18 +2553,18 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 inspect(null, options)
             :
                 options.colors ?
-                    formatter.format(value as number).green
+                    number_formatter.format(value as number).green
                 :
-                    formatter.format(value as number)
+                    number_formatter.format(value as number)
         
         case DdbType.double:
             return value === null || value === nulls.double ?
                 inspect(null, options)
             :
                 options.colors ?
-                    formatter.format(value as number).green
+                    number_formatter.format(value as number).green
                 :
-                    formatter.format(value as number)
+                    number_formatter.format(value as number)
         
         case DdbType.symbol:
         case DdbType.string:

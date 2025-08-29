@@ -992,3 +992,30 @@ export const funcdefs = {
             '}\n'
     }
 } as const
+
+
+// 缓存，为了优化性能，通常 options.decimals, options.grouping 都是不变的
+
+let _decimals = null
+
+let _grouping = true
+
+let number_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
+
+export function get_number_formatter (decimals = null, grouping = true) {
+    if (decimals === _decimals && grouping === _grouping)
+        return number_formatter
+    
+    _decimals = decimals
+    _grouping = grouping
+    
+    number_formatter = new Intl.NumberFormat('en-US', {
+        ... decimals === null ? {
+            maximumFractionDigits: 20
+        } : {
+            maximumFractionDigits: decimals,
+            minimumFractionDigits: decimals,
+        },
+        useGrouping: grouping
+    })
+}

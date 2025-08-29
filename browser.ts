@@ -2750,8 +2750,8 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         
         let offset = 0
         
-        // array vector 中每一项如果为 null 都展示，避免多个逗号堆在一起的情况
-        options = { ...options, nullstr: true }
+        // array vector 中每一项如果为 null 都展示，避免多个逗号堆在一起的情况, 同时禁用 grouping
+        options = { ...options, nullstr: true, grouping: false }
         
         for (const { lengths, data, rows } of obj.value as DdbArrayVectorValue) {
             let acc_len = 0

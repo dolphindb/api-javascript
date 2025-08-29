@@ -2731,6 +2731,9 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
         
         let offset = 0
         
+        // array vector 中禁用 grouping
+        options = { ...options, grouping: false }
+        
         const nullstr = inspect(null, options)
         
         for (const { lengths, data, rows } of obj.value as DdbArrayVectorValue) {

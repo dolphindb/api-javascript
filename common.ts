@@ -939,7 +939,7 @@ export const funcdefs = {
         kdb:
             'jsrpc: {[node; func_name; args]\n' +
             '    args_: args;\n' +
-            '    if[func_name="invoke"; args_[0]:funcByName[args[0]]];\n' +
+            '    if[`$func_name=`invoke; args_[0]:funcByName[args[0]]];\n' +
             '    rpc[node; unifiedCall; funcByName[func_name]; args_]\n' +
             '    }\n'
     },

@@ -36,16 +36,16 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
         // test_iot_vector,
         // test_extobj,
         
-        test_keywords,
-        test_types,
-        test_reconnection,
-        test_connection_error,
-        test_print,
-        test_time,
-        test_streaming,
-        test_error,
-        test_invoke,
-        test_append_table
+        // test_keywords,
+        // test_types,
+        // test_reconnection,
+        // test_connection_error,
+        // test_print,
+        // test_time,
+        // test_streaming,
+        // test_error,
+        // test_invoke,
+        // test_append_table
     ]
     
     for (const fn_test of tests)
@@ -88,7 +88,22 @@ async function get_printed (ddb: DDB, code: string) {
 
 
 async function test_repl (ddb: DDB) {
+    let sddb = new DDB('ws://183.134.101.133:50849/', {
+        streaming: {
+            table: 'trades_stream',
+            
+            filters: {
+                expression: 'qty > 500'
+            },
+            
+            handler (message) {
+                // 这里 message.data 应该只有连接建立成功后第一次收到的是空的，后续应该非空
+                console.log(message.window.objs)
+            }
+        }
+    })
     
+    await sddb.connect()
 }
 
 

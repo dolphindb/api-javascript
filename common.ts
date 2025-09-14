@@ -917,7 +917,7 @@ export const funcdefs = {
             '        if[type[args_] <> 0] args_: cast[args_; 25]\n' +
             '    ];\n' +
             '    func_ . args_\n' +
-            '}\n'
+            '    }\n'
     },
     
     jsrpc: {
@@ -941,7 +941,7 @@ export const funcdefs = {
             '    args_: args;\n' +
             '    if[func_name="invoke"; args_[0]:funcByName[args[0]]];\n' +
             '    rpc[node; unifiedCall; funcByName[func_name]; args_]\n' +
-            '}\n'
+            '    }\n'
     },
     
     pnode_run: {
@@ -989,7 +989,7 @@ export const funcdefs = {
             '    if [nargs_=0; : pnodeRun[func_; nodes; 1b]];\n' +
             '    args_partial_: func,args;\n' +
             '    pnodeRun[unifiedCall[partial; args_partial_]; nodes; 1b]\n' +
-            '}\n'
+            '    }\n'
     }
 } as const
 

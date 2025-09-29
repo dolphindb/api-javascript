@@ -5,17 +5,17 @@ import type { Dayjs } from 'dayjs'
 import {
     concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, seq, zip_object,
     WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocket, type WebSocketConnectionError,
-    decode, delay, check, empty
+    decode, delay, check, empty, colored
 } from 'xshell'
 
 import { t } from './i18n/index.ts'
 
 import {
-    date2str, datehour2str, datetime2str, ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm,
-    DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_patterns, generate_array_type,
+    ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm, generate_array_type,
+    DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_patterns,
     get_big_int_128, get_time_ddbobj, get_duration_unit, get_type_name, int1282str, ipaddr2str, 
-    is_decimal_null_value, is_decimal_type, minute2str, month2str, nanotime2str, nanotimestamp2str, 
-    nulls, second2str, set_big_int_128, time2str, timestamp2str, uuid2str, type ConvertOptions, 
+    is_decimal_null_value, is_decimal_type, time_formatters, number_nulls,
+    nulls, set_big_int_128, uuid2str, type ConvertOptions, 
     type DdbDecimal128Value, type DdbDecimal32Value, type DdbDecimal32VectorValue, 
     type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
@@ -1397,7 +1397,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         case DdbType.handle:
                         case DdbType.datasource:
                         case DdbType.resource:
-                            assert(!(value as string).includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
+                            check(!(value as string).includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
                             
                             return [
                                 DdbObj.enc.encode(value as string),
@@ -1663,7 +1663,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 let bufs = new Array<Uint8Array>(length * 2)
                 for (let i = 0;  i < length;  i++) {
                     const s = (value as string[])[i]
-                    assert(!s.includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
+                    check(!s.includes('\0'), t('pack 时字符串中间不能含有 \\0, 否则上传给 DolphinDB 会导致连接断开'))
                     bufs[2 * i] = this.enc.encode(s)
                     bufs[2 * i + 1] = Uint8Array.of(0)
                 }
@@ -2435,35 +2435,58 @@ export interface InspectOptions extends UtilInspectOptions {
 }
 
 
-/** 根据 DdbType 格式化单个元素 (value) 为字符串，空值返回 'null' 字符串 */
-export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { timestamp = 'ms' } = options
-    const number_formatter = get_number_formatter(options.decimals, options.grouping)
+const grey_nullstr = 'null'.grey
+const nullstr = 'null' as const
+
+
+function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
+    if (
+        value === null || 
+        value === ((
+            type === DdbType.timestamp || 
+            type === DdbType.nanotime || 
+            type === DdbType.nanotimestamp
+        ) ? nulls.int64 : nulls.int32)
+    )
+        return options.colors ? grey_nullstr : nullstr
     
+    let str: string
     
-    function format_time (
-        formatter: (value: number | bigint, format?: string) => string,
-        _null: number | bigint
-    ) {
-        if (value === null || value === _null)
-            return inspect(null, options)
-        
-        let str: string
-        
-        // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
-        try {
-            str = formatter(value as number | bigint, (type === DdbType.timestamp && timestamp === 's') ? 'YYYY.MM.DD HH:mm:ss' : undefined)
-        } catch (error) {
-            if (error instanceof RangeError)
-                str = 'Invalid Date'
-            else
-                throw error
-        }
-        
-        return options.colors ? str.magenta : str
+    // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
+    try {
+        str = time_formatters.get(type)(
+            value as number | bigint, 
+            (type === DdbType.timestamp && options.timestamp === 's') ? 
+                'YYYY.MM.DD HH:mm:ss'
+            :
+                undefined)
+    } catch (error) {
+        if (error instanceof RangeError)
+            str = 'Invalid Date'
+        else
+            throw error
     }
     
-    
+    return options.colors ? str.magenta : str
+}
+
+
+function format_number (type: DdbType, value: number | bigint, options: InspectOptions) {
+    return value === null || value === number_nulls.get(type) ?
+        options.colors ? grey_nullstr : nullstr
+    : colored(
+        get_number_formatter(
+            type === DdbType.int || type === DdbType.long || type === DdbType.short, 
+            options.decimals, 
+            options.grouping
+        ).format(value as number | bigint),
+        'green',
+        options.colors)
+}
+
+
+/** 根据 DdbType 格式化单个元素 (value) 为字符串，空值返回 'null' 字符串 */
+export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
     switch (type) {
         case DdbType.void: {
             const str = value === DdbVoidType.default ? 'default' : 'null'
@@ -2477,8 +2500,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                     null
                 :
                     Boolean(value),
-                options
-            )
+                options)
         
         case DdbType.char:
             return inspect(
@@ -2491,80 +2513,26 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                         String.fromCharCode(value as number)
                     :
                         value,
-                options
-            )
+                options)
         
         case DdbType.short:
-            return value === null || value === nulls.int16 ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    number_formatter.format(value as number).green
-                :
-                    number_formatter.format(value as number)
-        
         case DdbType.int:
-            return value === null || value === nulls.int32 ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    number_formatter.format(value as number).green
-                :
-                    number_formatter.format(value as number)
-        
         case DdbType.long:
-            return value === null || value === nulls.int64 ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    number_formatter.format(value as bigint).green
-                :
-                    number_formatter.format(value as bigint)
+        case DdbType.float:
+        case DdbType.double:
+            return format_number(type, value as number | bigint, options)
         
         case DdbType.date:
-            return format_time(date2str, nulls.int32)
-        
         case DdbType.month:
-            return format_time(month2str, nulls.int32)
-        
         case DdbType.time:
-            return format_time(time2str, nulls.int32)
-        
         case DdbType.minute:
-            return format_time(minute2str, nulls.int32)
-        
         case DdbType.second:
-            return format_time(second2str, nulls.int32)
-        
         case DdbType.datetime:
-            return format_time(datetime2str, nulls.int32)
-        
         case DdbType.timestamp:
-            return format_time(timestamp2str, nulls.int64)
-        
         case DdbType.nanotime:
-            return format_time(nanotime2str, nulls.int64)
-        
         case DdbType.nanotimestamp:
-            return format_time(nanotimestamp2str, nulls.int64)
-        
-        case DdbType.float:
-            return value === null || value === nulls.float32 ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    number_formatter.format(value as number).green
-                :
-                    number_formatter.format(value as number)
-        
-        case DdbType.double:
-            return value === null || value === nulls.double ?
-                inspect(null, options)
-            :
-                options.colors ?
-                    number_formatter.format(value as number).green
-                :
-                    number_formatter.format(value as number)
+        case DdbType.datehour:
+            return format_time(type, value, options)
         
         case DdbType.symbol:
         case DdbType.string:
@@ -2585,9 +2553,6 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 (value as DdbFunctionDefValue).name,
                 options
             )
-        
-        case DdbType.datehour:
-            return format_time(datehour2str, nulls.int32)
         
         case DdbType.ipaddr:
             return options.colors ?

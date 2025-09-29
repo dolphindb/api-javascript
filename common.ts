@@ -16,15 +16,16 @@ export const nulls = {
     int16: -0x80_00,  // -32768
     int32: -0x80_00_00_00,  // -21_4748_3648
     int64: -0x80_00_00_00_00_00_00_00n,  // -922_3372_0368_5477_5808
-    int128: -0x80_00_00_00_00_00_00_00_00_00_00_00_00_00_00_00n,  // -170_1411_8346_0469_2317_3168_7303_7158_8410_5728
+    
+    // -170_1411_8346_0469_2317_3168_7303_7158_8410_5728
+    int128: -0x80_00_00_00_00_00_00_00_00_00_00_00_00_00_00_00n,
+    
     float32: -3.4028234663852886e+38,
     
     /** -Number.MAX_VALUE */
     double: -Number.MAX_VALUE,
     
-    bytes16: Uint8Array.from(
-        new Array(16).fill(0)
-    )
+    bytes16: new Uint8Array(16)
 } as const
 
 
@@ -101,6 +102,15 @@ export enum DdbType {
     
     symbol_extended = 145,  // 128 + DdbType.symbol
 }
+
+
+export const number_nulls = new Map<DdbType, number | bigint>([
+    [DdbType.short, nulls.int16],
+    [DdbType.int, nulls.int32],
+    [DdbType.long, nulls.int64],
+    [DdbType.float, nulls.float32],
+    [DdbType.double, nulls.double],
+])
 
 
 export enum DdbFunctionType {
@@ -819,6 +829,24 @@ export function str2nanotimestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SS
 }
 
 
+/** 时间值转字符串函数集合 */
+export const time_formatters = new Map<
+    DdbType, 
+    (value: number | bigint, format?: string) => string
+>([
+    [DdbType.date, date2str],
+    [DdbType.month, month2str],
+    [DdbType.time, time2str],
+    [DdbType.minute, minute2str],
+    [DdbType.second, second2str],
+    [DdbType.datetime, datetime2str],
+    [DdbType.timestamp, timestamp2str],
+    [DdbType.nanotime, nanotime2str],
+    [DdbType.nanotimestamp, nanotimestamp2str],
+    [DdbType.datehour, datehour2str],
+])
+
+
 export function ipaddr2str (buffer: Uint8Array, le = true, ipv6?: boolean) {
     let buf = buffer
     
@@ -855,10 +883,10 @@ export function int1282str (buffer: Uint8Array, le = true) {
 
 
 export interface ConvertOptions {
-    /** `'string'` blob 转换格式 */
+    /** `'string'` blob 转换到 string 还是 Uint8Array */
     blob?: 'string' | 'binary'
     
-    /** `'string'` char 转换格式: string 转为 string[]，number 转为 number[] */
+    /** `'string'` char 转换到 string 还是 number */
     char?: 'string' | 'number'
     
     /** `'strings'` char vector 转换格式: strings 转为 string[], binary 转为 Uint8Array */
@@ -997,12 +1025,18 @@ export const funcdefs = {
 // 缓存，为了优化性能，通常 options.decimals, options.grouping 都是不变的
 
 let _decimals = null
-
 let _grouping = true
 
-let number_formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 20 })
+let number_formatter = new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 20,
+    minimumFractionDigits: 0,
+    useGrouping: true
+})
 
-export function get_number_formatter (decimals = null, grouping = true) {
+export function get_number_formatter (integer: boolean, decimals: number | null = null, grouping = true) {
+    if (integer)
+        decimals = null
+    
     if (decimals === _decimals && grouping === _grouping)
         return number_formatter
     
@@ -1010,12 +1044,8 @@ export function get_number_formatter (decimals = null, grouping = true) {
     _grouping = grouping
     
     return number_formatter = new Intl.NumberFormat('en-US', {
-        ... decimals === null ? {
-            maximumFractionDigits: 20
-        } : {
-            maximumFractionDigits: decimals,
-            minimumFractionDigits: decimals,
-        },
+        maximumFractionDigits: decimals !== null ? decimals : 20,
+        minimumFractionDigits: decimals !== null ? decimals : 0,
         useGrouping: grouping
     })
 }

@@ -8,16 +8,16 @@ import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.bro
 import { t } from './i18n/index.ts'
 
 import {
-    date2str, datehour2str, datetime2str, ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm,
-    DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_patterns, generate_array_type,
+    ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm, generate_array_type,
+    DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_patterns,
     get_big_int_128, get_time_ddbobj, get_duration_unit, get_type_name, int1282str, ipaddr2str, 
-    is_decimal_null_value, is_decimal_type, minute2str, month2str, nanotime2str, nanotimestamp2str, 
-    nulls, second2str, set_big_int_128, time2str, timestamp2str, uuid2str, type ConvertOptions, 
+    is_decimal_null_value, is_decimal_type, time_formatters, number_nulls,
+    nulls, set_big_int_128, uuid2str, type ConvertOptions, 
     type DdbDecimal128Value, type DdbDecimal32Value, type DdbDecimal32VectorValue, 
     type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
-    type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue, 
+    type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
     type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter
 } from './common.ts'
 
@@ -2447,59 +2447,87 @@ export interface InspectOptions {
 }
 
 
+const grey_nullstr = grey('null')
+const nullstr = 'null' as const
 
-/** 根据 DdbType 格式化单个元素 (value) 为字符串 */
+function get_nullstr (options: InspectOptions) {
+    return options.nullstr ?
+        options.colors ? grey_nullstr : nullstr
+    :
+        ''
+}
+
+
+function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
+    if (
+        value === null || 
+        value === ((
+            type === DdbType.timestamp || 
+            type === DdbType.nanotime || 
+            type === DdbType.nanotimestamp
+        )) ? nulls.int64 : nulls.int32
+    )
+        return get_nullstr(options)
+    
+    let str: string
+    
+    // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
+    try {
+        str = time_formatters.get(type)(
+            value as number | bigint, 
+            (type === DdbType.timestamp && options.timestamp === 's') ? 
+                'YYYY.MM.DD HH:mm:ss'
+            :
+                undefined)
+    } catch (error) {
+        if (error instanceof RangeError)
+            str = 'Invalid Date'
+        else
+            throw error
+    }
+    
+    return options.colors ? magenta(str) : str
+}
+
+
+function format_number (type: DdbType, value: number | bigint, options: InspectOptions) {
+    if (value === null || value === number_nulls.get(type))
+        return options.colors ? grey_nullstr : nullstr
+    
+    const str = get_number_formatter(
+        type === DdbType.int || type === DdbType.long || type === DdbType.short, 
+        options.decimals, 
+        options.grouping
+    ).format(value as number | bigint)
+    
+    return options.colors ? green(str) : str
+}
+
+
+/** 根据 DdbType 格式化单个元素 (value) 为字符串，空值根据 nullstr 选项返回 'null' / '' 字符串 */
 export function format (type: DdbType, value: DdbValue, le: boolean, options: InspectOptions = { }): string {
-    const { nullstr = false, colors = false, quote = false, timestamp = 'ms' } = options
-    
-    const number_formatter = get_number_formatter(options.decimals, options.grouping)
-    
-    function get_nullstr () {
-        const str = value === DdbVoidType.default ? 'default' : 'null'
-        return nullstr ?
-            colors ? grey(str) : str
-        :
-            ''
-    }
-    
-    function format_time (
-        formatter: (value: number | bigint, format?: string) => string,
-        _null: number | bigint
-    ) {
-        if (value === null || value === _null)
-            return get_nullstr()
-        
-        let str: string
-        
-        // formatter 可能会在 value 不属于 new Date() 有效值时，调用  抛出错误，这里统一处理
-        try {
-            str = formatter(value as number | bigint, (type === DdbType.timestamp && timestamp === 's') ? 'YYYY.MM.DD HH:mm:ss' : undefined)
-        } catch (error) {
-            if (error instanceof RangeError)
-                str = 'Invalid Date'
-            else
-                throw error
-        }
-        
-        return colors ? magenta(str) : str
-    }
-    
-    
     switch (type) {
-        case DdbType.void:
-            return get_nullstr()
+        case DdbType.void: {
+            return options.nullstr ?
+                ''
+            :
+                value === DdbVoidType.default ?
+                    options.colors ? grey('default') : 'default'
+                :
+                    options.colors ? grey_nullstr : nullstr
+        }
         
         case DdbType.bool:
             if (value === null || value === nulls.int8)
-                return get_nullstr()
+                return get_nullstr(options)
             else {
                 const str = String(Boolean(value))
-                return colors ? blue(str) : str
+                return options.colors ? blue(str) : str
             }
         
         case DdbType.char:
             if (value === null || value === nulls.int8)
-                return get_nullstr()
+                return get_nullstr(options)
             else {
                 let str = 
                     // ascii printable
@@ -2509,95 +2537,47 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 :
                     '\\' + String(value as number)
                 
-                if (quote)
+                if (options.quote)
                     str = str.quote()
                 
-                return colors ? green(str) : str
+                return options.colors ? green(str) : str
             }
         
         case DdbType.short:
-            if (value === null || value === nulls.int16)
-                return get_nullstr()
-            else {
-                const str = number_formatter.format(value as number)
-                return colors ? green(str) : str
-            }
-        
         case DdbType.int:
-            if (value === null || value === nulls.int32)
-                return get_nullstr()
-            else {
-                const str = number_formatter.format(value as number)
-                return colors ? green(str) : str
-            }
-        
         case DdbType.long:
-            if (value === null || value === nulls.int64)
-                return get_nullstr()
-            else {
-                const str = number_formatter.format(value as bigint)
-                return colors ? green(str) : str
-            }
+        case DdbType.float:
+        case DdbType.double:
+            return format_number(type, value as number | bigint, options)
         
         case DdbType.date:
-            return format_time(date2str, nulls.int32)
-        
         case DdbType.month:
-            return format_time(month2str, nulls.int32)
-        
         case DdbType.time:
-            return format_time(time2str, nulls.int32)
-        
         case DdbType.minute:
-            return format_time(minute2str, nulls.int32)
-        
         case DdbType.second:
-            return format_time(second2str, nulls.int32)
-        
         case DdbType.datetime:
-            return format_time(datetime2str, nulls.int32)
-        
         case DdbType.timestamp:
-            return format_time(timestamp2str, nulls.int64)
-        
         case DdbType.nanotime:
-            return format_time(nanotime2str, nulls.int64)
-        
         case DdbType.nanotimestamp:
-            return format_time(nanotimestamp2str, nulls.int64)
-        
-        case DdbType.float:
-            if (value === null || value === nulls.float32)
-                return get_nullstr()
-            else {
-                const str = number_formatter.format(value as number)
-                return colors ? green(str) : str
-            }
-        
-        case DdbType.double:
-            if (value === null || value === nulls.double)
-                return get_nullstr()
-            else {
-                const str = number_formatter.format(value as number)
-                return colors ? green(str) : str
-            }
+        case DdbType.datehour:
+            return format_time(type, value, options)
         
         case DdbType.symbol:
         case DdbType.string: {
             let str = value as string
-            if (quote)
+            if (options.quote)
                 str = str.quote('single')
-            return colors ? cyan(str) : str
+            return options.colors ? cyan(str) : str
         }
         
         case DdbType.uuid: {
             const str = uuid2str(value as Uint8Array, le)
-            return colors ? cyan(str) : str
+            return options.colors ? cyan(str) : str
         }
         
         case DdbType.functiondef: {
             const str = (value as DdbFunctionDefValue).name.quote('single')
-            return colors ? cyan(str) : str
+            return options.colors ? cyan(str) : str
         }
         
         case DdbType.handle:
@@ -2605,20 +2585,17 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         case DdbType.datasource:
         case DdbType.resource: {
             const str = (value as string).quote('single')
-            return colors ? cyan(str) : str
+            return options.colors ? cyan(str) : str
         }
-        
-        case DdbType.datehour:
-            return format_time(datehour2str, nulls.int32)
         
         case DdbType.ipaddr: {
             const str = ipaddr2str(value as Uint8Array, le)
-            return colors ? cyan(str) : str
+            return options.colors ? cyan(str) : str
         }
         
         case DdbType.int128: {
             const str = int1282str(value as Uint8Array, le)
-            return colors ? cyan(str) : str
+            return options.colors ? cyan(str) : str
         }
         
         case DdbType.blob: {
@@ -2628,7 +2605,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 ) + '…'
             :
                 DdbObj.dec.decode(value as Uint8Array)
-            return colors ? cyan(str) : str
+            return options.colors ? cyan(str) : str
         }
         
         case DdbType.point: {
@@ -2644,7 +2621,7 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         case DdbType.duration: {
             const { data, unit } = value as DdbDurationValue
             const str = `${data}${DdbDurationUnit[unit] ?? get_duration_unit(unit)}`
-            return colors ? magenta(str) : str
+            return options.colors ? magenta(str) : str
         }
         
         case DdbType.decimal32: 
@@ -2656,24 +2633,24 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
                 data === null ||
                 is_decimal_null_value(type, data)
             )
-                return get_nullstr()
+                return get_nullstr(options)
             
             const s = String(data < 0 ? -data : data).padStart(scale, '0')
             
             const str = (data < 0 ? '-' : '') + (scale ? `${s.slice(0, -scale) || '0'}.${s.slice(-scale)}` : s)
             
-            return colors ? green(str) : str
+            return options.colors ? green(str) : str
         }
         
         default:
-            return value === null ? get_nullstr() : String(value)
+            return value === null ? get_nullstr(options) : String(value)
     }
 }
 
 
 /** 格式化向量、集合中的第 index 项为字符串，空值返回 'null' 字符串  formatted vector, the index-th item in the collection is a string, a null value returns a 'null' string */
 export function formati (obj: DdbVectorObj, index: number, options: InspectOptions = { }): string {
-    check(index < obj.rows, 'index < obj.rows')
+    check(index < obj.rows, 'index 应该 < obj.rows')
     
     if (obj.type < 64 || obj.type >= 128)  // 普通数组
         switch (obj.type) {

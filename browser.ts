@@ -2465,7 +2465,7 @@ function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
             type === DdbType.timestamp || 
             type === DdbType.nanotime || 
             type === DdbType.nanotimestamp
-        )) ? nulls.int64 : nulls.int32
+        ) ? nulls.int64 : nulls.int32)
     )
         return get_nullstr(options)
     

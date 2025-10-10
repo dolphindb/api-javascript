@@ -7,7 +7,8 @@ import { keywords } from './language.ts'
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
     DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
-    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
+    type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, 
+    type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
     DdbVectorInt, DdbTable, type DdbExtObjValue
 } from './index.ts'
 
@@ -25,17 +26,21 @@ const url = 'ws://192.168.0.54:8848' as const
 const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
 
 
+const repl = false
+async function test_repl (ddb: DDB) {
+    
+}
+
+
 ;(async function test () {
     console.log('--- 测试开始 ---'.green)
     
     let ddb = new DDB(url, ddb_options)
     
-    const tests = [
-        test_repl,
-        
-        // test_iot_vector,
-        // test_extobj,
-        
+    // @ts-ignore
+    const tests = repl ? 
+        [test_repl]
+    : [
         test_keywords,
         test_types,
         test_reconnection,
@@ -46,6 +51,9 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
         test_error,
         test_invoke,
         test_append_table
+        
+        // test_iot_vector,
+        // test_extobj,
     ]
     
     for (const fn_test of tests)
@@ -59,7 +67,7 @@ const ddb_options: DdbOptions = ramdisk ? { proxy: MyProxy.work } : { }
 
 
 function test_keywords () {
-    assert(new Set(keywords).size === keywords.length, 'keywords 中不能有重复的项')
+    check(new Set(keywords).size === keywords.length, 'keywords 中不能有重复的项')
 }
 
 
@@ -84,11 +92,6 @@ async function get_printed (ddb: DDB, code: string) {
             reject(error)
         }
     })
-}
-
-
-async function test_repl (ddb: DDB) {
-    
 }
 
 

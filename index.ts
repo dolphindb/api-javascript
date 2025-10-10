@@ -2436,7 +2436,6 @@ export interface InspectOptions extends UtilInspectOptions {
 
 
 const grey_nullstr = 'null'.grey
-const nullstr = 'null' as const
 
 
 function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
@@ -2448,7 +2447,7 @@ function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
             type === DdbType.nanotimestamp
         ) ? nulls.int64 : nulls.int32)
     )
-        return options.colors ? grey_nullstr : nullstr
+        return options.colors ? grey_nullstr : 'null'
     
     let str: string
     
@@ -2473,7 +2472,7 @@ function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
 
 function format_number (type: DdbType, value: number | bigint, options: InspectOptions) {
     return value === null || value === number_nulls.get(type) ?
-        options.colors ? grey_nullstr : nullstr
+        options.colors ? grey_nullstr : 'null'
     : colored(
         get_number_formatter(
             type === DdbType.int || type === DdbType.long || type === DdbType.short, 

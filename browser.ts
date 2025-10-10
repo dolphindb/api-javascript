@@ -2433,7 +2433,7 @@ export interface InspectOptions {
     /** `null` decimal places 小数位数 */
     decimals?: number
     
-    /** `false` 决定 null 值如何返回. nullstr ? 'null' : '' */
+    /** `在 format 中默认为 false，在 toString 中默认为 true` 决定 null 值如何返回. nullstr ? 'null' : '' */
     nullstr?: boolean
     
     /** `在 format 中默认为 false，在 toString 中默认为 true` 决定 string, symbol, char 类型是否加引号 */
@@ -2448,11 +2448,10 @@ export interface InspectOptions {
 
 
 const grey_nullstr = grey('null')
-const nullstr = 'null' as const
 
 function get_nullstr (options: InspectOptions) {
     return options.nullstr ?
-        options.colors ? grey_nullstr : nullstr
+        options.colors ? grey_nullstr : 'null'
     :
         ''
 }
@@ -2492,7 +2491,10 @@ function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
 
 function format_number (type: DdbType, value: number | bigint, options: InspectOptions) {
     if (value === null || value === number_nulls.get(type))
-        return options.colors ? grey_nullstr : nullstr
+        return options.nullstr ? 
+            options.colors ? grey_nullstr : 'null'
+        :
+            ''
     
     const str = get_number_formatter(
         type === DdbType.int || type === DdbType.long || type === DdbType.short, 
@@ -2509,12 +2511,12 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
     switch (type) {
         case DdbType.void: {
             return options.nullstr ?
-                ''
-            :
                 value === DdbVoidType.default ?
                     options.colors ? grey('default') : 'default'
                 :
-                    options.colors ? grey_nullstr : nullstr
+                    options.colors ? grey_nullstr : 'null'
+            :
+                ''
         }
         
         case DdbType.bool:

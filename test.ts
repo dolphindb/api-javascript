@@ -37,27 +37,26 @@ async function test_repl (ddb: DDB) {
     
     let ddb = new DDB(url, ddb_options)
     
-    // @ts-ignore
-    const tests = repl ? 
-        [test_repl]
-    : [
-        test_keywords,
-        test_types,
-        test_reconnection,
-        test_connection_error,
-        test_print,
-        test_time,
-        test_streaming,
-        test_error,
-        test_invoke,
-        test_append_table
-        
-        // test_iot_vector,
-        // test_extobj,
-    ]
-    
-    for (const fn_test of tests)
-        await fn_test(ddb)
+    for (const t of
+        repl ? 
+            [test_repl]
+        : [
+            test_keywords,
+            test_types,
+            test_reconnection,
+            test_connection_error,
+            test_print,
+            test_time,
+            test_streaming,
+            test_error,
+            test_invoke,
+            test_append_table
+            
+            // test_iot_vector,
+            // test_extobj,
+        ]
+    )
+        await t(ddb)
     
     ddb.disconnect()
     

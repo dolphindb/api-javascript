@@ -4,7 +4,7 @@ import type { Dayjs } from 'dayjs'
 
 import {
     concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, seq, zip_object,
-    WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocket, type WebSocketConnectionError,
+    WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocketConnectionError,
     decode, delay, check, empty, colored
 } from 'xshell'
 

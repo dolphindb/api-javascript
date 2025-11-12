@@ -13,5 +13,7 @@ node_modules/
 /package-lock.json
 /eslint.config.js
 
-/i18n/stats.json
+/api.js
+/api.js.map
+
 /i18n/untranslateds.json

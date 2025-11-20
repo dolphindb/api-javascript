@@ -5,7 +5,7 @@ import type { Dayjs } from 'dayjs'
 import {
     concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, seq, zip_object,
     WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocketConnectionError,
-    decode, delay, check, empty, colored
+    decode, check, empty, colored
 } from 'xshell'
 
 import { t } from './i18n/index.ts'
@@ -3673,8 +3673,6 @@ export class DDB {
     
     parse_object = true
     
-    heartbeat_aborter?: AbortController
-    
     
     /** 在 websocket 收到的第一个 error 时，  
         在 connect_websocket 的 on_error 回调中构造 DdbConnectionError 并保存到 DDB 对象上，  
@@ -3820,18 +3818,15 @@ export class DDB {
                     
                     proxy: this.proxy,
                     
+                    keep_alive_duration: 30_000,
+                    
                     on_message: (buffer: ArrayBuffer, websocket) => {
                         this.on_message(new Uint8Array(buffer), websocket)
                     },
                     
                     on_error: error => {
                         this.error ??= new DdbConnectionError(this.url, error)
-                        this.heartbeat_aborter?.abort()
                         this.on_error()
-                    },
-                    
-                    on_close: () => {
-                        this.heartbeat_aborter?.abort()
                     }
                 })
             } catch (error) {
@@ -3847,30 +3842,6 @@ export class DDB {
                 
                 if (this.streaming)
                     await this.subscribe()
-                else
-                    // 定时执行一次空脚本作为心跳检查，避免因为 nat 超时导致 tcp 连接断开
-                    (async () => {
-                        this.heartbeat_aborter = new AbortController()
-                        
-                        while (true) {
-                            // 连接主动关闭时从循环退出防止影响 node.js 退出
-                            try {
-                                await delay(1000 * 60 * 4.5, { signal: this.heartbeat_aborter.signal })
-                            } catch {
-                                break
-                            }
-                            
-                            if (this.connected)
-                                try {
-                                    await this.eval('')
-                                } catch (error) {
-                                    console.log(t('{{time}} 心跳检测失败，连接已断开', { time: new Date().to_formal_str() }), error)
-                                    break
-                                }
-                            else
-                                break
-                        }
-                    })()
                 
                 resolve()
             } catch (error) {
@@ -3982,8 +3953,6 @@ export class DDB {
     
     
     disconnect () {
-        this.heartbeat_aborter?.abort()
-        
         const { resource } = this.lwebsocket
         
         if (resource) {

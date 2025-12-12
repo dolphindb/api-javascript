@@ -18,7 +18,7 @@ import {
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
     type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
-    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter
+    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter, _urgent
 } from './common.ts'
 
 export * from './common.ts'
@@ -3613,6 +3613,7 @@ export enum SqlStandard {
 
 export interface DdbOptions {
     autologin?: boolean
+    ticket?: string
     username?: string
     password?: string
     python?: boolean
@@ -3665,6 +3666,9 @@ export class DDB {
     
     /** 是否在建立连接后自动登录，默认 true  Whether to automatically log in after the connection is established, the default is true */
     autologin = true
+    
+    /** DolphinDB 登录 ticket，优先级比用户名密码更高，设置后不使用密码登录 */
+    ticket?: string
     
     /** DolphinDB 登录用户名  DolphinDB username */
     username = 'admin'
@@ -3768,6 +3772,9 @@ export class DDB {
         if (options.autologin !== undefined)
             this.autologin = options.autologin
         
+        if (options.ticket)
+            this.ticket = options.ticket
+        
         if (options.username !== undefined)
             this.username = options.username
         
@@ -3862,6 +3869,9 @@ export class DDB {
                 
                 await this.rpc('connect', { skip_connection_check: true })
                 
+                if (this.autologin && this.ticket)
+                    await this.login_by_ticket(undefined, true)
+                
                 if (this.streaming)
                     await this.subscribe()
                 
@@ -3871,6 +3881,17 @@ export class DDB {
                 reject(error)
             }
         })
+    }
+    
+    
+    /** 使用 ticket 登录 
+        - ticket?: `this.ticket` 手动传入时会更新 this.ticket
+        - skip_connection_check? */
+    async login_by_ticket (ticket?: string, skip_connection_check = false) {
+        if (ticket)
+            this.ticket = ticket
+        
+        await this.invoke('authenticateByTicket', [this.ticket], { urgent: true, skip_connection_check })
     }
     
     
@@ -4023,7 +4044,7 @@ export class DDB {
             try {
                 await (this.ppnode_run ??= this.eval<DdbVoid>(
                     funcdefs.pnode_run[this.language], 
-                    { urgent: true }))
+                    _urgent))
             } catch (error) {
                 this.ppnode_run = undefined
                 throw error
@@ -4093,7 +4114,7 @@ export class DDB {
                             if (this.verbose)
                                 console.log(
                                     'connect()' + 
-                                    (this.autologin ? 
+                                    (this.autologin && !this.ticket ? 
                                         '\n' + 
                                         `login(${this.username.quote()}, ${this.password.quote()})`
                                     :
@@ -4104,7 +4125,7 @@ export class DDB {
                             return 'connect\n' +
                                 // 详见 InterProcessIO.cpp#APISocketConsole::parseScript 中的
                                 // Util::startWith "connect"
-                                (this.autologin ? 
+                                (this.autologin && !this.ticket ? 
                                     'login\n' +
                                     this.username + '\n' +
                                     this.password /* encrypted (可选参数) + '\n' + 'false' */
@@ -4260,7 +4281,7 @@ export class DDB {
             try {
                 await (this.pjsrpc ??= this.eval<DdbVoid>(
                     funcdefs.jsrpc[this.language], 
-                    { urgent: true }))
+                    _urgent))
             } catch (error) {
                 this.pjsrpc = undefined
                 throw error
@@ -4346,7 +4367,7 @@ export class DDB {
             try {
                 await (this.pinvoke ??= this.eval<DdbVoid>(
                     funcdefs.invoke[this.language],
-                    { urgent: true }))
+                    _urgent))
             } catch (error) {
                 // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
                 this.pinvoke = undefined
@@ -4396,6 +4417,7 @@ export class DDB {
     async cancel () {
         let ddb = new DDB(this.url, {
             autologin: this.autologin,
+            ticket: this.ticket,
             username: this.username,
             password: this.password,
             verbose: this.verbose
@@ -4407,7 +4429,7 @@ export class DDB {
                 `jobs = exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}\n` +
                 'if (size(jobs))\n' +
                 '    cancelConsoleJob(jobs)\n',
-                { urgent: true })
+                _urgent)
         } finally {
             ddb.disconnect()
         }

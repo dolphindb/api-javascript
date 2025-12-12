@@ -1049,3 +1049,6 @@ export function get_number_formatter (integer: boolean, decimals: number | null 
         useGrouping: grouping
     })
 }
+
+
+export const _urgent = { urgent: true }

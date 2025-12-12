@@ -45,6 +45,7 @@ async function test_repl (ddb: DDB) {
             test_types,
             test_reconnection,
             test_connection_error,
+            test_ticket,
             test_print,
             test_time,
             test_streaming,
@@ -697,5 +698,30 @@ async function test_extobj (ddb: DDB) {
     
     // console.log(
     //     ext_table.value[3].data())
+}
+
+
+async function test_ticket (ddb: DDB) {
+    console.log('测试 ticket 登录')
+    
+    const ticket = await ddb.invoke('getAuthenticatedUserTicket', undefined, {
+        node: await ddb.invoke<string>('getControllerAlias')
+    })
+    
+    let ddb_ = new DDB(url, {
+        ...ddb_options,
+        ticket,
+        username: 'unused',
+        password: 'unused'
+    })
+    
+    check(
+        (await ddb_.invoke<[bigint, string]>('getCurrentSessionAndUser'))
+            [1],
+        'admin')
+    
+    await ddb_.login_by_ticket()
+    
+    ddb_.disconnect()
 }
 

@@ -21,7 +21,7 @@ import {
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
     type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
-    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter, _urgent
+    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter, urgent
 } from './common.ts'
 
 export * from './common.ts'
@@ -4012,7 +4012,7 @@ export class DDB {
             func,
             args: _args = [ ],
             vars = [ ],
-            urgent,
+            urgent: u,
             listener,
             on_more_messages,
         } = options
@@ -4022,7 +4022,7 @@ export class DDB {
             try {
                 await (this.ppnode_run ??= this.eval<DdbVoid>(
                     funcdefs.pnode_run[this.language], 
-                    _urgent))
+                    urgent))
             } catch (error) {
                 this.ppnode_run = undefined
                 throw error
@@ -4162,7 +4162,7 @@ export class DDB {
                 
                 websocket.send(
                     concat([
-                        this.enc.encode(`API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent })}\n`),
+                        this.enc.encode(`API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent: u })}\n`),
                         command,
                         ... args.map(arg => arg.pack())
                     ])
@@ -4242,7 +4242,7 @@ export class DDB {
         func: string,
         args: (DdbObj | string | boolean)[] = [ ],
         {
-            urgent,
+            urgent: u,
             node,
             nodes,
             add_node_alias,
@@ -4259,7 +4259,7 @@ export class DDB {
             try {
                 await (this.pjsrpc ??= this.eval<DdbVoid>(
                     funcdefs.jsrpc[this.language], 
-                    _urgent))
+                    urgent))
             } catch (error) {
                 this.pjsrpc = undefined
                 throw error
@@ -4294,7 +4294,7 @@ export class DDB {
         return this.rpc<TResult>('function', {
             func: func_,
             args: args_,
-            urgent,
+            urgent: u,
             listener,
             parse_object,
             skip_connection_check,
@@ -4345,7 +4345,7 @@ export class DDB {
             try {
                 await (this.pinvoke ??= this.eval<DdbVoid>(
                     funcdefs.invoke[this.language],
-                    _urgent))
+                    urgent))
             } catch (error) {
                 // invoke 没有正确执行时，重新将 pinvoke 赋值为 undefined
                 this.pinvoke = undefined
@@ -4408,7 +4408,7 @@ export class DDB {
                 `jobs = exec rootJobId from getConsoleJobs() where sessionId = ${this.sid}\n` +
                 'if (size(jobs))\n' +
                 '    cancelConsoleJob(jobs)\n',
-                _urgent)
+                urgent)
         } finally {
             ddb.disconnect()
         }

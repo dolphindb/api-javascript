@@ -34,6 +34,7 @@ const sql_keywords = [
     
     'join',
     'inner join',
+    'outer join',
     'full join',
     'full outer join',
     'left join',

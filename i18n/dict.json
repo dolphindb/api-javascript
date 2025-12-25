@@ -121,5 +121,8 @@
     },
     "value 不能转换为 {{typename}}": {
         "en": "value cannot be converted to {{typename}}"
+    },
+    "ddb.cancel 无 ticket，尝试通过密码 login 失败": {
+        "en": "ddb.cancel has no ticket, attempt to login using password failed"
     }
 }

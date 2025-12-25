@@ -4416,12 +4416,20 @@ export class DDB {
     /** 取消当前 session id 对应的所有 console jobs  Cancel all console jobs corresponding to the current session id */
     async cancel () {
         let ddb = new DDB(this.url, {
-            autologin: this.autologin,
+            // 如果有 ticket，则认为能够自动登录，并启用，否则禁用，尝试一下用户名密码登录
+            autologin: Boolean(this.ticket),
             ticket: this.ticket,
             username: this.username,
             password: this.password,
             verbose: this.verbose
         })
+        
+        if (!this.ticket)
+            try {
+                await this.invoke('login', [this.username, this.password])
+            } catch (error) {
+                console.log(t('ddb.cancel 无 ticket，尝试通过密码 login 失败'))
+            }
         
         try {
             // 因为是新建的连接，而且执行完脚本之后马上就关闭了，所以不用考虑变量泄漏的问题

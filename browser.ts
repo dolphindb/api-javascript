@@ -4682,6 +4682,8 @@ export class DDB {
     }
     
     
+    /** 在 undef all, 或运行 test 函数之后，由于函数定义在 server 侧被清空，需要同步清空 api 侧缓存，  
+        使得下次调用 invoke, define 能够重新定义函数 */
     reset_definitions () {
         this.definitions.clear()
         this.pdefinitions.clear()

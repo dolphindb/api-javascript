@@ -4659,6 +4659,12 @@ export class DDB {
         
         return func_name
     }
+    
+    
+    reset_definitions () {
+        this.definitions.clear()
+        this.pdefinitions.clear()
+    }
 }
 
 

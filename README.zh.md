@@ -1,5 +1,5 @@
 # DolphinDB JavaScript API
-1
+
 <p align='center'>
     <img src='./ddb.svg' alt='DolphinDB' width='256'>
 </p>

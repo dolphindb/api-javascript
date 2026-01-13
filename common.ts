@@ -151,6 +151,7 @@ export enum DdbChartType {
     scatter = 6,
     trend = 7,
     kline = 8,
+    surface = 9
 }
 
 

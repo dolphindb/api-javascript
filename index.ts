@@ -91,6 +91,7 @@ export interface DdbChartValue {
         chart: string
         x_axis: string
         y_axis: string
+        z_axis?: string
     }
     
     extras?: {
@@ -375,7 +376,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         data: DdbMatrixObj
                     }>()
                     
-                    const [chart, x_axis, y_axis] = titles.value
+                    const [chart, x_axis, y_axis, z_axis] = titles.value
                     
                     dict.form = DdbForm.chart
                     
@@ -386,6 +387,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             chart,
                             x_axis,
                             y_axis,
+                            z_axis
                         },
                         ... bin_start ? { bin_start, bin_end, } : { },
                         ... bin_count ? { bin_count } : { },
@@ -1510,7 +1512,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         type,
                         stacking,
                         bin_start, bin_end, bin_count,
-                        titles: { chart, x_axis, y_axis },
+                        titles: { chart, x_axis, y_axis, z_axis },
                         extras,
                         data
                     } = this.value as DdbChartValue
@@ -1522,7 +1524,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         stacking,
                         ... bin_start ? { binStart: bin_start, binEnd: bin_end } : { },
                         ... bin_count ? { binCount: bin_count } : { },
-                        title: new DdbVectorString([chart, x_axis, y_axis]),
+                        title: new DdbVectorString([chart, x_axis, y_axis, z_axis]),
                         ... extras ? (() => {
                             const { multi_y_axes, ...extras_other } = extras
                             return { extras: new DdbDict({ multiYAxes: multi_y_axes, ...extras_other }) }

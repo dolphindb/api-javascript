@@ -9,9 +9,10 @@
         <script type="module">
             import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
             
-            let ddb = new DDB('ws://127.0.0.1:8848', { kdb: true })
+            let ddb = new DDB('ws://127.0.0.1:8848')
             
-            await ddb.invoke('xxx')
+            console.log(
+                await ddb.execute('1 + 1'))
         </script>
     </body>
 </html>

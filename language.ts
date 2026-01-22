@@ -305,6 +305,7 @@ export const constants = [
     'SCATTER',
     'HISTOGRAM',
     'KLINE',
+    'SURFACE',
     
     
     // --- log level

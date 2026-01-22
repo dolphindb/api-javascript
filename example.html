@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+    <head>
+        <title>DolphinDB</title>
+        <meta charset='utf-8' />
+    </head>
+    <body>
+        <div>open devtools (press f12) to view output</div>
+        <script type="module">
+            import { DDB } from 'https://cdn.dolphindb.cn/assets/api.js'
+            
+            let ddb = new DDB('ws://127.0.0.1:8848', { kdb: true })
+            
+            await ddb.invoke('xxx')
+        </script>
+    </body>
+</html>

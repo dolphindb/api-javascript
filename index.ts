@@ -1517,6 +1517,13 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         data
                     } = this.value as DdbChartValue
                     
+                    let titles = [ ]
+                    for (const title of [chart, x_axis, y_axis, z_axis]) 
+                        if (empty(title))
+                            break
+                        else
+                            titles.push(title)
+                    
                     const {
                         value: [keys, values]
                     } = new DdbDict({
@@ -1524,7 +1531,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         stacking,
                         ... bin_start ? { binStart: bin_start, binEnd: bin_end } : { },
                         ... bin_count ? { binCount: bin_count } : { },
-                        title: new DdbVectorString([chart, x_axis, y_axis, z_axis]),
+                        title: new DdbVectorString(titles),
                         ... extras ? (() => {
                             const { multi_y_axes, ...extras_other } = extras
                             return { extras: new DdbDict({ multiYAxes: multi_y_axes, ...extras_other }) }

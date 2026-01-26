@@ -279,6 +279,16 @@ export const constants = [
     'VIEW_OWNER',
     'QUERY_RESULT_MEM_LIMIT',
     
+    'ORCA_GRAPH_CREATE',
+    'ORCA_GRAPH_DROP',
+    'ORCA_GRAPH_CONTROL',
+    'ORCA_TABLE_CREATE',
+    'ORCA_TABLE_DROP',
+    'ORCA_TABLE_READ',
+    'ORCA_TABLE_WRITE',
+    'ORCA_ENGINE_MANAGE',
+    'ORCA_MANAGE',
+    
     
     // hint
     // https://www.dolphindb.cn/cn/help/200/FunctionsandCommands/FunctionReferences/s/sql.html

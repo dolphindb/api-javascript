@@ -51,7 +51,8 @@ async function test_repl (ddb: DDB) {
             test_streaming,
             test_error,
             test_invoke,
-            test_append_table
+            test_append_table,
+            test_cancel
             
             // test_iot_vector,
             // test_extobj,
@@ -723,5 +724,37 @@ async function test_ticket (ddb: DDB) {
     await ddb_.login_by_ticket()
     
     ddb_.disconnect()
+}
+
+
+async function test_cancel (ddb: DDB) {
+    console.log('测试取消作业')
+    
+    let t = Date.now()
+    
+    let cancelled = false
+    
+    // 完整执行需要 5 秒
+    const ptask = ddb.execute(
+        'for (i in 0..50)\n' +
+        '    sleep(100)\n')
+    
+    await ddb.cancel()
+    
+    try {
+        await ptask
+        
+        throw new Error('不应该执行成功')
+    } catch (error) {
+        if (error instanceof DdbDatabaseError) {
+            check(error.message.includes('=> The task was cancelled'), '作业应该取消成功')
+            cancelled = true
+        } else
+            throw error
+    }
+    
+    check(cancelled && Date.now() - t < 1000, '取消作业成功时时间应该小于 1 秒')
+    
+    console.log('测试取消作业成功')
 }
 

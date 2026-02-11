@@ -4414,7 +4414,7 @@ export class DDB {
         
         if (!this.ticket)
             try {
-                await this.invoke('login', [this.username, this.password])
+                await ddb.invoke('login', [this.username, this.password])
             } catch (error) {
                 console.log(t('ddb.cancel 无 ticket，尝试通过密码 login 失败'))
             }

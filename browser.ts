@@ -18,7 +18,8 @@ import {
     type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
     type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
     type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
-    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter, urgent
+    type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter, urgent,
+    type DdbLanguage
 } from './common.ts'
 
 export * from './common.ts'
@@ -3687,7 +3688,7 @@ export class DDB {
     /** 是否为 dolphindb 语言 */
     dolphindb = true
     
-    language: 'dolphindb' | 'python' | 'kdb' = 'dolphindb'
+    language: DdbLanguage = 'dolphindb'
     
     /** 表示本次会话执行的 SQL 标准 */
     sql = SqlStandard.DolphinDB

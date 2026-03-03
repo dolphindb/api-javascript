@@ -1,7 +1,7 @@
 import type { Dayjs } from 'dayjs'
 
 import { empty } from 'xshell/prototype.browser.js'
-import { blue, cyan, green, grey, magenta } from 'xshell/chalk.browser.js'
+import { blue, cyan, green, gray, magenta } from 'xshell/chalk.browser.js'
 import { concat, assert, Lock, genid, seq, zip_object, decode, delay, check } from 'xshell/utils.browser.js'
 import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.browser.js'
 
@@ -2450,11 +2450,11 @@ export interface InspectOptions {
 }
 
 
-const grey_nullstr = grey('null')
+const gray_nullstr = gray('null')
 
 function get_nullstr (options: InspectOptions) {
     return options.nullstr ?
-        options.colors ? grey_nullstr : 'null'
+        options.colors ? gray_nullstr : 'null'
     :
         ''
 }
@@ -2495,7 +2495,7 @@ function format_time (type: DdbType, value: DdbValue, options: InspectOptions) {
 function format_number (type: DdbType, value: number | bigint, options: InspectOptions) {
     if (value === null || value === number_nulls.get(type))
         return options.nullstr ? 
-            options.colors ? grey_nullstr : 'null'
+            options.colors ? gray_nullstr : 'null'
         :
             ''
     
@@ -2515,9 +2515,9 @@ export function format (type: DdbType, value: DdbValue, le: boolean, options: In
         case DdbType.void: {
             return options.nullstr ?
                 value === DdbVoidType.default ?
-                    options.colors ? grey('default') : 'default'
+                    options.colors ? gray('default') : 'default'
                 :
-                    options.colors ? grey_nullstr : 'null'
+                    options.colors ? gray_nullstr : 'null'
             :
                 ''
         }
@@ -2762,7 +2762,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                             const x = data[acc_len + i]
                             
                             if (is_decimal_null_value(type_, x))
-                                items[i] = options.colors ? grey('null') : 'null'
+                                items[i] = options.colors ? gray('null') : 'null'
                             else {
                                 const { scale } = obj.value as DdbArrayVectorValue
                                 

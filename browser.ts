@@ -10,13 +10,13 @@ import { t } from './i18n/index.ts'
 import {
     ddb_tensor_bytes, DdbChartType, DdbDurationUnit, DdbForm, generate_array_type,
     DdbFunctionType, DdbType, DdbVoidType, dictables, function_definition_patterns,
-    get_big_int_128, get_time_ddbobj, get_duration_unit, get_type_name, int1282str, ipaddr2str, 
+    get_big_int_128, get_time_ddbobj, get_duration_unit, get_type_name, int1282str, ipaddr2str,
     is_decimal_null_value, is_decimal_type, time_formatters, number_nulls,
-    nulls, set_big_int_128, uuid2str, type ConvertOptions, 
-    type DdbDecimal128Value, type DdbDecimal32Value, type DdbDecimal32VectorValue, 
-    type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue, 
-    type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType, 
-    type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData, 
+    nulls, set_big_int_128, SqlStandard, uuid2str, type ConvertOptions,
+    type DdbDecimal128Value, type DdbDecimal32Value, type DdbDecimal32VectorValue,
+    type DdbDecimal64Value, type DdbDecimal64VectorValue, type DdbDurationValue,
+    type DdbDurationVectorValue, type DdbFunctionDefValue, type DdbMatrixData, type DdbRpcType,
+    type DdbScalarValue, type DdbSymbolExtendedValue, type DdbTableData, type DdbTensorData,
     type DdbTensorValue, type IotVectorItemValue, type TensorData, type DdbExtObjValue,
     type ConvertableDdbTimeValue, get_times_ddbobj, funcdefs, get_number_formatter, urgent,
     type DdbLanguage
@@ -195,8 +195,8 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 value: null
             })
         
-        const type = buf[0]
-        const form = buf[1]
+        const type = buf[0] as DdbType
+        const form = buf[1] as DdbForm
         
         if (buf.length <= 2) 
             return new this({
@@ -324,7 +324,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 let keys = this.parse_vector(
                     buf_data.subarray(2),
                     le,
-                    buf_data[0]
+                    buf_data[0] as DdbType
                 )
                 
                 keys.length += 2
@@ -332,7 +332,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 let values = this.parse_vector(
                     buf_data.subarray(keys.length + 2),
                     le,
-                    buf_data[keys.length]
+                    buf_data[keys.length] as DdbType
                 )
                 
                 values.length += 2
@@ -808,7 +808,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
             // block 1
             // ...
             
-            const type_ = type - 64
+            const type_ = type - 64 as DdbType
             
             const cols = dv.getUint32(4, le)
             
@@ -876,7 +876,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         data = new BigInt128Array(buf.buffer.slice(buf.byteOffset + i_data_start, buf.byteOffset + i_data_start + len_items))
                         break
                     default:
-                        [len_items, data] = this.parse_vector_items(buf.subarray(i_data_start), le, type - 64, total_length)
+                        [len_items, data] = this.parse_vector_items(buf.subarray(i_data_start), le, type - 64 as DdbType, total_length)
                 }
                 
                 blocks.push({
@@ -1261,7 +1261,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                 for (let i = 0;  i < length;  i++)
                     durations.push({
                         data: dv.getInt32(0 + 8 * i, le),
-                        unit: dv.getInt32(4 + 8 * i, le)
+                        unit: dv.getInt32(4 + 8 * i, le) as DdbDurationUnit
                     })
                 
                 return [8 * length, durations]
@@ -1457,7 +1457,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     if (form === DdbForm.vector && 64 <= type && type < 128)
                         return [
                             Uint32Array.of(this.rows, this.cols),
-                            ... (is_decimal_type(type - 64)) ? 
+                            ... (is_decimal_type(type - 64 as DdbType)) ?
                                 [Int32Array.of((this.value as DdbArrayVectorValue).scale)]
                             :
                                 [ ],
@@ -2051,7 +2051,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                                         }
                                         
                                         default:
-                                            items[i] = format(type_, data[acc_len + i], this.le, options)
+                                            items[i] = format(type_ as DdbType, data[acc_len + i], this.le, options)
                                             break
                                     }
                                 
@@ -2406,7 +2406,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
         
         const [{ value: keys, type: key_type }, { value: values, type: value_type }] = this.value as DdbDictValue
         
-        assert(key_type === DdbType.string && dictables.has(value_type), t('当前只支持自动转换 dict<string, any | ...dictables> 为 js object'))
+        assert(key_type === DdbType.string && dictables.has(value_type as any), t('当前只支持自动转换 dict<string, any | ...dictables> 为 js object'))
         assert(!(deep && !strip), t('deep = true 时必须设置 strip = true'))
         
         let obj = { }
@@ -2801,7 +2801,7 @@ export function formati (obj: DdbVectorObj, index: number, options: InspectOptio
                         }
                         
                         default:
-                            items[i] = format(type_, data[acc_len + i], obj.le, options)
+                            items[i] = format(type_ as DdbType, data[acc_len + i], obj.le, options)
                             break
                     }
                 
@@ -3026,7 +3026,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
                         return converts(type_, data.subarray(acc_len, acc_len += 16 * length), length, le, options)
                     
                     default:
-                        return converts(type_, data.subarray(acc_len, acc_len += length), length, le, options)
+                        return converts(type_ as DdbType, data.subarray(acc_len, acc_len += length), length, le, options)
                 }
             })
         }).flat()
@@ -3036,7 +3036,7 @@ export function converts (type: DdbType, value: DdbVectorValue, rows: number, le
 
 /** 构造 void 类型，默认为 `DdbVoidType.undefined` */
 export class DdbVoid extends DdbObj<undefined> {
-    constructor (value = DdbVoidType.undefined) {
+    constructor (value: DdbVoidType = DdbVoidType.undefined) {
         super({
             form: DdbForm.scalar,
             type: DdbType.void,
@@ -3606,14 +3606,6 @@ export class DdbDatabaseError extends Error {
 }
 
 
-/** SQL Standrd 标准类型 */
-export enum SqlStandard {
-    DolphinDB = 0,
-    Oracle = 1,
-    MySQL = 2
-}
-
-
 export interface DdbOptions {
     autologin?: boolean
     ticket?: string
@@ -3691,7 +3683,7 @@ export class DDB {
     language: DdbLanguage = 'dolphindb'
     
     /** 表示本次会话执行的 SQL 标准 */
-    sql = SqlStandard.DolphinDB
+    sql: SqlStandard = SqlStandard.DolphinDB
     
     /** 是否为流数据连接，非流数据这个字段恒为 null  Whether it is a streaming data connection, this field is always null for non-streaming data */
     streaming = null as StreamingParams

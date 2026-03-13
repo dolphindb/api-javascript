@@ -2,7 +2,7 @@ import { default as dayjs, type Dayjs } from 'dayjs'
 import DayjsCustomParseFormat from 'dayjs/plugin/customParseFormat.js'
 dayjs.extend(DayjsCustomParseFormat)
 
-import { empty } from 'xshell/prototype.common.js'
+import { empty, set_reverse, type ValueOf } from 'xshell/prototype.common.js'
 import { check } from 'xshell/utils.common.js'
 
 import ipaddrjs from 'ipaddr.js'
@@ -29,79 +29,83 @@ export const nulls = {
 } as const
 
 
-export enum DdbForm {
-    scalar = 0,
-    vector = 1,
-    pair = 2,
-    matrix = 3,
-    set = 4,
-    dict = 5,
-    table = 6,
-    chart = 7,
+export const DdbForm = set_reverse({
+    scalar: 0,
+    vector: 1,
+    pair: 2,
+    matrix: 3,
+    set: 4,
+    dict: 5,
+    table: 6,
+    chart: 7,
     
     /** 节点内部通信可能会使用，调用函数执行脚本一般不会返回这种类型 */
-    chunk = 8,
+    chunk: 8,
     
     /** sysobj */
-    object = 9,
-    tensor = 10,
+    object: 9,
+    tensor: 10,
     
-    extobj = 11
-}
+    extobj: 11
+} as const)
+
+export type DdbForm = ValueOf<typeof DdbForm>
 
 
-/** DolphinDB DataType  
+/** DolphinDB DataType
     对应的 array vector 类型为 64 + 基本类型
     对应的 extended 类型为 128 + 基本类型 */
-export enum DdbType {
-    void = 0,
-    bool = 1,
-    char = 2,
-    short = 3,
-    int = 4,
-    long = 5,
-    date = 6,
-    month = 7,
-    time = 8,
-    minute = 9,
-    second = 10,
-    datetime = 11,
-    timestamp = 12,
-    nanotime = 13,
-    nanotimestamp = 14,
-    float = 15,
-    double = 16,
-    symbol = 17,
-    string = 18,
-    uuid = 19,
-    functiondef = 20,
-    handle = 21,
-    code = 22,
-    datasource = 23,
-    resource = 24,
-    any = 25,
-    compressed = 26,
-    dict = 27,
-    datehour = 28,
-    ipaddr = 30,
-    int128 = 31,
-    blob = 32,
-    complex = 34,
-    point = 35,
-    duration = 36,
+export const DdbType = set_reverse({
+    void: 0,
+    bool: 1,
+    char: 2,
+    short: 3,
+    int: 4,
+    long: 5,
+    date: 6,
+    month: 7,
+    time: 8,
+    minute: 9,
+    second: 10,
+    datetime: 11,
+    timestamp: 12,
+    nanotime: 13,
+    nanotimestamp: 14,
+    float: 15,
+    double: 16,
+    symbol: 17,
+    string: 18,
+    uuid: 19,
+    functiondef: 20,
+    handle: 21,
+    code: 22,
+    datasource: 23,
+    resource: 24,
+    any: 25,
+    compressed: 26,
+    dict: 27,
+    datehour: 28,
+    ipaddr: 30,
+    int128: 31,
+    blob: 32,
+    complex: 34,
+    point: 35,
+    duration: 36,
     
-    decimal32 = 37,
-    decimal64 = 38,
-    decimal128 = 39,
+    decimal32: 37,
+    decimal64: 38,
+    decimal128: 39,
     
-    object = 40,
-    iotany = 41,
+    object: 40,
+    iotany: 41,
     
-    instrument = 42,
-    market_data = 43,
+    instrument: 42,
+    market_data: 43,
     
-    symbol_extended = 145,  // 128 + DdbType.symbol
-}
+    symbol_extended: 145,  // 128 + DdbType.symbol
+} as const)
+
+export type DdbType = ValueOf<typeof DdbType>
 
 
 export const number_nulls = new Map<DdbType, number | bigint>([
@@ -113,56 +117,64 @@ export const number_nulls = new Map<DdbType, number | bigint>([
 ])
 
 
-export enum DdbFunctionType {
-    SystemFunc = 0,
-    SystemProc = 1,
-    OperatorFunc = 2,
-    UserDefinedFunc = 3,
-    PartialFunc = 4,
-    DynamicFunc = 5,
-    PiecewiseFunc = 6,
-    JitFunc = 7,
-    JitPartialFunc = 8,
-}
+export const DdbFunctionType = set_reverse({
+    SystemFunc: 0,
+    SystemProc: 1,
+    OperatorFunc: 2,
+    UserDefinedFunc: 3,
+    PartialFunc: 4,
+    DynamicFunc: 5,
+    PiecewiseFunc: 6,
+    JitFunc: 7,
+    JitPartialFunc: 8,
+} as const)
+
+export type DdbFunctionType = ValueOf<typeof DdbFunctionType>
 
 
-export enum DdbDurationUnit {
-    ns = 0,
-    us = 1,
-    ms = 2,
-    s = 3,
-    m = 4,
-    H = 5,
-    d = 6,
-    w = 7,
-    M = 8,
-    y = 9,
-    B = 10
-}
+export const DdbDurationUnit = set_reverse({
+    ns: 0,
+    us: 1,
+    ms: 2,
+    s: 3,
+    m: 4,
+    H: 5,
+    d: 6,
+    w: 7,
+    M: 8,
+    y: 9,
+    B: 10
+} as const)
+
+export type DdbDurationUnit = ValueOf<typeof DdbDurationUnit>
 
 
-export enum DdbChartType {
-    area = 0,
-    bar = 1,
-    column = 2,
-    histogram = 3,
-    line = 4,
-    pie = 5,
-    scatter = 6,
-    trend = 7,
-    kline = 8,
-    surface = 9
-}
+export const DdbChartType = set_reverse({
+    area: 0,
+    bar: 1,
+    column: 2,
+    histogram: 3,
+    line: 4,
+    pie: 5,
+    scatter: 6,
+    trend: 7,
+    kline: 8,
+    surface: 9
+} as const)
+
+export type DdbChartType = ValueOf<typeof DdbChartType>
 
 
 // server 实现中区分了 0: NULL (nothing), 1: NULL (null), 2: DFLT (default)
 // Void::serialize()
 //     (isNothing() ? 0 : 1) + (isDefault_ ? 2 : 0);
-export enum DdbVoidType {
-    undefined = 0,
-    null = 1,
-    default = 2
-}
+export const DdbVoidType = set_reverse({
+    undefined: 0,
+    null: 1,
+    default: 2
+} as const)
+
+export type DdbVoidType = ValueOf<typeof DdbVoidType>
 
 
 export interface DdbFunctionDefValue {
@@ -236,10 +248,7 @@ export const dictables = new Set([DdbType.any, DdbType.string, DdbType.double, D
 
 
 /** 工具，取得某个 DdbType 的字节数 */
-export const ddb_tensor_bytes: Record<
-    DdbType.bool | DdbType.char | DdbType.short | DdbType.int | DdbType.long | DdbType.float | DdbType.double, 
-    number
-> = {
+export const ddb_tensor_bytes = {
     [DdbType.bool]: 1,
     [DdbType.char]: 1,
     [DdbType.short]: 2,
@@ -247,7 +256,7 @@ export const ddb_tensor_bytes: Record<
     [DdbType.long]: 8,
     [DdbType.float]: 4,
     [DdbType.double]: 8,
-}
+} as const
 
 
 export type TensorElem = TensorData | boolean | number | bigint | null | string
@@ -1056,3 +1065,13 @@ export function get_number_formatter (integer: boolean, decimals: number | null 
 
 
 export const urgent = { urgent: true }
+
+
+/** SQL Standrd 标准类型 */
+export const SqlStandard = set_reverse({
+    DolphinDB: 0,
+    Oracle: 1,
+    MySQL: 2
+} as const)
+
+export type SqlStandard = ValueOf<typeof SqlStandard>

@@ -35,8 +35,7 @@
         "inlineSources": true,
         
         // --- features
-        // 后面想办法把 erasableSyntaxOnly 改为 true
-        "erasableSyntaxOnly": false,
+        "erasableSyntaxOnly": true,
         "preserveSymlinks": false,
         "jsx": "react-jsx",
         "removeComments": false,

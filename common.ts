@@ -905,7 +905,7 @@ export const winsize = 10000 as const
 
 export type DdbRpcType = 'script' | 'function' | 'variable' | 'connect'
 
-export type DdbLanguage = 'dolphindb' | 'python' | 'kdb'
+export type DdbLanguage = 'dolphindb' | 'python' | 'q'
 
 
 const dolphindb_function_definition_pattern = /\bdef (\w+) \(/
@@ -913,7 +913,7 @@ const dolphindb_function_definition_pattern = /\bdef (\w+) \(/
 export const function_definition_patterns = {
     dolphindb: dolphindb_function_definition_pattern,
     python: dolphindb_function_definition_pattern,
-    kdb: /(\w+): \{\[/
+    q: /(\w+): \{\[/
 }
 
 
@@ -940,7 +940,7 @@ export const funcdefs = {
             '        args = cast(args, ANY)\n' +
             '    return unifiedCall(func_, args)\n',
         
-        kdb:
+        q:
             'invoke: {[fn; args_json]\n' +
             '    args_: fromStdJson[args_json];\n' +
             '    func_: fn;\n' +
@@ -968,7 +968,7 @@ export const funcdefs = {
             '        args_[0] = funcByName(args[0])\n' +
             '    return rpc(node, unifiedCall, funcByName(func_name), args_)\n',
         
-        kdb:
+        q:
             'jsrpc: {[node; func_name; args]\n' +
             '    args_: args;\n' +
             '    if[(`$func_name)=`invoke; args_[0]:funcByName[args[0]]];\n' +
@@ -1014,7 +1014,7 @@ export const funcdefs = {
             '        add_node_alias\n' +
             '    )\n',
         
-        kdb:
+        q:
             'pnode_run: {[nodes; func_name; args]\n' +
             '    nargs_: count args;\n' +
             '    func_: get toCharArray func_name;\n' +

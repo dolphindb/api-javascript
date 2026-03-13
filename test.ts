@@ -1,4 +1,4 @@
-import { deepEqual, deepStrictEqual } from 'assert/strict'
+import { deepEqual, deepStrictEqual } from 'node:assert/strict'
 
 import { assert, check, defer, inspect, MyProxy, ramdisk, set_inspect_options, WebSocketConnectionError } from 'xshell'
 
@@ -32,7 +32,7 @@ async function test_repl (ddb: DDB) {
 }
 
 
-;(async function test () {
+(async function test () {
     console.log('--- 测试开始 ---'.green)
     
     let ddb = new DDB(url, ddb_options)
@@ -549,8 +549,8 @@ async function test_invoke (ddb: DDB) {
     
     await ddb.eval(
         'def echo (data) {\n' +
-        // '	print(data)\n' +
-        '	return data\n' +
+        // '    print(data)\n' +
+        '    return data\n' +
         '}\n'
     )
     

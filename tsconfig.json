@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
         // --- module
-        "module": "ESNext", // none, CommonJS, amd, system, umd, es6, es2015, ESNext
+        "module": "ESNext",
         "moduleResolution": "Bundler",
         "allowSyntheticDefaultImports": true,
         "esModuleInterop": false,
@@ -35,6 +35,8 @@
         "inlineSources": true,
         
         // --- features
+        // 后面想办法把 erasableSyntaxOnly 改为 true
+        "erasableSyntaxOnly": false,
         "preserveSymlinks": false,
         "jsx": "react-jsx",
         "removeComments": false,
@@ -52,7 +54,7 @@
         "noImplicitOverride": true,
         "noUnusedLocals": false,
         "noUnusedParameters": false,
-        "skipLibCheck": true,
+        "skipLibCheck": true
     }
 }
 

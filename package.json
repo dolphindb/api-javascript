@@ -7,7 +7,7 @@
     "browser": "./browser.js",
     "scripts": {
         "build": "tsc",
-        "test": "node --experimental-transform-types ./test.ts",
+        "test": "node ./test.ts",
         "lint": "eslint \"**/*.{ts,tsx}\"",
         "fix": "eslint --fix \"**/*.{ts,tsx}\"",
         "scan": "i18n-scan --input \"**/*.{ts,tsx}\""

@@ -1,5 +1,7 @@
 {
     "compilerOptions": {
+        "types": ["node"],
+        
         // --- module
         "module": "esnext",
         "moduleResolution": "bundler",

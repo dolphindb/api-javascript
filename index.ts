@@ -5,7 +5,7 @@ import type { Dayjs } from 'dayjs'
 import {
     concat, assert, inspect, typed_array_to_buffer, connect_websocket, Lock, genid, seq, zip_object,
     WebSocketOpen, WebSocketClosed, WebSocketClosing, type WebSocketConnectionError,
-    decode, check, empty, colored
+    decode, check, empty, colored, map_keys, to_lower_camel_case
 } from 'xshell'
 
 import { t } from './i18n/index.ts'
@@ -96,7 +96,10 @@ export interface DdbChartValue {
     }
     
     extras?: {
-        multi_y_axes: boolean
+        multi_y_axes?: boolean
+        
+        /** 自适应 y 轴，而不是从 0 刻度开始 */
+        auto_scale_y_axes?: boolean
     }
     
     data: DdbMatrixObj
@@ -392,16 +395,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         },
                         ... bin_start ? { bin_start, bin_end, } : { },
                         ... bin_count ? { bin_count } : { },
-                        ... extras ? (() => {
-                            const { multiYAxes: multi_y_axes = false, ...extras_others } = extras.to_dict<{ multiYAxes: boolean }>({ strip: true })
-                            
-                            return {
-                                extras: {
-                                    multi_y_axes,
-                                    ...extras_others,
-                                }
-                            }
-                        })() : { },
+                        ... extras ? { extras: map_keys(extras.data()) } : { },
                         data,
                         ...others,
                     }
@@ -1533,10 +1527,9 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         ... bin_start ? { binStart: bin_start, binEnd: bin_end } : { },
                         ... bin_count ? { binCount: bin_count } : { },
                         title: new DdbVectorString(titles),
-                        ... extras ? (() => {
-                            const { multi_y_axes, ...extras_other } = extras
-                            return { extras: new DdbDict({ multiYAxes: multi_y_axes, ...extras_other }) }
-                        })() : { },
+                        ... extras ? {
+                            extras: new DdbDict(map_keys(extras, to_lower_camel_case))
+                        } : { },
                         data,
                     })
                     
@@ -4167,7 +4160,7 @@ export class DDB {
                         this.enc.encode(`API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent: u })}\n`),
                         command,
                         ... args.map(arg => arg.pack())
-                    ])
+                    ]) as BufferSource
                 )
             })
             

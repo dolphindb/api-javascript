@@ -1,8 +1,8 @@
 import type { Dayjs } from 'dayjs'
 
-import { empty } from 'xshell/prototype.browser.js'
+import { empty, to_lower_camel_case } from 'xshell/prototype.browser.js'
 import { blue, cyan, green, gray, magenta } from 'xshell/chalk.browser.js'
-import { concat, assert, Lock, genid, seq, zip_object, decode, delay, check } from 'xshell/utils.browser.js'
+import { concat, assert, Lock, genid, seq, zip_object, decode, delay, check, map_keys } from 'xshell/utils.browser.js'
 import { connect_websocket, type WebSocketConnectionError } from 'xshell/net.browser.js'
 
 import { t } from './i18n/index.ts'
@@ -93,7 +93,10 @@ export interface DdbChartValue {
     }
     
     extras?: {
-        multi_y_axes: boolean
+        multi_y_axes?: boolean
+        
+        /** 自适应 y 轴，而不是从 0 刻度开始 */
+        auto_scale_y_axes?: boolean
     }
     
     data: DdbMatrixObj
@@ -389,16 +392,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         },
                         ... bin_start ? { bin_start, bin_end, } : { },
                         ... bin_count ? { bin_count } : { },
-                        ... extras ? (() => {
-                            const { multiYAxes: multi_y_axes = false, ...extras_others } = extras.to_dict<{ multiYAxes: boolean }>({ strip: true })
-                            
-                            return {
-                                extras: {
-                                    multi_y_axes,
-                                    ...extras_others,
-                                }
-                            }
-                        })() : { },
+                        ... extras ? { extras: map_keys(extras.data()) } : { },
                         data,
                         ...others,
                     }
@@ -1523,10 +1517,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         ... bin_start ? { binStart: bin_start, binEnd: bin_end } : { },
                         ... bin_count ? { binCount: bin_count } : { },
                         title: new DdbVectorString([chart, x_axis, y_axis, z_axis]),
-                        ... extras ? (() => {
-                            const { multi_y_axes, ...extras_other } = extras
-                            return { extras: new DdbDict({ multiYAxes: multi_y_axes, ...extras_other }) }
-                        })() : { },
+                        ... extras ? { extras: new DdbDict(map_keys(extras, to_lower_camel_case)) } : { },
                         data,
                     })
                     
@@ -4182,7 +4173,7 @@ export class DDB {
                         this.enc.encode(`API2 ${this.sid} ${command.length} / ${this.get_rpc_options({ urgent: u })}\n`),
                         command,
                         ... args.map(arg => arg.pack())
-                    ])
+                    ]) as BufferSource
                 )
             })
             

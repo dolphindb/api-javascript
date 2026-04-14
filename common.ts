@@ -527,7 +527,13 @@ export function generate_array_type (baseType: string, dimensions: number[]): st
 
 
 /** 用来处理时差  To deal with jet lag */
-let _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', timeZone: 'UTC', hour12: false })
+let _datetime_formatter: Intl.DateTimeFormat
+
+export function set_timezone (timezone = 'UTC') {
+    _datetime_formatter = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'short', timeStyle: 'medium', timeZone: timezone, hour12: false })
+}
+
+set_timezone()
 
 
 export function date2ms (date: number | null) {

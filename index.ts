@@ -1971,7 +1971,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     const form = this.form
                     
                     function format_array (items: string[], ellipsis: boolean) {
-                        const str_items = items.join(', ') + (ellipsis ? ', ...' : '')
+                        const str_items = items.join(', ') + (ellipsis ? ', ··' : '')
                         
                         return form === DdbForm.pair ?
                                 str_items
@@ -2172,7 +2172,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         case DdbType.char: {
                             const limit = 150
                             
-                            const value = this.value as Uint8Array[]
+                            const value = this.value as Uint8Array
                             
                             const ellipsis = value.length > limit
                             

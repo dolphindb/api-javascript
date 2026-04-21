@@ -759,7 +759,7 @@ async function test_cancel (ddb: DDB) {
 }
 
 
-async function test_foramt_char_vector (ddb: DDB) {
+async function test_format_char_vector (ddb: DDB) {
     console.log(
         await ddb.eval("char([1, 2, 3, 97, 98, 99, ' ', 'h', 'e', '\\n', 10])"))
 }

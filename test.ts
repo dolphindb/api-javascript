@@ -758,3 +758,9 @@ async function test_cancel (ddb: DDB) {
     console.log('测试取消作业成功')
 }
 
+
+async function test_foramt_char_vector (ddb: DDB) {
+    console.log(
+        await ddb.eval("char([1, 2, 3, 97, 98, 99, ' ', 'h', 'e', '\\n', 10])"))
+}
+

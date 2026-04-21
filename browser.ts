@@ -2063,7 +2063,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                     
                     switch (this.type) {
                         case DdbType.symbol_extended: {
-                            const limit = 50 as const
+                            const limit = 50
                             
                             const { base, data } = this.value as DdbSymbolExtendedValue
                             
@@ -2086,7 +2086,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         case DdbType.uuid: 
                         case DdbType.int128: 
                         case DdbType.ipaddr: {
-                            const limit = 10 as const
+                            const limit = 10
                             
                             const value = this.value as Uint8Array
                             
@@ -2112,7 +2112,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         
                         case DdbType.complex:
                         case DdbType.point: {
-                            const limit = 20 as const
+                            const limit = 20
                             
                             const value = this.value as Float64Array
                             
@@ -2139,7 +2139,7 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                         case DdbType.decimal32: 
                         case DdbType.decimal64:
                         case DdbType.decimal128: {
-                            const limit = 50 as const
+                            const limit = 50
                             
                             const { data } = this.value as DdbDecimal32VectorValue | DdbDecimal64VectorValue | DdbDecimal128VectorValue
                             
@@ -2151,20 +2151,34 @@ export class DdbObj <TValue extends DdbValue = DdbValue> {
                             return format_array(items, data.length > limit)
                         }
                         
+                        
+                        case DdbType.char: {
+                            const limit = 150
+                            
+                            const value = this.value as Uint8Array[]
+                            
+                            const ellipsis = value.length > limit
+                            
+                            return (
+                                seq(ellipsis ? limit : value.length)
+                                    .map(i => convert(this.type, value[i], this.le))
+                                    .join('')
+                                + (ellipsis ? '··' : '')
+                            ).quote()
+                        }
+                        
                         default: {
-                            const limit = this.type === DdbType.compressed ? 5 : 50 as const
+                            const limit = this.type === DdbType.compressed ? 5 : 50
                             
                             let items = new Array(
-                                Math.min(limit, (this.value as any[]).length)
-                            )
+                                Math.min(limit, (this.value as any[]).length))
                             
                             for (let i = 0;  i < items.length;  i++)
                                 items[i] = format(this.type, this.value[i], this.le, options)
                             
                             return format_array(
                                 items,
-                                (this.value as any[]).length > limit
-                            )
+                                (this.value as any[]).length > limit)
                         }
                     }
                     

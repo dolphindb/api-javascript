@@ -536,37 +536,46 @@ export function set_timezone (timezone = 'UTC') {
 set_timezone()
 
 
-export function date2ms (date: number | null) {
-    // 将 server 的本地时间 (以 ms 为单位，1970.01.01 00:00:00 作为零点) 作为 UTC-0 格式化为字符串，然后根据本地的时区解析这个字符串转换为 UTC-8
-    // 本地的时区与实际的时间值相关，getTimezoneOffset() 可能会受到夏令时 (DST) 的影响，不能使用
-    // 得到的 utc 毫秒数交给 js date 或者 dayjs 去格式化
-    
+const is_leap = (y: number) =>
+    y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)
+
+
+const months_normal = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+const months_leap   = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+
+export function date2str (date: number | null) {
     if (date === null || date === nulls.int32)
-        return null
+        return 'null'
     
-    const ms = 1000 * 3600 * 24 * date
+    // 从 1970-01-01 开始计算
+    let year = 1970
+    let days = date
     
-    return timestamp2ms(ms)
+    // 处理正数日期（1970年之后）
+    while (days >= (is_leap(year) ? 366 : 365)) {
+        days -= is_leap(year) ? 366 : 365
+        ++year
+    }
+    
+    // 处理负数日期（1970年之前）
+    while (days < 0) {
+        --year
+        days += is_leap(year) ? 366 : 365
+    }
+    
+    const month_days = is_leap(year) ? months_leap : months_normal
+    let month = 0
+    while (days >= month_days[month]) {
+        days -= month_days[month]
+        ++month
+    }
+    
+    return String(year).padStart(4, '0') + '.' +
+        String(month + 1).padStart(2, '0') + '.' +
+        String(days + 1).padStart(2, '0')
 }
 
-export function date2str (date: number | null, format = 'YYYY.MM.DD') {
-    return (date === null || date === nulls.int32) ? 
-        'null'
-    :
-        dayjs(
-            date2ms(date)
-        ).format(format)
-}
-
-export function month2ms (month: number | null): number | null {
-    return (month === null || month === nulls.int32) ?
-        null
-    :
-        dayjs(
-            month2str(month),
-            'YYYY.MM[M]'
-        ).valueOf()
-}
 
 export function month2str (month: number | null) {
     if (month === null || month === nulls.int32)
@@ -575,61 +584,54 @@ export function month2str (month: number | null) {
     if (month < 0)
         return String(month)
     
-    const _month = month % 12
-    const year = Math.trunc(month / 12)
-    return `${String(year).padStart(4, '0')}.${String(_month + 1).padStart(2, '0')}M`
+    return String(Math.trunc(month / 12)).padStart(4, '0') + '.' +
+        String((month % 12) + 1).padStart(2, '0') + 'M'
 }
 
-export function time2ms (time: number | null): number | null {
-    return (time === null || time === nulls.int32) ?
-        null
-    :
-        timestamp2ms(time)
+
+export function time2str (time: number | null) {
+    if (time === null || time === nulls.int32)
+        return 'null'
+    
+    const negative = time < 0
+    
+    if (negative)
+        time = -time
+    
+    return (negative ? '-' : '') +
+        String(Math.floor(time / 3600000)).padStart(2, '0') + ':' +
+        String(Math.floor((time % 3600000) / 60000)).padStart(2, '0') + ':' +
+        String(Math.floor((time % 60000) / 1000)).padStart(2, '0') + '.' +
+        String(time % 1000).padStart(3, '0')
 }
 
-export function time2str (time: number | null, format = 'HH:mm:ss.SSS') {
-    return (time === null || time === nulls.int32) ?
-        'null'
-    :
-        dayjs(
-            time2ms(time)
-        ).format(format)
-}
 
-export function minute2ms (minute: number | null): number | null {
+export function minute2str (minute: number | null) {
     if (minute === null || minute === nulls.int32)
-        return null
+        return 'null'
     
-    const ms = 60 * 1000 * minute
+    const negative = minute < 0
+    if (negative)
+        minute = -minute
     
-    return timestamp2ms(ms)
+    return (negative ? '-' : '') +
+        String(Math.floor(minute / 60)).padStart(2, '0') + ':' +
+        String(minute % 60).padStart(2, '0') + 'm'
 }
 
-export function minute2str (minute: number | null, format = 'HH:mm[m]') {
-    return (minute === null || minute === nulls.int32) ?
-        'null'
-    :
-        dayjs(
-            minute2ms(minute)
-        ).format(format)
-}
 
-export function second2ms (second: number | null): number | null {
+export function second2str (second: number | null) {
     if (second === null || second === nulls.int32)
-        return null
+        return 'null'
     
-    const ms = 1000 * second
+    const negative = second < 0
+    if (negative)
+        second = -second
     
-    return timestamp2ms(ms)
-}
-
-export function second2str (second: number | null, format = 'HH:mm:ss') {
-    return (second === null || second === nulls.int32) ?
-        'null'
-    :
-        dayjs(
-            second2ms(second)
-        ).format(format)
+    return (negative ? '-' : '') +
+        String(Math.floor(second / 3600)).padStart(2, '0') + ':' +
+        String(Math.floor((second % 3600) / 60)).padStart(2, '0') + ':' +
+        String(second % 60).padStart(2, '0')
 }
 
 export function datetime2ms (datetime: number | null): number | null {
@@ -651,6 +653,10 @@ export function datetime2str (datetime: number | null, format = 'YYYY.MM.DD HH:m
 
 /** _datetime_formatter.format 会在 date 为 Invalid Date 时抛出错误 */
 export function timestamp2ms (timestamp: bigint | number | null): number | null {
+    // 将 server 的本地时间 (以 ms 为单位，1970.01.01 00:00:00 作为零点) 作为 UTC-0 格式化为字符串，然后根据本地的时区解析这个字符串转换为 UTC-8
+    // 本地的时区与实际的时间值相关，getTimezoneOffset() 可能会受到夏令时 (DST) 的影响，不能使用
+    // 得到的 utc 毫秒数交给 js date 或者 dayjs 去格式化
+    
     if (timestamp === null || timestamp === nulls.int64)
         return null
     
@@ -715,36 +721,17 @@ export function str2timestamp (str: string, format = 'YYYY.MM.DD HH:mm:ss.SSS') 
     )
 }
 
-export function nanotime2ns (nanotime: bigint | null): bigint | null {
-    return nanotimestamp2ns(nanotime)
-}
-
-export function nanotime2str (nanotime: bigint | null, format = 'HH:mm:ss.SSSSSSSSS') {
+/** 格式化为 HH:mm:ss.SSSSSSSSS */
+export function nanotime2str (nanotime: bigint | null) {
     if (nanotime === null || nanotime === nulls.int64)
         return 'null'
     
-    if (nanotime < 0n)
-        return String(nanotime)
+    const negative = nanotime < 0n
+    if (negative)
+        nanotime = -nanotime
     
-    const i_second_start = format.indexOf('ss')
-    check(i_second_start !== -1, t('格式串必须包含秒的格式 (ss)'))
-    
-    const i_second_end = i_second_start + 2
-    
-    const i_nanosecond_start = format.indexOf('SSSSSSSSS', i_second_end)
-    check(i_nanosecond_start !== -1, t('格式串必须包含纳秒的格式 (SSSSSSSSS)'))
-    
-    const ms = Number(nanotime) / 1000000
-    
-    return (
-        dayjs(
-            timestamp2ms(ms)
-        ).format(
-            format.slice(0, i_second_end)
-        ) + 
-        format.slice(i_second_end, i_nanosecond_start) + 
+    return time2str(Number(nanotime / 1000000n)).slice(-3) +
         String(nanotime % 1000000000n).padStart(9, '0')
-    )
 }
 
 export function nanotimestamp2ns (nanotimestamp: bigint | null): bigint | null {
@@ -853,11 +840,12 @@ export const time_formatters = new Map<
     [DdbType.date, date2str],
     [DdbType.month, month2str],
     [DdbType.time, time2str],
+    [DdbType.nanotime, nanotime2str],
     [DdbType.minute, minute2str],
     [DdbType.second, second2str],
+    
     [DdbType.datetime, datetime2str],
     [DdbType.timestamp, timestamp2str],
-    [DdbType.nanotime, nanotime2str],
     [DdbType.nanotimestamp, nanotimestamp2str],
     [DdbType.datehour, datehour2str],
 ])

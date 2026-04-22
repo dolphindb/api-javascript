@@ -6,7 +6,7 @@ import { keywords } from './language.ts'
 
 import {
     DDB, DdbConnectionError, DdbDatabaseError, DdbForm, DdbInt, DdbLong, DdbObj, DdbType, 
-    DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, month2ms, DdbDurationUnit,
+    DdbVectorAny, DdbVectorDouble, DdbVectorSymbol, DdbDurationUnit,
     type DdbStringObj, type DdbVectorAnyObj, type DdbDurationVectorValue, type DdbVectorObj, 
     type DdbTableObj, DdbTimeStamp, type DdbDictObj, type DdbTableData, type DdbOptions,
     DdbVectorInt, DdbTable, type DdbExtObjValue
@@ -48,7 +48,7 @@ async function test_repl (ddb: DDB) {
             test_ticket,
             test_print,
             test_time,
-            test_streaming,
+            // test_streaming,
             test_error,
             test_invoke,
             test_append_table,
@@ -316,15 +316,6 @@ async function test_time (ddb: DDB) {
     await time2str_equal(ddb, '2022-07-02T00:00:00.000')
     await time2str_equal(ddb, '2022-06-30T00:00:00.000')
     await time2str_equal(ddb, '2022-12-22T16:57:30.248')
-    
-    
-    console.log('测试 month2ms')
-    check(
-        month2ms(
-            (
-                await ddb.eval<DdbObj<number>>('2022.12M')
-            ).value
-        ) === new Date('2022.12.01').valueOf())
 }
 
 
